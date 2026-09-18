@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Assistente de Decupagem</title>
+    <style>
+      :root {
+        --bg: #1e1e1e;
+        --bg-elevated: #2a2a2a;
+        --text: #e8e8e8;
+        --muted: #9a9a9a;
+        --accent: #3d8bfd;
+        --accent-hover: #5aa0ff;
+        --border: #3a3a3a;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+        background: var(--bg);
+        color: var(--text);
+        font-family: "Segoe UI", Tahoma, sans-serif;
+      }
+
+      .painel {
+        min-height: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 16px;
+        padding: 24px;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: 15px;
+        font-weight: 600;
+        letter-spacing: 0.02em;
+      }
+
+      #btn-processar {
+        background: var(--accent);
+        color: #fff;
+        border: none;
+        border-radius: 6px;
+        padding: 10px 20px;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+      }
+
+      #btn-processar:hover {
+        background: var(--accent-hover);
+      }
+
+      #status {
+        margin: 0;
+        padding: 8px 12px;
+        width: 100%;
+        max-width: 240px;
+        text-align: center;
+        font-size: 12px;
+        color: var(--muted);
+        background: var(--bg-elevated);
+        border: 1px solid var(--border);
+        border-radius: 4px;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="painel">
+      <h1>Assistente de Decupagem</h1>
+      <button id="btn-processar" type="button">Processar Aula</button>
+      <p id="status">Aguardando...</p>
+    </main>
+  </body>
+</html>

@@ -7,7 +7,11 @@ import xml.etree.ElementTree as ET
 
 logger = logging.getLogger(__name__)
 
-XMEML_VERSION = "4"
+CABECALHO_XMEML = (
+    '<?xml version="1.0" encoding="UTF-8"?>\n'
+    "<!DOCTYPE xmeml>\n"
+    '<xmeml version="4">'
+)
 
 
 def seconds_to_frames(seconds: float, fps: int = 30) -> int:
@@ -29,46 +33,66 @@ def gerar_fcp_xml(
     try:
         logger.info("Iniciando geração do FCP XML em: %s", output_path)
 
-        clips_v1: list[dict] = []
-        clips_v2: list[dict] = []
-        for segmento in segmentos:
-            clip = {
-                "start": seconds_to_frames(float(segmento["start"]), fps),
-                "end": seconds_to_frames(float(segmento["end"]), fps),
-                "text": str(segmento.get("text", "")),
-                "track": str(segmento["track"]),
-            }
-            if clip["track"] == "V1":
-                clips_v1.append(clip)
+        caminho_video = _caminho_como_mp4(original_file_path)
+        pathurl_formatado = "file://localhost/" + caminho_video.replace("\\", "/")
+        nome_arquivo = os.path.basename(caminho_video)
+        logger.info("pathurl_formatado: %s", pathurl_formatado)
+
+        raiz = ET.Element("xmeml", version="4")
+        sequencia = ET.SubElement(raiz, "sequence")
+        ET.SubElement(sequencia, "name").text = "Aula_Cortada"
+        ET.SubElement(sequencia, "duration").text = "100000"
+        _adicionar_rate(sequencia)
+
+        media = ET.SubElement(sequencia, "media")
+        video = ET.SubElement(media, "video")
+        _adicionar_format_video(video)
+        trilha_v1 = ET.SubElement(video, "track")
+        trilha_v2 = ET.SubElement(video, "track")
+
+        total_v1 = 0
+        total_v2 = 0
+        for indice, segmento in enumerate(segmentos):
+            frame_start = seconds_to_frames(float(segmento["start"]), fps)
+            frame_end = seconds_to_frames(float(segmento["end"]), fps)
+
+            if str(segmento["track"]) == "V1":
+                trilha = trilha_v1
+                total_v1 += 1
             else:
-                clips_v2.append(clip)
+                trilha = trilha_v2
+                total_v2 += 1
 
-        logger.info(
-            "Clipes no XML: V1=%s, V2=%s.",
-            len(clips_v1),
-            len(clips_v2),
-        )
+            clipitem = ET.SubElement(trilha, "clipitem", id=f"clip_{indice}")
+            ET.SubElement(clipitem, "name").text = str(segmento.get("text", nome_arquivo))
+            ET.SubElement(clipitem, "enabled").text = "TRUE"
+            ET.SubElement(clipitem, "start").text = str(frame_start)
+            ET.SubElement(clipitem, "end").text = str(frame_end)
+            ET.SubElement(clipitem, "in").text = str(frame_start)
+            ET.SubElement(clipitem, "out").text = str(frame_end)
+            _adicionar_rate(clipitem)
 
-        raiz = _montar_xmeml(
-            clips_v1=clips_v1,
-            clips_v2=clips_v2,
-            original_file_path=original_file_path,
-            fps=fps,
-        )
-        ET.indent(raiz, space="  ")
-        xml_corpo = ET.tostring(raiz, encoding="unicode")
-        xml_documento = (
-            '<?xml version="1.0" encoding="UTF-8"?>\n'
-            "<!DOCTYPE xmeml>\n"
-            f"{xml_corpo}"
-        )
+        primeiro_ficheiro_declarado = False
+        for clipitem in list(trilha_v1) + list(trilha_v2):
+            if not primeiro_ficheiro_declarado:
+                arquivo = ET.SubElement(clipitem, "file", id="file_1")
+                ET.SubElement(arquivo, "name").text = nome_arquivo
+                ET.SubElement(arquivo, "pathurl").text = pathurl_formatado
+                _adicionar_rate(arquivo)
+                primeiro_ficheiro_declarado = True
+            else:
+                ET.SubElement(clipitem, "file", id="file_1")
+
+        logger.info("Clipes no XML: V1=%s, V2=%s.", total_v1, total_v2)
+
+        xml_documento = _serializar_xmeml(raiz)
 
         diretorio = os.path.dirname(os.path.abspath(output_path))
         if diretorio:
             os.makedirs(diretorio, exist_ok=True)
 
-        with open(output_path, "w", encoding="utf-8") as arquivo:
-            arquivo.write(xml_documento)
+        with open(output_path, "w", encoding="utf-8", newline="\n") as arquivo_xml:
+            arquivo_xml.write(xml_documento)
 
         caminho_absoluto = os.path.abspath(output_path)
         logger.info("FCP XML gerado com sucesso: %s", caminho_absoluto)
@@ -82,108 +106,40 @@ def gerar_fcp_xml(
         raise
 
 
-def _montar_xmeml(
-    clips_v1: list[dict],
-    clips_v2: list[dict],
-    original_file_path: str,
-    fps: int,
-) -> ET.Element:
-    """Constrói a árvore ``xmeml`` version 4 com duas tracks de vídeo."""
-    duracao = _duracao_sequencia(clips_v1, clips_v2)
-    nome_arquivo = os.path.basename(original_file_path)
-    pathurl = _para_pathurl(original_file_path)
-    file_id = "file-master"
+def _serializar_xmeml(raiz: ET.Element) -> str:
+    """Garante o cabeçalho obrigatório do Premiere e serializa o restante da árvore."""
+    sequencia = raiz.find("sequence")
+    if sequencia is None:
+        raise ValueError("Árvore XML sem <sequence>.")
 
-    raiz = ET.Element("xmeml", version=XMEML_VERSION)
-    sequencia = ET.SubElement(raiz, "sequence", id="sequence-1")
-    ET.SubElement(sequencia, "name").text = f"Pancake - {nome_arquivo}"
-    ET.SubElement(sequencia, "duration").text = str(duracao)
-    _adicionar_rate(sequencia, fps)
-
-    media = ET.SubElement(sequencia, "media")
-    video = ET.SubElement(media, "video")
-    formato = ET.SubElement(video, "format")
-    caracteristicas = ET.SubElement(formato, "samplecharacteristics")
-    _adicionar_rate(caracteristicas, fps)
-
-    trilha_v1 = ET.SubElement(video, "track")
-    trilha_v2 = ET.SubElement(video, "track")
-
-    file_definido = False
-    file_definido = _preencher_track(
-        trilha=trilha_v1,
-        clips=clips_v1,
-        fps=fps,
-        file_id=file_id,
-        pathurl=pathurl,
-        nome_arquivo=nome_arquivo,
-        prefixo_id="v1",
-        file_definido=file_definido,
+    ET.indent(sequencia, space="  ")
+    sequencia_xml = ET.tostring(sequencia, encoding="unicode")
+    sequencia_indentada = "\n".join(
+        f"  {linha}" if linha else linha for linha in sequencia_xml.splitlines()
     )
-    _preencher_track(
-        trilha=trilha_v2,
-        clips=clips_v2,
-        fps=fps,
-        file_id=file_id,
-        pathurl=pathurl,
-        nome_arquivo=nome_arquivo,
-        prefixo_id="v2",
-        file_definido=file_definido,
-    )
-    return raiz
+    return f"{CABECALHO_XMEML}\n{sequencia_indentada}\n</xmeml>\n"
 
 
-def _preencher_track(
-    trilha: ET.Element,
-    clips: list[dict],
-    fps: int,
-    file_id: str,
-    pathurl: str,
-    nome_arquivo: str,
-    prefixo_id: str,
-    file_definido: bool,
-) -> bool:
-    """Insere clipitems em uma track e devolve se a tag ``<file>`` já foi definida."""
-    for indice, clip in enumerate(clips, start=1):
-        clipitem = ET.SubElement(trilha, "clipitem", id=f"clip-{prefixo_id}-{indice}")
-        ET.SubElement(clipitem, "name").text = clip["text"] or nome_arquivo
-        ET.SubElement(clipitem, "enabled").text = "TRUE"
-        duracao_clip = max(clip["end"] - clip["start"], 0)
-        ET.SubElement(clipitem, "duration").text = str(duracao_clip)
-        _adicionar_rate(clipitem, fps)
-        ET.SubElement(clipitem, "start").text = str(clip["start"])
-        ET.SubElement(clipitem, "end").text = str(clip["end"])
-        ET.SubElement(clipitem, "in").text = str(clip["start"])
-        ET.SubElement(clipitem, "out").text = str(clip["end"])
-
-        if not file_definido:
-            arquivo = ET.SubElement(clipitem, "file", id=file_id)
-            ET.SubElement(arquivo, "name").text = nome_arquivo
-            ET.SubElement(arquivo, "pathurl").text = pathurl
-            _adicionar_rate(arquivo, fps)
-            file_definido = True
-        else:
-            ET.SubElement(clipitem, "file", id=file_id)
-
-    return file_definido
-
-
-def _adicionar_rate(parent: ET.Element, fps: int) -> None:
+def _adicionar_rate(parent: ET.Element) -> None:
+    """Insere o bloco de frame rate obrigatório do Premiere (30 fps, non-NTSC)."""
     rate = ET.SubElement(parent, "rate")
-    ET.SubElement(rate, "timebase").text = str(fps)
+    ET.SubElement(rate, "timebase").text = "30"
     ET.SubElement(rate, "ntsc").text = "FALSE"
 
 
-def _duracao_sequencia(clips_v1: list[dict], clips_v2: list[dict]) -> int:
-    finais = [clip["end"] for clip in clips_v1 + clips_v2]
-    return max(finais) if finais else 0
+def _adicionar_format_video(video: ET.Element) -> None:
+    """Insere o <format> 1920x1080 obrigatório antes das tracks de vídeo."""
+    formato = ET.SubElement(video, "format")
+    caracteristicas = ET.SubElement(formato, "samplecharacteristics")
+    _adicionar_rate(caracteristicas)
+    ET.SubElement(caracteristicas, "width").text = "1920"
+    ET.SubElement(caracteristicas, "height").text = "1080"
+    ET.SubElement(caracteristicas, "pixelaspectratio").text = "square"
 
 
-def _para_pathurl(file_path: str) -> str:
-    """Converte um path local no formato ``file://localhost/...`` do FCP XML."""
-    absoluto = os.path.abspath(file_path).replace("\\", "/")
-    if os.name == "nt":
-        return f"file://localhost/{absoluto}"
-    if not absoluto.startswith("/"):
-        absoluto = f"/{absoluto}"
-    return f"file://localhost{absoluto}"
+def _caminho_como_mp4(file_path: str) -> str:
+    """Troca extensão de áudio (.wav/.mp3) por .mp4 nas referências do XML."""
+    raiz, extensao = os.path.splitext(file_path)
+    if extensao.lower() in {".wav", ".mp3"}:
+        return f"{raiz}.mp4"
+    return file_path
