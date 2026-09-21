@@ -1,4 +1,4 @@
-"""Transcrição local de áudio com faster-whisper."""
+"""Transcrição local de mídia com faster-whisper."""
 
 import logging
 import traceback
@@ -22,7 +22,7 @@ def _carregar_modelo() -> WhisperModel:
 
 
 def transcrever_audio(file_path: str) -> list[dict]:
-    """Transcreve um arquivo de áudio e devolve segmentos com timestamps.
+    """Transcreve o áudio de um arquivo WAV ou MP4 e devolve segmentos.
 
     Returns:
         Lista de dicionários no formato ``{"start": float, "end": float, "text": str}``.
@@ -32,12 +32,18 @@ def transcrever_audio(file_path: str) -> list[dict]:
     try:
         caminho = Path(file_path)
         if not caminho.is_file():
-            raise FileNotFoundError(f"Arquivo de áudio não encontrado: {file_path}")
+            raise FileNotFoundError(f"Arquivo de mídia não encontrado: {file_path}")
 
         modelo = _carregar_modelo()
         logger.info("Transcrição iniciada para o arquivo: %s", file_path)
 
-        segmentos_whisper, _info = modelo.transcribe(str(caminho))
+        segmentos_whisper, _info = modelo.transcribe(
+            str(caminho),
+            language="pt",
+            vad_filter=True,
+            vad_parameters={"min_silence_duration_ms": 500},
+            word_timestamps=True,
+        )
         for segmento in segmentos_whisper:
             segmentos.append(
                 {
@@ -54,7 +60,7 @@ def transcrever_audio(file_path: str) -> list[dict]:
         return segmentos
     except FileNotFoundError:
         logger.critical(
-            "Arquivo de áudio não encontrado: %s\n%s",
+            "Arquivo de mídia não encontrado: %s\n%s",
             file_path,
             traceback.format_exc(),
         )
