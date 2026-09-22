@@ -20,19 +20,19 @@ function definirStatus(mensagem) {
 }
 
 /**
- * Solicita uma fonte de vídeo ao usuário.
+ * Solicita uma fonte de mídia ao usuário.
  * @param {string} nomeFonte
  * @param {boolean} obrigatoria
  * @returns {Promise<string|null>}
  */
-async function selecionarFonte(nomeFonte, obrigatoria) {
+async function selecionarFonte(nomeFonte, obrigatoria, tipos = ["mp4"]) {
   definirStatus(
     "Selecione " + nomeFonte + (obrigatoria ? "." : " (Cancelar para pular).")
   );
   console.log("[Decupagem] Solicitando fonte:", nomeFonte);
 
   const arquivo = await localFileSystem.getFileForOpening({
-    types: ["mp4"],
+    types: tipos,
     allowMultiple: false,
   });
 
@@ -81,10 +81,50 @@ async function processarAula() {
       definirStatus("Processamento cancelado: o PGM é obrigatório.");
       return;
     }
-
-    const camera1Path = await selecionarFonte("a Câmera 1", false);
-    const camera2Path = await selecionarFonte("a Câmera 2", false);
-    const pptPath = await selecionarFonte("o PPT/Tela", false);
+    const tipoProjeto = document.getElementById("projectType").value;
+    const tiposAudio = ["mp4", "mov", "m4a", "mp3", "wav", "aac"];
+    let fontes;
+    if (tipoProjeto === "videocast") {
+      const participantes = [];
+      for (let indice = 1; indice <= 4; indice += 1) {
+        const video = await selecionarFonte("a câmera do Participante " + indice, false);
+        const audio = video
+          ? await selecionarFonte("o áudio do Participante " + indice, false, tiposAudio)
+          : null;
+        participantes.push({ video, audio });
+      }
+      const cameraGeral = await selecionarFonte("a Câmera geral", false);
+      const audioCameraGeral = cameraGeral
+        ? await selecionarFonte("o áudio da Câmera geral", false, tiposAudio)
+        : null;
+      const audioMaster = await selecionarFonte(
+        "o áudio master/final (Cancelar para usar o áudio do PGM)", false, tiposAudio
+      );
+      fontes = {
+        pgm_path: pgmPath, project_type: "videocast",
+        participante_1_path: participantes[0].video,
+        participante_2_path: participantes[1].video,
+        participante_3_path: participantes[2].video,
+        participante_4_path: participantes[3].video,
+        camera_geral_path: cameraGeral,
+        audio_participante_1_path: participantes[0].audio,
+        audio_participante_2_path: participantes[1].audio,
+        audio_participante_3_path: participantes[2].audio,
+        audio_participante_4_path: participantes[3].audio,
+        audio_camera_geral_path: audioCameraGeral,
+        audio_path: audioMaster,
+      };
+    } else {
+      fontes = {
+        pgm_path: pgmPath, project_type: "videoaula",
+        camera_1_path: await selecionarFonte("a Câmera 1", false),
+        camera_2_path: await selecionarFonte("a Câmera 2", false),
+        ppt_path: await selecionarFonte("o PPT/Tela", false),
+        audio_path: await selecionarFonte(
+          "o áudio final (Cancelar para usar o áudio do PGM)", false, tiposAudio
+        ),
+      };
+    }
 
     definirStatus("Sincronizando pelo audio e processando a aula... Aguarde.");
 
@@ -95,12 +135,7 @@ async function processarAula() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          pgm_path: pgmPath,
-          camera_1_path: camera1Path,
-          camera_2_path: camera2Path,
-          ppt_path: pptPath,
-        }),
+        body: JSON.stringify(fontes),
       });
     } catch (erroRede) {
       console.error("[Decupagem] Backend inacessível:", erroRede);

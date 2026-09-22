@@ -4,15 +4,17 @@ import logging
 import os
 import json
 import traceback
+from contextlib import ExitStack
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from audio_sync import SyncError, sincronizar_audio
+from camera_director import dirigir_cameras
 from editorial_ai import EditorialModelError, obter_diagnostico_editorial
 from logic_engine import classificar_segmentos
-from media_utils import extrair_audio_temporario, obter_metadados
+from media_utils import extrair_audio_temporario, obter_metadados, obter_metadados_audio
 from transcriber import ModelUnavailableError, transcrever_audio
 from xml_generator import gerar_fcp_xml
 
@@ -21,7 +23,7 @@ logging.basicConfig(
     format="%(asctime)s | %(levelname)s | %(name)s | %(message)s",
 )
 logger = logging.getLogger(__name__)
-BACKEND_REVISION = "cortes-largos-permitidos-v8"
+BACKEND_REVISION = "diretor-cameras-audio-v15"
 
 app = FastAPI(
     title="Assistente de Decapagem",
@@ -44,7 +46,20 @@ class MediaRequest(BaseModel):
     pgm_path: str
     camera_1_path: str | None = None
     camera_2_path: str | None = None
+    camera_3_path: str | None = None
     ppt_path: str | None = None
+    audio_path: str | None = None
+    project_type: str = "videoaula"
+    participante_1_path: str | None = None
+    participante_2_path: str | None = None
+    participante_3_path: str | None = None
+    participante_4_path: str | None = None
+    camera_geral_path: str | None = None
+    audio_participante_1_path: str | None = None
+    audio_participante_2_path: str | None = None
+    audio_participante_3_path: str | None = None
+    audio_participante_4_path: str | None = None
+    audio_camera_geral_path: str | None = None
 
 
 @app.get("/health")
@@ -62,12 +77,25 @@ def health_check() -> dict[str, str]:
 def process_media(request: MediaRequest) -> dict:
     """Transcreve o PGM e prepara as fontes para o XML multicâmera."""
     try:
-        fontes = {
-            "PGM": request.pgm_path,
-            "Câmera 1": request.camera_1_path,
-            "Câmera 2": request.camera_2_path,
-            "PPT/Tela": request.ppt_path,
-        }
+        if request.project_type not in {"videoaula", "videocast"}:
+            raise ValueError("Tipo de projeto inválido. Use videoaula ou videocast.")
+        fontes = (
+            {
+                "PGM": request.pgm_path,
+                "Participante 1": request.participante_1_path,
+                "Participante 2": request.participante_2_path,
+                "Participante 3": request.participante_3_path,
+                "Participante 4": request.participante_4_path,
+                "Câmera geral": request.camera_geral_path,
+            }
+            if request.project_type == "videocast"
+            else {
+                "PGM": request.pgm_path,
+                "Câmera 1": request.camera_1_path,
+                "Câmera 2": request.camera_2_path,
+                "PPT/Tela": request.ppt_path,
+            }
+        )
         logger.info(
             "Processamento solicitado. Fontes: %s",
             {nome: caminho for nome, caminho in fontes.items() if caminho},
@@ -85,9 +113,9 @@ def process_media(request: MediaRequest) -> dict:
         pgm["offset_seconds"] = 0.0
         for fonte in metadados[1:]:
             if abs(float(fonte["fps"]) - float(pgm["fps"])) > 0.02:
-                raise ValueError(
-                    f"FPS incompatível entre PGM e {fonte['name']}: "
-                    f"{pgm['fps']:.3f} vs {fonte['fps']:.3f}"
+                logger.info(
+                    "Fonte %s usa %.3f fps; a timeline permanece em %.3f fps.",
+                    fonte["name"], fonte["fps"], pgm["fps"],
                 )
 
         sincronizacao = []
@@ -107,6 +135,42 @@ def process_media(request: MediaRequest) -> dict:
                     "source": fonte["label"], **ajuste.to_dict(),
                     "coverage_start": inicio, "coverage_end": fim,
                 })
+            entradas_audio = [("Áudio master", request.audio_path, None)]
+            if request.project_type == "videocast":
+                entradas_audio.extend([
+                    ("Áudio participante 1", request.audio_participante_1_path, "Participante 1"),
+                    ("Áudio participante 2", request.audio_participante_2_path, "Participante 2"),
+                    ("Áudio participante 3", request.audio_participante_3_path, "Participante 3"),
+                    ("Áudio participante 4", request.audio_participante_4_path, "Participante 4"),
+                    ("Áudio câmera geral", request.audio_camera_geral_path, "Câmera geral"),
+                ])
+            audios_externos = []
+            for rotulo, caminho_audio, camera_associada in entradas_audio:
+                if not caminho_audio:
+                    continue
+                fonte_audio = obter_metadados_audio(caminho_audio)
+                fonte_audio["label"] = rotulo
+                fonte_audio["name"] = os.path.basename(caminho_audio)
+                fonte_audio["camera_label"] = camera_associada
+                with extrair_audio_temporario(
+                    fonte_audio["path"], fonte_audio.get("audio_start", 0.0)
+                ) as audio_externo:
+                    try:
+                        ajuste = sincronizar_audio(audio_path, audio_externo, float(pgm["fps"]))
+                    except SyncError as exc:
+                        raise SyncError(
+                            f"{rotulo} ({fonte_audio['name']}): {exc}"
+                        ) from exc
+                fonte_audio["offset_seconds"] = ajuste.offset_seconds
+                inicio = max(0.0, ajuste.offset_seconds)
+                fim = min(float(pgm["duration"]), ajuste.offset_seconds + float(fonte_audio["duration"]))
+                if fim <= inicio:
+                    raise SyncError("Áudio externo não cobre nenhum trecho do PGM.")
+                sincronizacao.append({
+                    "source": fonte_audio["label"], **ajuste.to_dict(),
+                    "coverage_start": inicio, "coverage_end": fim,
+                })
+                audios_externos.append(fonte_audio)
             segmentos = transcrever_audio(audio_path)
             segmentos_classificados = classificar_segmentos(
                 segmentos,
@@ -114,6 +178,27 @@ def process_media(request: MediaRequest) -> dict:
                 revisao_semantica=True,
                 audio_path=audio_path,
             )
+            camera_por_segmento = None
+            if request.project_type == "videocast":
+                with ExitStack() as arquivos_temporarios:
+                    fontes_direcao = []
+                    for fonte in audios_externos:
+                        if fonte.get("camera_label") in (None, "Câmera geral"):
+                            continue
+                        wav = arquivos_temporarios.enter_context(
+                            extrair_audio_temporario(
+                                fonte["path"], fonte.get("audio_start", 0.0)
+                            )
+                        )
+                        fontes_direcao.append((
+                            fonte["camera_label"], wav, float(fonte["offset_seconds"])
+                        ))
+                    camera_geral = (
+                        "Câmera geral" if request.camera_geral_path else "PGM"
+                    )
+                    camera_por_segmento = dirigir_cameras(
+                        segmentos_classificados, fontes_direcao, camera_geral
+                    )
 
         raiz_arquivo, _extensao = os.path.splitext(request.pgm_path)
         xml_output_path = f"{raiz_arquivo}_cortado.xml"
@@ -124,6 +209,10 @@ def process_media(request: MediaRequest) -> dict:
             xml_output_path,
             fps=float(pgm["fps"]),
             duracao_total=float(pgm["duration"]),
+            fontes_audio=_preparar_fontes_audio_xml(
+                pgm, audios_externos, bool(request.audio_path)
+            ),
+            camera_por_segmento=camera_por_segmento,
         )
         diagnostico_path = f"{raiz_arquivo}_diagnostico.json"
         with open(diagnostico_path, "w", encoding="utf-8") as diagnostico:
@@ -164,6 +253,26 @@ def process_media(request: MediaRequest) -> dict:
             traceback.format_exc(),
         )
         raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+def _preparar_fontes_audio_xml(
+    pgm: dict, audios_externos: list[dict], tem_audio_master: bool
+) -> list[dict]:
+    """Deixa apenas o master ativo; áudios de câmera ficam como alternativas."""
+    if tem_audio_master:
+        master = dict(audios_externos[0])
+        master["enabled_by_default"] = True
+        alternativas = [dict(fonte, enabled_by_default=False) for fonte in audios_externos[1:]]
+    else:
+        master = dict(pgm)
+        master["enabled_by_default"] = True
+        alternativas = [dict(fonte, enabled_by_default=False) for fonte in audios_externos]
+    fontes = [master, *alternativas]
+    logger.info(
+        "Áudios incluídos no XML: %s (ativo: %s)",
+        [fonte["name"] for fonte in fontes], master["name"],
+    )
+    return fontes
 
 
 if __name__ == "__main__":

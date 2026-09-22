@@ -45,6 +45,16 @@
         letter-spacing: 0.02em;
       }
 
+      #projectType {
+        width: 100%;
+        max-width: 240px;
+        padding: 8px;
+        color: var(--text);
+        background: var(--bg-elevated);
+        border: 1px solid var(--border);
+        border-radius: 4px;
+      }
+
       #btnProcessar {
         background: var(--accent);
         color: #fff;
@@ -77,7 +87,11 @@
   <body>
     <main class="painel">
       <h1>Assistente de Decupagem</h1>
-      <button id="btnProcessar" type="button">Processar Aula</button>
+      <select id="projectType" aria-label="Tipo de projeto">
+        <option value="videoaula">Vídeo-aula</option>
+        <option value="videocast">Videocast</option>
+      </select>
+      <button id="btnProcessar" type="button">Selecionar fontes e processar</button>
       <p id="statusText">Aguardando...</p>
     </main>
     <script src="main.js"></script>

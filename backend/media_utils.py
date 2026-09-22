@@ -51,6 +51,38 @@ def obter_metadados(file_path: str) -> dict:
     }
 
 
+def obter_metadados_audio(file_path: str) -> dict:
+    """Obtém a duração de uma fonte de áudio externa."""
+    caminho = Path(file_path)
+    if not caminho.is_file():
+        raise FileNotFoundError(f"Arquivo de mídia não encontrado: {file_path}")
+    comando = [
+        "ffprobe", "-v", "error", "-select_streams", "a:0",
+        "-show_entries", "stream=duration,start_time:format=duration,start_time",
+        "-of", "json", str(caminho),
+    ]
+    logger.info("Lendo metadados de áudio: %s", file_path)
+    resultado = subprocess.run(comando, capture_output=True, text=True, check=True)
+    dados = json.loads(resultado.stdout)
+    streams = dados.get("streams", [])
+    if not streams:
+        raise ValueError(f"Nenhuma faixa de áudio encontrada: {file_path}")
+    stream = streams[0]
+    duracao = float(
+        stream.get("duration")
+        if stream.get("duration") not in (None, "N/A", "")
+        else dados["format"]["duration"]
+    )
+    if duracao <= 0:
+        raise ValueError(f"Metadados de áudio inválidos para: {file_path}")
+    return {
+        "path": str(caminho.resolve()),
+        "duration": duracao,
+        "audio_start": float(stream.get("start_time", 0) or 0),
+        "kind": "audio",
+    }
+
+
 @contextmanager
 def extrair_audio_temporario(file_path: str, video_start: float = 0.0) -> Iterator[str]:
     """Extrai WAV mono/16 kHz e remove o arquivo ao final do processamento."""

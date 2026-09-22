@@ -57,7 +57,7 @@ def test_health_check() -> None:
     resposta = client.get("/health")
     assert resposta.status_code == 200
     assert resposta.json() == {
-        "status": "ok", "revision": "retake-ultima-tentativa-v7"
+        "status": "ok", "revision": "diretor-cameras-audio-v15"
     }
 
 

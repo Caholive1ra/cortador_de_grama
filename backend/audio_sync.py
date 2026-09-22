@@ -12,6 +12,7 @@ import numpy as np
 
 logger = logging.getLogger(__name__)
 ENVELOPE_HZ = 100
+MAXIMO_DESVIO_SINCRONIZACAO_QUADROS = 1.5
 
 
 class SyncError(ValueError):
@@ -102,7 +103,7 @@ def sincronizar_audio(pgm_path: str, fonte_path: str, fps: float) -> SyncResult:
     """Busca global e confirmacao por forma de onda no inicio, meio e fim.
 
     Exige pelo menos 12 s de sobreposicao. Audio repetitivo, silencioso,
-    sem correspondencia ou com drift superior a um quadro e rejeitado.
+    sem correspondencia ou com drift superior a 1,5 quadro e rejeitado.
     """
     pgm, dur_pgm = _envelope(pgm_path)
     fonte, dur_fonte = _envelope(fonte_path)
@@ -156,14 +157,30 @@ def sincronizar_audio(pgm_path: str, fonte_path: str, fps: float) -> SyncResult:
         resultados.append((indice, deslocamento, score))
     offsets = [item[1] for item in resultados]
     drift = max(offsets) - min(offsets) if offsets else 0.0
-    if drift > 1 / fps:
+    limite_drift = MAXIMO_DESVIO_SINCRONIZACAO_QUADROS / fps
+    if drift > limite_drift:
         raise SyncError(
             f"Desvio de sincronizacao de {drift:.3f}s ao longo da gravacao "
-            "(mais de um quadro). Corrija a sincronizacao manualmente antes de processar."
+            f"(mais de {MAXIMO_DESVIO_SINCRONIZACAO_QUADROS:g} quadro(s)). "
+            "Corrija a sincronizacao manualmente antes de processar."
+        )
+    if drift > 1 / fps:
+        logger.warning(
+            "Sincronizacao aceita com desvio leve de %.3fs (%.2f quadros).",
+            drift, drift * fps,
         )
     indices = {item[0] for item in resultados}
-    if len(resultados) < 3 or 2 not in indices or resultados[0][0] > 1 or resultados[-1][0] < 3:
-        raise SyncError("Nao foi possivel confirmar o audio no inicio, meio e fim. Alinhe manualmente ou pule esta fonte.")
+    if len(resultados) < 2:
+        raise SyncError(
+            "Nao foi possivel confirmar o audio em pelo menos dois trechos da gravacao. "
+            "Alinhe manualmente ou pule esta fonte."
+        )
+    if 2 not in indices or resultados[0][0] > 1 or resultados[-1][0] < 3:
+        logger.warning(
+            "Sincronizacao aceita com %d confirmações, mas sem cobertura completa "
+            "de inicio/meio/fim. Revise esta fonte no Premiere.",
+            len(resultados),
+        )
     result = SyncResult(float(np.median(offsets)), min(x[2] for x in resultados), drift, len(resultados))
     logger.info("Sincronizacao confirmada: %s", result)
     return result

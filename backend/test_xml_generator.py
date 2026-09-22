@@ -93,6 +93,86 @@ def test_gera_xml_somente_com_pgm(tmp_path) -> None:
     assert len(raiz.findall("./sequence/media/video/track")) == 1
 
 
+def test_gera_audio_externo_sincronizado(tmp_path) -> None:
+    output_path = tmp_path / "audio_externo.xml"
+    audio = {
+        "name": "gravador.wav",
+        "path": r"C:\Aulas\gravador.wav",
+        "duration": 2.0,
+        "offset_seconds": 1.0,
+        "kind": "audio",
+    }
+    gerar_fcp_xml(
+        [{"start": 0.0, "end": 3.0, "enabled": True}],
+        _fontes()[:1],
+        str(output_path),
+        30.0,
+        3.0,
+        fonte_audio=audio,
+    )
+    raiz = ET.parse(output_path).getroot()
+    clipe = raiz.find("./sequence/media/audio/track/clipitem")
+    assert clipe is not None
+    assert [clipe.findtext(chave) for chave in ("start", "end", "in", "out")] == [
+        "30", "90", "0", "60"
+    ]
+    assert clipe.findtext("name") == "gravador.wav"
+    assert clipe.find("file/pathurl") is not None
+
+
+def test_gera_uma_trilha_para_cada_audio_externo(tmp_path) -> None:
+    audios = [
+        {"name": f"pessoa_{indice}.wav", "path": rf"C:\Aulas\pessoa_{indice}.wav",
+         "duration": 3.0, "offset_seconds": 0.0, "kind": "audio"}
+        for indice in range(1, 4)
+    ]
+    path = tmp_path / "videocast.xml"
+    gerar_fcp_xml(
+        [{"start": 0.0, "end": 3.0, "enabled": True}], _fontes(), str(path),
+        30.0, 3.0, fontes_audio=audios,
+    )
+    raiz = ET.parse(path).getroot()
+    trilhas = raiz.findall("./sequence/media/audio/track")
+    assert len(trilhas) == 3
+    assert [trilha.findtext("clipitem/name") for trilha in trilhas] == [
+        "pessoa_1.wav", "pessoa_2.wav", "pessoa_3.wav"
+    ]
+
+
+def test_audio_alternativo_inicia_desabilitado_e_acompanha_corte(tmp_path) -> None:
+    master = {"name": "master.wav", "path": r"C:\Aulas\master.wav", "duration": 2.0,
+              "offset_seconds": 0.0, "kind": "audio", "enabled_by_default": True}
+    alternativa = {"name": "camera.wav", "path": r"C:\Aulas\camera.wav", "duration": 2.0,
+                   "offset_seconds": 0.0, "kind": "audio", "enabled_by_default": False}
+    path = tmp_path / "audios_habilitados.xml"
+    gerar_fcp_xml(
+        [{"start": 0.0, "end": 1.0, "enabled": True},
+         {"start": 1.0, "end": 2.0, "enabled": False}],
+        _fontes()[:1], str(path), 30.0, 2.0, fontes_audio=[master, alternativa],
+    )
+    raiz = ET.parse(path).getroot()
+    trilhas = raiz.findall("./sequence/media/audio/track")
+    assert [clipe.findtext("enabled") for clipe in trilhas[0].findall("clipitem")] == ["TRUE", "FALSE"]
+    assert [clipe.findtext("enabled") for clipe in trilhas[1].findall("clipitem")] == ["FALSE", "FALSE"]
+
+
+def test_aceita_camera_5994_em_timeline_2997(tmp_path) -> None:
+    fontes = _fontes()[:2]
+    fontes[0]["fps"] = 29.97
+    fontes[1]["fps"] = 59.94
+    path = tmp_path / "fps_misto.xml"
+    gerar_fcp_xml(
+        [{"start": 0.0, "end": 2.0, "enabled": True}], fontes, str(path),
+        29.97, 2.0,
+    )
+    raiz = ET.parse(path).getroot()
+    camera_60p = raiz.findall("./sequence/media/video/track")[1].find("clipitem")
+    assert camera_60p is not None
+    assert [camera_60p.findtext(chave) for chave in ("start", "end", "in", "out")] == [
+        "0", "60", "0", "120"
+    ]
+
+
 def test_offsets_lacunas_limites_e_declaracao_tardia(tmp_path) -> None:
     fontes = _fontes()
     fontes[1].update(offset_seconds=2.0, duration=0.5)

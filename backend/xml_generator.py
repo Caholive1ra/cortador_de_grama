@@ -26,8 +26,11 @@ def gerar_fcp_xml(
     output_path: str,
     fps: float,
     duracao_total: float,
+    fonte_audio: dict | None = None,
+    fontes_audio: list[dict] | None = None,
+    camera_por_segmento: list[str] | None = None,
 ) -> str:
-    """Cria de uma a quatro tracks sincronizadas e uma track de áudio PGM."""
+    """Cria tracks de vídeo sincronizadas e uma track de áudio final."""
     try:
         _validar_entrada(segmentos, fontes, duracao_total)
         logger.info("Iniciando geração do FCP XML em: %s", output_path)
@@ -47,8 +50,10 @@ def gerar_fcp_xml(
 
         audio = ET.SubElement(media, "audio")
         _adicionar_format_audio(audio)
-        trilha_audio = ET.SubElement(audio, "track")
+        fontes_audio_finais = fontes_audio or [fonte_audio or fontes[0]]
+        trilhas_audio = [ET.SubElement(audio, "track") for _ in fontes_audio_finais]
         arquivos_declarados: set[int] = set()
+        arquivos_audio_declarados: set[int] = set()
 
         for indice_segmento, segmento in enumerate(segmentos):
             frame_start = seconds_to_frames(float(segmento["start"]), fps)
@@ -58,16 +63,28 @@ def gerar_fcp_xml(
             habilitado = bool(
                 segmento.get("enabled", segmento.get("track") != "V1")
             )
+            camera_ativa = (
+                camera_por_segmento[indice_segmento]
+                if camera_por_segmento and indice_segmento < len(camera_por_segmento)
+                else None
+            )
             for indice_fonte, (fonte, trilha) in enumerate(
                 zip(fontes, trilhas_video), start=1
             ):
-                # Converte posicoes na timeline em posicoes da midia original.
-                offset = seconds_to_frames(float(fonte.get("offset_seconds", 0.0)), fps)
-                duracao_fonte = seconds_to_frames(float(fonte["duration"]), fps)
-                inicio = max(frame_start, offset, 0)
-                fim = min(frame_end, offset + duracao_fonte)
-                if fim <= inicio:
+                # A timeline usa o FPS do PGM; in/out usam o FPS nativo da fonte.
+                offset_segundos = float(fonte.get("offset_seconds", 0.0))
+                inicio_segundos = max(float(segmento["start"]), offset_segundos, 0.0)
+                fim_segundos = min(
+                    float(segmento["end"]),
+                    offset_segundos + float(fonte["duration"]),
+                )
+                if fim_segundos <= inicio_segundos:
                     continue
+                inicio = seconds_to_frames(inicio_segundos, fps)
+                fim = seconds_to_frames(fim_segundos, fps)
+                fps_fonte = float(fonte.get("fps", fps))
+                inicio_fonte = seconds_to_frames(inicio_segundos - offset_segundos, fps_fonte)
+                fim_fonte = seconds_to_frames(fim_segundos - offset_segundos, fps_fonte)
                 clip = _adicionar_clipitem(
                     trilha,
                     f"video_{indice_fonte}_{indice_segmento}",
@@ -76,8 +93,9 @@ def gerar_fcp_xml(
                     fim,
                     "video",
                     fps,
-                    habilitado,
-                    source_start=inicio - offset,
+                    habilitado and (camera_ativa is None or fonte.get("label") == camera_ativa),
+                    source_start=inicio_fonte,
+                    source_end=fim_fonte,
                 )
                 _adicionar_arquivo(
                     clip,
@@ -88,18 +106,40 @@ def gerar_fcp_xml(
                 )
                 arquivos_declarados.add(indice_fonte)
 
-            clip_audio = _adicionar_clipitem(
-                trilha_audio,
-                f"audio_1_{indice_segmento}",
-                fontes[0]["name"],
-                frame_start,
-                frame_end,
-                "audio",
-                fps,
-                habilitado,
-                source_track_index=1,
-            )
-            _adicionar_arquivo(clip_audio, "file_1", fontes[0], fps, declarar=False)
+            for indice_audio, (fonte_audio_final, trilha_audio) in enumerate(
+                zip(fontes_audio_finais, trilhas_audio), start=1
+            ):
+                habilitado_audio = habilitado and bool(
+                    fonte_audio_final.get("enabled_by_default", True)
+                )
+                offset_audio = seconds_to_frames(
+                    float(fonte_audio_final.get("offset_seconds", 0.0)), fps
+                )
+                duracao_audio = seconds_to_frames(float(fonte_audio_final["duration"]), fps)
+                inicio_audio = max(frame_start, offset_audio, 0)
+                fim_audio = min(frame_end, offset_audio + duracao_audio)
+                if fim_audio <= inicio_audio:
+                    continue
+                clip_audio = _adicionar_clipitem(
+                    trilha_audio,
+                    f"audio_{indice_audio}_{indice_segmento}",
+                    fonte_audio_final["name"],
+                    inicio_audio,
+                    fim_audio,
+                    "audio",
+                    fps,
+                    habilitado_audio,
+                    source_track_index=1,
+                    source_start=inicio_audio - offset_audio,
+                )
+                _adicionar_arquivo(
+                    clip_audio,
+                    f"file_audio_{indice_audio}",
+                    fonte_audio_final,
+                    fps,
+                    declarar=indice_audio not in arquivos_audio_declarados,
+                )
+                arquivos_audio_declarados.add(indice_audio)
 
         xml_documento = _serializar_xmeml(raiz)
         diretorio = os.path.dirname(os.path.abspath(output_path))
@@ -116,8 +156,8 @@ def gerar_fcp_xml(
 
 
 def _validar_entrada(segmentos: list[dict], fontes: list[dict], duracao: float) -> None:
-    if not 1 <= len(fontes) <= 4:
-        raise ValueError("O XML exige entre uma e quatro fontes.")
+    if not 1 <= len(fontes) <= 6:
+        raise ValueError("O XML exige entre uma e seis fontes de vídeo.")
     if duracao <= 0 or not segmentos:
         raise ValueError("A timeline precisa possuir duração e segmentos.")
     cursor = 0.0
@@ -183,6 +223,7 @@ def _adicionar_clipitem(
     enabled: bool,
     source_track_index: int | None = None,
     source_start: int | None = None,
+    source_end: int | None = None,
 ) -> ET.Element:
     clipitem = ET.SubElement(trilha, "clipitem", id=clip_id)
     ET.SubElement(clipitem, "name").text = nome
@@ -192,7 +233,8 @@ def _adicionar_clipitem(
     ET.SubElement(clipitem, "end").text = str(frame_end)
     entrada = frame_start if source_start is None else source_start
     ET.SubElement(clipitem, "in").text = str(entrada)
-    ET.SubElement(clipitem, "out").text = str(entrada + frame_end - frame_start)
+    saida = entrada + frame_end - frame_start if source_end is None else source_end
+    ET.SubElement(clipitem, "out").text = str(saida)
     _adicionar_rate(clipitem, fps)
     sourcetrack = ET.SubElement(clipitem, "sourcetrack")
     ET.SubElement(sourcetrack, "mediatype").text = media_type
@@ -218,12 +260,13 @@ def _adicionar_arquivo(
         seconds_to_frames(float(fonte["duration"]), fps)
     )
     media = ET.SubElement(arquivo, "media")
-    video = ET.SubElement(media, "video")
-    caracteristicas = ET.SubElement(video, "samplecharacteristics")
-    _adicionar_rate(caracteristicas, fps)
-    ET.SubElement(caracteristicas, "width").text = str(fonte["width"])
-    ET.SubElement(caracteristicas, "height").text = str(fonte["height"])
-    ET.SubElement(caracteristicas, "pixelaspectratio").text = "square"
+    if fonte.get("kind") != "audio":
+        video = ET.SubElement(media, "video")
+        caracteristicas = ET.SubElement(video, "samplecharacteristics")
+        _adicionar_rate(caracteristicas, fps)
+        ET.SubElement(caracteristicas, "width").text = str(fonte["width"])
+        ET.SubElement(caracteristicas, "height").text = str(fonte["height"])
+        ET.SubElement(caracteristicas, "pixelaspectratio").text = "square"
     audio = ET.SubElement(media, "audio")
     ET.SubElement(audio, "channelcount").text = "2"
 
