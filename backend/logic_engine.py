@@ -5,22 +5,28 @@ import re
 import unicodedata
 from difflib import SequenceMatcher
 
+from editorial_ai import EditorialDecision, decidir_cortes_semanticos
+
 logger = logging.getLogger(__name__)
 
 GATILHOS_ERRO = (
-    "errei", "desculpa", "corta", "pode cortar", "vou repetir",
-    "vou recomeçar", "de novo", "mais uma vez", "não ficou bom",
-    "vamos novamente", "volta", "retoma",
+    "errei", "falei errado", "pode cortar", "vou recomeçar",
+    "não ficou bom", "vamos novamente", "começar de novo",
 )
 LIMITE_SILENCIO_SEGUNDOS = 1.0
 JANELA_REPETICAO_SEGUNDOS = 15.0
 SIMILARIDADE_REPETICAO = 0.72
 MINIMO_PALAVRAS_REPETICAO = 3
+MAXIMO_DESCARTE_SEMANTICO_PORCENTAGEM = 0.70
+JANELA_MICROSEGMENTO_SEGUNDOS = 2.0
+GATILHOS_ERRO += ("ficou ruim essa parte", "deixa eu voltar essa parte")
 
 
 def classificar_segmentos(
     segmentos: list[dict],
     duracao_total: float | None = None,
+    revisao_semantica: bool = True,
+    audio_path: str | None = None,
 ) -> list[dict]:
     """Classifica e normaliza os segmentos em uma linha do tempo contínua.
 
@@ -28,11 +34,20 @@ def classificar_segmentos(
     intervalo entre zero e o fim da mídia. Pausas curtas permanecem habilitadas;
     silêncios de um segundo ou mais são marcados para descarte.
     """
+    segmentos = _criar_microsegmentos(segmentos)
+    decisao = (
+        decidir_cortes_semanticos(segmentos, audio_path=audio_path)
+        if revisao_semantica and segmentos
+        else EditorialDecision(set(), {})
+    )
+    decisao = _validar_decisao_semantica(segmentos, decisao)
     classificados: list[dict] = []
     indice_fala_anterior: int | None = None
     fim_anterior = 0.0
 
-    for segmento in sorted(segmentos, key=lambda item: float(item["start"])):
+    for indice_original, segmento in sorted(
+        enumerate(segmentos), key=lambda item: float(item[1]["start"])
+    ):
         inicio = max(0.0, float(segmento["start"]))
         fim = float(segmento["end"])
         if duracao_total is not None:
@@ -58,27 +73,16 @@ def classificar_segmentos(
             })
 
         texto_normalizado = _normalizar_texto(texto)
-        contem_gatilho = _contem_gatilho(texto_normalizado)
+        motivo_semantico = decisao.reasons.get(indice_original)
+        contem_gatilho = _contem_gatilho(texto_normalizado) or motivo_semantico is not None
         atual = {
             "start": inicio,
             "end": fim,
             "text": texto,
             "track": "V1" if contem_gatilho else "V2",
             "enabled": not contem_gatilho,
-            "reason": "comando_de_corte" if contem_gatilho else "fala_util",
+            "reason": motivo_semantico or ("comando_de_corte" if contem_gatilho else "fala_util"),
         }
-
-        if indice_fala_anterior is not None and not contem_gatilho:
-            anterior = classificados[indice_fala_anterior]
-            distancia = inicio - float(anterior["end"])
-            if (
-                distancia <= JANELA_REPETICAO_SEGUNDOS
-                and _parece_nova_tentativa(str(anterior["text"]), texto)
-            ):
-                anterior["track"] = "V1"
-                anterior["enabled"] = False
-                anterior["reason"] = "tentativa_substituida"
-                atual["reason"] = "ultima_tentativa"
 
         classificados.append(atual)
         indice_fala_anterior = len(classificados) - 1
@@ -100,6 +104,72 @@ def classificar_segmentos(
     total_v2 = sum(1 for item in classificados if item["track"] == "V2")
     logger.info("Análise concluída. Descartes: %s. Trechos úteis: %s.", total_v1, total_v2)
     return classificados
+
+
+def _criar_microsegmentos(segmentos: list[dict]) -> list[dict]:
+    """Divide falas longas usando timestamps de palavras para cortes precisos."""
+    resultado: list[dict] = []
+    for segmento in segmentos:
+        palavras = segmento.get("words") or []
+        if not palavras:
+            resultado.append(segmento)
+            continue
+        lote: list[dict] = []
+        inicio_lote: float | None = None
+        for palavra in palavras:
+            inicio = float(palavra["start"])
+            if inicio_lote is not None and inicio - inicio_lote >= JANELA_MICROSEGMENTO_SEGUNDOS:
+                resultado.append(_montar_microsegmento(lote))
+                lote, inicio_lote = [], None
+            lote.append(palavra)
+            inicio_lote = inicio if inicio_lote is None else inicio_lote
+        if lote:
+            resultado.append(_montar_microsegmento(lote))
+    return resultado
+
+
+def _montar_microsegmento(palavras: list[dict]) -> dict:
+    return {
+        "start": float(palavras[0]["start"]),
+        "end": float(palavras[-1]["end"]),
+        "text": " ".join(str(palavra["word"]).strip() for palavra in palavras).strip(),
+        "words": palavras,
+    }
+
+
+def _validar_decisao_semantica(
+    segmentos: list[dict], decisao: EditorialDecision
+) -> EditorialDecision:
+    """Recusa uma resposta do revisor que removeria quase toda a fala.
+
+    Um modelo pode errar de forma sistematica. Neste caso a falha segura e
+    manter a aula para revisao humana, nunca desabilita-la em massa.
+    """
+    if not segmentos or not decisao.reasons:
+        return decisao
+
+    indices_validos = {
+        indice for indice in decisao.reasons if 0 <= indice < len(segmentos)
+    }
+    duracao_total = sum(
+        max(0.0, float(segmentos[indice]["end"]) - float(segmentos[indice]["start"]))
+        for indice in range(len(segmentos))
+    )
+    duracao_descartada = sum(
+        max(0.0, float(segmentos[indice]["end"]) - float(segmentos[indice]["start"]))
+        for indice in indices_validos
+    )
+    if duracao_total and duracao_descartada / duracao_total > MAXIMO_DESCARTE_SEMANTICO_PORCENTAGEM:
+        logger.warning(
+            "Revisor semantico sugeriu descartar %.1f%% da fala; decisao ignorada por seguranca.",
+            duracao_descartada / duracao_total * 100,
+        )
+        return EditorialDecision(set(), {})
+    return EditorialDecision(indices_validos, {
+        indice: motivo
+        for indice, motivo in decisao.reasons.items()
+        if indice in indices_validos
+    })
 
 
 def _normalizar_texto(texto: str) -> str:

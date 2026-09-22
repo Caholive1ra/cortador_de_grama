@@ -2,15 +2,18 @@
 
 import logging
 import os
+import json
 import traceback
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
+from audio_sync import SyncError, sincronizar_audio
+from editorial_ai import EditorialModelError, obter_diagnostico_editorial
 from logic_engine import classificar_segmentos
 from media_utils import extrair_audio_temporario, obter_metadados
-from transcriber import transcrever_audio
+from transcriber import ModelUnavailableError, transcrever_audio
 from xml_generator import gerar_fcp_xml
 
 logging.basicConfig(
@@ -18,6 +21,7 @@ logging.basicConfig(
     format="%(asctime)s | %(levelname)s | %(name)s | %(message)s",
 )
 logger = logging.getLogger(__name__)
+BACKEND_REVISION = "retake-ultima-tentativa-v7"
 
 app = FastAPI(
     title="Assistente de Decapagem",
@@ -35,7 +39,7 @@ logger.info("CORS liberado para o painel UXP em localhost.")
 
 
 class MediaRequest(BaseModel):
-    """Fontes sincronizadas; somente o PGM é obrigatório."""
+    """Fontes com audio comum; somente o PGM e obrigatorio."""
 
     pgm_path: str
     camera_1_path: str | None = None
@@ -48,14 +52,14 @@ def health_check() -> dict[str, str]:
     """Confirma que o servidor local está no ar."""
     try:
         logger.info("Health-check solicitado.")
-        return {"status": "ok"}
+        return {"status": "ok", "revision": BACKEND_REVISION}
     except Exception:
         logger.error("Falha no health-check.\n%s", traceback.format_exc())
         raise
 
 
 @app.post("/process")
-def process_media(request: MediaRequest) -> dict[str, str]:
+def process_media(request: MediaRequest) -> dict:
     """Transcreve o PGM e prepara as fontes para o XML multicâmera."""
     try:
         fontes = {
@@ -78,21 +82,38 @@ def process_media(request: MediaRequest) -> dict[str, str]:
             metadados.append(dados)
 
         pgm = metadados[0]
-        tolerancia = 1.0 / float(pgm["fps"])
+        pgm["offset_seconds"] = 0.0
         for fonte in metadados[1:]:
             if abs(float(fonte["fps"]) - float(pgm["fps"])) > 0.02:
                 raise ValueError(
                     f"FPS incompatível entre PGM e {fonte['name']}: "
                     f"{pgm['fps']:.3f} vs {fonte['fps']:.3f}"
                 )
-            if float(fonte["duration"]) + tolerancia < float(pgm["duration"]):
-                raise ValueError(f"{fonte['name']} termina antes do PGM.")
 
-        with extrair_audio_temporario(request.pgm_path) as audio_path:
+        sincronizacao = []
+        with extrair_audio_temporario(request.pgm_path, pgm.get("video_start", 0.0)) as audio_path:
+            for fonte in metadados[1:]:
+                try:
+                    with extrair_audio_temporario(fonte["path"], fonte.get("video_start", 0.0)) as fonte_audio:
+                        ajuste = sincronizar_audio(audio_path, fonte_audio, float(pgm["fps"]))
+                except SyncError as exc:
+                    raise SyncError(f"{fonte['label']} ({fonte['name']}): {exc}") from exc
+                fonte["offset_seconds"] = ajuste.offset_seconds
+                inicio = max(0.0, ajuste.offset_seconds)
+                fim = min(float(pgm["duration"]), ajuste.offset_seconds + float(fonte["duration"]))
+                if fim <= inicio:
+                    raise SyncError(f"{fonte['name']}: o video nao cobre nenhum trecho do PGM.")
+                sincronizacao.append({
+                    "source": fonte["label"], **ajuste.to_dict(),
+                    "coverage_start": inicio, "coverage_end": fim,
+                })
             segmentos = transcrever_audio(audio_path)
-        segmentos_classificados = classificar_segmentos(
-            segmentos, duracao_total=float(pgm["duration"])
-        )
+            segmentos_classificados = classificar_segmentos(
+                segmentos,
+                duracao_total=float(pgm["duration"]),
+                revisao_semantica=True,
+                audio_path=audio_path,
+            )
 
         raiz_arquivo, _extensao = os.path.splitext(request.pgm_path)
         xml_output_path = f"{raiz_arquivo}_cortado.xml"
@@ -104,8 +125,31 @@ def process_media(request: MediaRequest) -> dict[str, str]:
             fps=float(pgm["fps"]),
             duracao_total=float(pgm["duration"]),
         )
+        diagnostico_path = f"{raiz_arquivo}_diagnostico.json"
+        with open(diagnostico_path, "w", encoding="utf-8") as diagnostico:
+            json.dump(
+                {
+                    "source": request.pgm_path,
+                    "editorial_review": obter_diagnostico_editorial(),
+                    "segmentos": segmentos_classificados,
+                },
+                diagnostico, ensure_ascii=False, indent=2,
+            )
         logger.info("Esteira concluída. XML gerado em: %s", xml_gerado)
-        return {"status": "success", "xml_path": xml_gerado}
+        return {
+            "status": "success", "xml_path": xml_gerado,
+            "diagnostic_path": os.path.abspath(diagnostico_path),
+            "synchronization": sincronizacao,
+        }
+    except EditorialModelError as exc:
+        logger.error("Revisor editorial indisponivel: %s", exc, exc_info=True)
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    except ModelUnavailableError as exc:
+        logger.error("Modelo de transcricao indisponivel: %s", exc, exc_info=True)
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    except ValueError as exc:
+        logger.warning("Midias invalidas: %s", exc, exc_info=True)
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
     except FileNotFoundError as exc:
         logger.error(
             "Áudio não encontrado: %s\n%s",

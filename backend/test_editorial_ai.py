@@ -1,0 +1,484 @@
+
+"""Contratos do avaliador semântico local.
+
+Objetivo editorial:
+Identificar tentativas de explicação descartadas pelo professor
+e preservar a versão correta, completa e contextualizada.
+
+Não remover vícios de linguagem, hesitações naturais ou
+repetições que tenham função didática.
+"""
+
+import json
+
+import pytest
+
+from editorial_ai import (
+    EditorialModelError,
+    decidir_cortes_semanticos,
+    verificar_modelo_editorial,
+)
+
+from logic_engine import classificar_segmentos
+
+
+# ==========================================================
+# FUNÇÕES AUXILIARES
+# ==========================================================
+
+def segmento(inicio, fim, texto):
+    return {
+        "start": inicio,
+        "end": fim,
+        "text": texto,
+    }
+
+
+def simular_modelo(monkeypatch, descartes):
+
+    respostas = iter([
+        {"models": [{"name": "qwen2.5:3b"}]},
+        {
+            "response": json.dumps({
+                "discard": descartes
+            })
+        },
+    ])
+
+    monkeypatch.setattr(
+        "editorial_ai._request",
+        lambda *args, **kwargs: next(respostas),
+    )
+    monkeypatch.setattr(
+        "editorial_ai._aprovar_proposta_com_gemini",
+        lambda segmentos, proposta: proposta,
+    )
+
+
+# ==========================================================
+# TESTES ORIGINAIS
+# ==========================================================
+
+def test_rejeita_ausencia_do_modelo(monkeypatch):
+
+    monkeypatch.setattr(
+        "editorial_ai._request",
+        lambda *args, **kwargs: {"models": []},
+    )
+
+    with pytest.raises(
+        EditorialModelError,
+        match="nao esta instalado",
+    ):
+        verificar_modelo_editorial()
+
+
+def test_aplica_somente_indices_e_motivos_permitidos(
+    monkeypatch,
+):
+
+    simular_modelo(monkeypatch, [
+        {"i": 0, "reason": "falsa_partida"},
+        {"i": 1, "reason": "assunto_ruim"},
+        {"i": 99, "reason": "risada"},
+    ])
+
+    decisao = decidir_cortes_semanticos([
+        segmento(0, 1, "Vou começar de novo."),
+        segmento(1, 2, "Conteúdo útil."),
+    ])
+
+    assert decisao.discard_indexes == {0}
+
+    assert decisao.reasons == {
+        0: "falsa_partida"
+    }
+
+
+def test_logica_mantem_conteudo_quando_modelo_nao_marca(
+    monkeypatch,
+):
+
+    monkeypatch.setattr(
+        "logic_engine.decidir_cortes_semanticos",
+        lambda segmentos, **kwargs: type(
+            "Decisao",
+            (),
+            {"reasons": {1: "devaneio"}},
+        )(),
+    )
+
+    resultado = classificar_segmentos([
+        segmento(
+            0, 1,
+            "Agora explicamos o conceito.",
+        ),
+        segmento(
+            1, 2,
+            "Minha viagem ontem foi muito longa.",
+        ),
+    ])
+
+    assert resultado[0]["enabled"] is True
+    assert resultado[1]["enabled"] is False
+    assert resultado[1]["reason"] == "devaneio"
+
+
+# ==========================================================
+# ERROS SEMÂNTICOS E AUTOCORREÇÕES
+# ==========================================================
+
+def test_remove_explicacao_errada_e_mantem_versao_correta(
+    monkeypatch,
+):
+    """A explicação abandonada deve ser removida."""
+
+    segmentos = [
+        segmento(
+            0, 5,
+            "Uma variável int pode armazenar textos.",
+        ),
+        segmento(
+            5, 7,
+            "Não, pera aí, falei errado.",
+        ),
+        segmento(
+            7, 12,
+            "Uma variável int armazena números inteiros.",
+        ),
+    ]
+
+    simular_modelo(monkeypatch, [
+        {"i": 0, "reason": "falsa_partida"},
+        {"i": 1, "reason": "falsa_partida"},
+    ])
+
+    decisao = decidir_cortes_semanticos(segmentos)
+
+    assert decisao.discard_indexes == {0, 1}
+    assert 2 not in decisao.discard_indexes
+
+
+def test_remove_tentativa_abandonada_e_mantem_regravacao(
+    monkeypatch,
+):
+    """Remove uma tentativa substituída por uma regravação."""
+
+    segmentos = [
+        segmento(
+            0, 4,
+            "Agora vamos falar sobre herança.",
+        ),
+        segmento(
+            4, 7,
+            "Herança é quando uma classe... não, pera.",
+        ),
+        segmento(
+            7, 10,
+            "Vou explicar novamente.",
+        ),
+        segmento(
+            10, 15,
+            "Agora vamos falar sobre herança.",
+        ),
+        segmento(
+            15, 20,
+            "Herança permite que uma classe herde "
+            "características de outra classe.",
+        ),
+    ]
+
+    simular_modelo(monkeypatch, [
+        {"i": 0, "reason": "falsa_partida"},
+        {"i": 1, "reason": "falsa_partida"},
+        {"i": 2, "reason": "falsa_partida"},
+    ])
+
+    decisao = decidir_cortes_semanticos(segmentos)
+
+    assert decisao.discard_indexes == {0, 1, 2}
+
+    assert 3 not in decisao.discard_indexes
+    assert 4 not in decisao.discard_indexes
+
+
+def test_remove_repeticao_acidental(
+    monkeypatch,
+):
+    """Remove uma tentativa repetida sem valor didático."""
+
+    segmentos = [
+        segmento(
+            0, 5,
+            "O método recebe dois parâmetros.",
+        ),
+        segmento(
+            5, 8,
+            "Não, deixa eu começar de novo.",
+        ),
+        segmento(
+            8, 13,
+            "O método recebe dois parâmetros.",
+        ),
+        segmento(
+            13, 17,
+            "O primeiro representa o nome e o segundo a idade.",
+        ),
+    ]
+
+    simular_modelo(monkeypatch, [
+        {"i": 0, "reason": "falsa_partida"},
+        {"i": 1, "reason": "falsa_partida"},
+    ])
+
+    decisao = decidir_cortes_semanticos(segmentos)
+
+    assert decisao.discard_indexes == {0, 1}
+
+    assert 2 not in decisao.discard_indexes
+    assert 3 not in decisao.discard_indexes
+
+
+# ==========================================================
+# PRESERVAÇÃO DO CONTEXTO DIDÁTICO
+# ==========================================================
+
+def test_preserva_vicios_de_linguagem(
+    monkeypatch,
+):
+    """Vícios de linguagem não justificam cortes isolados."""
+
+    segmentos = [
+        segmento(
+            0, 5,
+            "Então, ééé, uma variável armazena um valor.",
+        ),
+        segmento(
+            5, 10,
+            "E aí, né, a gente pode utilizar esse valor.",
+        ),
+    ]
+
+    simular_modelo(monkeypatch, [])
+
+    decisao = decidir_cortes_semanticos(segmentos)
+
+    assert decisao.discard_indexes == set()
+
+
+def test_preserva_repeticao_didatica(
+    monkeypatch,
+):
+    """Repetir um conceito para reforçá-lo não é um erro."""
+
+    segmentos = [
+        segmento(
+            0, 5,
+            "Uma constante não pode ser reatribuída.",
+        ),
+        segmento(
+            5, 10,
+            "Vou repetir porque isso é importante.",
+        ),
+        segmento(
+            10, 15,
+            "Uma constante não pode ser reatribuída.",
+        ),
+    ]
+
+    simular_modelo(monkeypatch, [])
+
+    decisao = decidir_cortes_semanticos(segmentos)
+
+    assert decisao.discard_indexes == set()
+
+
+def test_preserva_exemplo_com_erro_intencional(
+    monkeypatch,
+):
+    """Erros usados para ensinar não devem ser removidos."""
+
+    segmentos = [
+        segmento(
+            0, 5,
+            "Observe este código com um erro de sintaxe.",
+        ),
+        segmento(
+            5, 10,
+            "Estamos tentando atribuir uma string a um int.",
+        ),
+        segmento(
+            10, 15,
+            "O compilador vai apresentar um erro de tipo.",
+        ),
+    ]
+
+    simular_modelo(monkeypatch, [])
+
+    decisao = decidir_cortes_semanticos(segmentos)
+
+    assert decisao.discard_indexes == set()
+
+
+def test_preserva_correcao_que_ensina_um_conceito(
+    monkeypatch,
+):
+    """Uma correção didática faz parte da explicação."""
+
+    segmentos = [
+        segmento(
+            0, 5,
+            "Muitas pessoas acreditam que Java "
+            "é interpretado diretamente.",
+        ),
+        segmento(
+            5, 10,
+            "Na verdade, o código é compilado "
+            "para bytecode.",
+        ),
+        segmento(
+            10, 15,
+            "Depois, a JVM executa esse bytecode.",
+        ),
+    ]
+
+    simular_modelo(monkeypatch, [])
+
+    decisao = decidir_cortes_semanticos(segmentos)
+
+    assert decisao.discard_indexes == set()
+
+
+def test_preserva_continuacao_de_explicacao(
+    monkeypatch,
+):
+    """Uma explicação dividida em segmentos deve ser mantida."""
+
+    segmentos = [
+        segmento(
+            0, 5,
+            "Para utilizar uma interface, primeiro...",
+        ),
+        segmento(
+            5, 10,
+            "precisamos declarar os métodos necessários.",
+        ),
+        segmento(
+            10, 15,
+            "Depois implementamos esses métodos na classe.",
+        ),
+    ]
+
+    simular_modelo(monkeypatch, [])
+
+    decisao = decidir_cortes_semanticos(segmentos)
+
+    assert decisao.discard_indexes == set()
+
+    
+def test_nao_remove_aula_inteira(monkeypatch):
+    """Uma decisão que elimina toda a aula deve ser rejeitada."""
+
+    segmentos = [
+        {
+            "start": 0,
+            "end": 5,
+            "text": "Hoje vamos aprender sobre variáveis.",
+        },
+        {
+            "start": 5,
+            "end": 10,
+            "text": "Uma variável armazena um valor.",
+        },
+        {
+            "start": 10,
+            "end": 15,
+            "text": "Podemos declarar uma variável do tipo int.",
+        },
+    ]
+
+    monkeypatch.setattr(
+        "logic_engine.decidir_cortes_semanticos",
+        lambda segmentos, **kwargs: type(
+            "Decisao",
+            (),
+            {
+                "reasons": {
+                    0: "repeticao",
+                    1: "falsa_partida",
+                    2: "repeticao",
+                }
+            },
+        )(),
+    )
+
+    resultado = classificar_segmentos(segmentos)
+
+    assert any(
+        item["enabled"] is True
+        for item in resultado
+    ), "ERRO: o sistema removeu todos os segmentos da aula."
+
+
+def test_gemini_so_aprova_indices_propostos(monkeypatch):
+    from editorial_ai import EditorialDecision, _aprovar_proposta_com_gemini
+
+    monkeypatch.setattr("editorial_ai.GEMINI_API_KEY", "chave-de-teste")
+    monkeypatch.setattr(
+        "editorial_ai._gemini_request",
+        lambda prompt: json.dumps({"approve": [
+            {"i": 0, "reason": "erro"},
+            {"i": 1, "reason": "falsa_partida"},
+        ]}),
+    )
+    resultado = _aprovar_proposta_com_gemini(
+        [segmento(0, 1, "Erro"), segmento(1, 2, "Conteudo")],
+        EditorialDecision({0}, {0: "erro"}),
+    )
+    assert resultado.discard_indexes == {0}
+    assert resultado.reasons == {0: "erro"}
+
+
+def test_sem_chave_gemini_bloqueia_cortes_semanticos(monkeypatch):
+    from editorial_ai import EditorialDecision, _aprovar_proposta_com_gemini
+
+    monkeypatch.setattr("editorial_ai.GEMINI_API_KEY", None)
+    resultado = _aprovar_proposta_com_gemini(
+        [segmento(0, 1, "Erro")], EditorialDecision({0}, {0: "erro"})
+    )
+    assert resultado.discard_indexes == set()
+
+
+def test_gemini_multimodal_pode_marcar_risada(monkeypatch):
+    from editorial_ai import decidir_cortes_semanticos
+
+    monkeypatch.setattr("editorial_ai.GEMINI_API_KEY", "chave-de-teste")
+    monkeypatch.setattr(
+        "editorial_ai._gemini_audio_request",
+        lambda prompt, audio_path: json.dumps({"discard": [
+            {"i": 0, "reason": "risada"},
+        ]}),
+    )
+    resultado = decidir_cortes_semanticos(
+        [segmento(0, 2, ""), segmento(2, 4, "Vamos iniciar a aula.")],
+        audio_path="aula.wav",
+    )
+    assert resultado.discard_indexes == {0}
+    assert resultado.reasons == {0: "risada"}
+
+
+def test_prompt_multimodal_instrui_preservar_ultima_tentativa(monkeypatch):
+    from editorial_ai import decidir_cortes_semanticos
+
+    monkeypatch.setattr("editorial_ai.GEMINI_API_KEY", "chave-de-teste")
+    prompt_recebido = []
+    def responder(prompt, audio_path):
+        prompt_recebido.append(prompt)
+        return json.dumps({"discard": [{"i": 0, "reason": "falsa_partida"}]})
+    monkeypatch.setattr("editorial_ai._gemini_audio_request", responder)
+    resultado = decidir_cortes_semanticos(
+        [segmento(0, 2, "Tentativa inicial."), segmento(3, 5, "Tentativa final.")],
+        audio_path="aula.wav",
+    )
+    assert resultado.discard_indexes == {0}
+    assert "mantenha sempre a ULTIMA tentativa completa" in prompt_recebido[0]

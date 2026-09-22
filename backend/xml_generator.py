@@ -48,6 +48,7 @@ def gerar_fcp_xml(
         audio = ET.SubElement(media, "audio")
         _adicionar_format_audio(audio)
         trilha_audio = ET.SubElement(audio, "track")
+        arquivos_declarados: set[int] = set()
 
         for indice_segmento, segmento in enumerate(segmentos):
             frame_start = seconds_to_frames(float(segmento["start"]), fps)
@@ -60,23 +61,32 @@ def gerar_fcp_xml(
             for indice_fonte, (fonte, trilha) in enumerate(
                 zip(fontes, trilhas_video), start=1
             ):
+                # Converte posicoes na timeline em posicoes da midia original.
+                offset = seconds_to_frames(float(fonte.get("offset_seconds", 0.0)), fps)
+                duracao_fonte = seconds_to_frames(float(fonte["duration"]), fps)
+                inicio = max(frame_start, offset, 0)
+                fim = min(frame_end, offset + duracao_fonte)
+                if fim <= inicio:
+                    continue
                 clip = _adicionar_clipitem(
                     trilha,
                     f"video_{indice_fonte}_{indice_segmento}",
                     fonte["name"],
-                    frame_start,
-                    frame_end,
+                    inicio,
+                    fim,
                     "video",
                     fps,
                     habilitado,
+                    source_start=inicio - offset,
                 )
                 _adicionar_arquivo(
                     clip,
                     f"file_{indice_fonte}",
                     fonte,
                     fps,
-                    declarar=indice_segmento == 0,
+                    declarar=indice_fonte not in arquivos_declarados,
                 )
+                arquivos_declarados.add(indice_fonte)
 
             clip_audio = _adicionar_clipitem(
                 trilha_audio,
@@ -172,6 +182,7 @@ def _adicionar_clipitem(
     fps: float,
     enabled: bool,
     source_track_index: int | None = None,
+    source_start: int | None = None,
 ) -> ET.Element:
     clipitem = ET.SubElement(trilha, "clipitem", id=clip_id)
     ET.SubElement(clipitem, "name").text = nome
@@ -179,8 +190,9 @@ def _adicionar_clipitem(
     ET.SubElement(clipitem, "enabled").text = "TRUE" if enabled else "FALSE"
     ET.SubElement(clipitem, "start").text = str(frame_start)
     ET.SubElement(clipitem, "end").text = str(frame_end)
-    ET.SubElement(clipitem, "in").text = str(frame_start)
-    ET.SubElement(clipitem, "out").text = str(frame_end)
+    entrada = frame_start if source_start is None else source_start
+    ET.SubElement(clipitem, "in").text = str(entrada)
+    ET.SubElement(clipitem, "out").text = str(entrada + frame_end - frame_start)
     _adicionar_rate(clipitem, fps)
     sourcetrack = ET.SubElement(clipitem, "sourcetrack")
     ET.SubElement(sourcetrack, "mediatype").text = media_type

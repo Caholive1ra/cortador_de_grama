@@ -1,14 +1,34 @@
 """Transcrição local de mídia com faster-whisper."""
 
 import logging
+import os
+import ssl
 import traceback
 from pathlib import Path
 
+os.environ.setdefault("HF_HUB_DISABLE_XET", "1")
+
+import httpx
 from faster_whisper import WhisperModel
+from huggingface_hub import set_client_factory
+import truststore
 
 logger = logging.getLogger(__name__)
 
 _model: WhisperModel | None = None
+
+
+class ModelUnavailableError(RuntimeError):
+    """O modelo local ainda nao esta disponivel para a transcricao."""
+
+
+def _configurar_certificados_windows() -> None:
+    """Faz o Hugging Face respeitar certificados corporativos do Windows."""
+    def criar_cliente() -> httpx.Client:
+        contexto = truststore.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+        return httpx.Client(verify=contexto, follow_redirects=True, timeout=None)
+
+    set_client_factory(criar_cliente)
 
 
 def _carregar_modelo() -> WhisperModel:
@@ -16,7 +36,16 @@ def _carregar_modelo() -> WhisperModel:
     global _model
     if _model is None:
         logger.info("Iniciando carregamento do WhisperModel (base, cpu, int8).")
-        _model = WhisperModel("base", device="cpu", compute_type="int8")
+        try:
+            _configurar_certificados_windows()
+            _model = WhisperModel("base", device="cpu", compute_type="int8")
+        except Exception as exc:
+            logger.error("Nao foi possivel obter o modelo Whisper.\n%s", traceback.format_exc())
+            raise ModelUnavailableError(
+                "O modelo local de transcricao ainda nao esta instalado e nao foi possivel "
+                "baixa-lo com os certificados atuais. Verifique a conexao corporativa e "
+                "tente novamente."
+            ) from exc
         logger.info("WhisperModel carregado.")
     return _model
 
@@ -50,6 +79,14 @@ def transcrever_audio(file_path: str) -> list[dict]:
                     "start": float(segmento.start),
                     "end": float(segmento.end),
                     "text": str(segmento.text),
+                    "words": [
+                        {
+                            "start": float(palavra.start),
+                            "end": float(palavra.end),
+                            "word": str(palavra.word),
+                        }
+                        for palavra in (segmento.words or [])
+                    ],
                 }
             )
 
@@ -64,6 +101,8 @@ def transcrever_audio(file_path: str) -> list[dict]:
             file_path,
             traceback.format_exc(),
         )
+        raise
+    except ModelUnavailableError:
         raise
     except MemoryError:
         logger.critical(

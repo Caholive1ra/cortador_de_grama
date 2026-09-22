@@ -79,6 +79,30 @@ O script faz:
 
 No final esperado, os testes devem passar.
 
+### 4.1 Instalar o revisor editorial local
+
+Para decidir erros, risadas, conversas laterais e trechos fora do contexto da aula, instale o [Ollama](https://ollama.com/download) e, no PowerShell, rode uma vez:
+
+```powershell
+ollama pull qwen2.5:3b
+```
+
+Deixe o Ollama em execucao. O backend usa `http://127.0.0.1:11434` e o modelo `qwen2.5:3b` por padrao. Eles podem ser alterados pelas variaveis de ambiente `OLLAMA_URL` e `OLLAMA_MODEL` antes de iniciar o backend.
+
+### 4.2 Configurar o aprovador final Gemini
+
+O Gemini revisa o audio e a transcricao. Crie uma chave nova no Google AI Studio
+e configure-a em um arquivo local, sem coloca-la no codigo:
+
+```powershell
+Copy-Item .env.example .env
+notepad .env
+```
+
+No arquivo `.env`, preencha `GEMINI_API_KEY` com a chave nova. O `.gitignore`
+ja impede que esse arquivo seja enviado ao Git. Sem a chave, o backend continua
+funcionando, mas bloqueia cortes semanticos por seguranca.
+
 ## 5. Iniciar o backend
 
 Ainda na raiz do projeto:
@@ -155,7 +179,13 @@ Invoke-RestMethod `
   -Body $body
 ```
 
-As fontes opcionais precisam ter FPS compativel com o PGM e duracao igual ou maior que a do PGM. Se alguma fonte terminar antes do PGM, o backend retorna erro.
+As fontes opcionais precisam ter FPS compativel com o PGM e audio em comum com ele. Elas podem comecar antes ou depois e ser mais curtas ou mais longas.
+
+O backend compara o audio, confirma o alinhamento em varios pontos da gravacao e usa o PGM como referencia de duracao e audio final. Sobras ficam fora da timeline; intervalos sem imagem de uma camera ficam vazios naquela trilha. Os arquivos originais nao sao alterados.
+
+A sincronizacao e conservadora: exige pelo menos 12 segundos de audio em comum e correspondencias confiaveis em trechos distribuidos pela gravacao. Silencio, audio repetitivo, pouca sobreposicao ou gravacoes muito diferentes podem impedir a deteccao. Se houver desvio superior a um quadro entre os pontos verificados, o backend interrompe com HTTP 422, identificando a fonte. Nesses casos, alinhe/corrija a fonte manualmente antes de processar, ou cancele a selecao dessa fonte opcional. Fontes sem audio, inclusive PPT/Tela, precisam ser puladas nesta versao.
+
+A resposta inclui `synchronization`, com deslocamento, medida de correlacao (nao e probabilidade), desvio observado e intervalo de cobertura de cada fonte. `offset_seconds` positivo significa que a fonte comeca depois do PGM; negativo significa que ela comeca antes. O XML arredonda os deslocamentos ao quadro mais proximo. Nao ha correcao automatica de velocidade nem garantia sobre trechos nao amostrados.
 
 ## 8. Carregar o plugin no Premiere
 
@@ -179,7 +209,7 @@ Com o backend ainda rodando:
 2. Selecione o video PGM quando solicitado.
 3. Selecione Camera 1, Camera 2 e PPT/Tela se existirem.
 4. Para pular uma fonte opcional, cancele a janela daquela selecao.
-5. Aguarde o status **Processando na IA local...**.
+5. Aguarde o status **Sincronizando pelo audio e processando a aula... Aguarde.** A leitura das fontes em rede pode demorar.
 6. Quando o backend concluir, o plugin deve importar o XML no projeto ativo.
 
 Resultado esperado:

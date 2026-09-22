@@ -72,6 +72,9 @@ async function importarXmlNoPremiere(xmlPath) {
  * @returns {Promise<void>}
  */
 async function processarAula() {
+  const botao = document.getElementById("btnProcessar");
+  if (botao && botao.disabled) return;
+  if (botao) botao.disabled = true;
   try {
     const pgmPath = await selecionarFonte("o vídeo PGM", true);
     if (!pgmPath) {
@@ -83,7 +86,7 @@ async function processarAula() {
     const camera2Path = await selecionarFonte("a Câmera 2", false);
     const pptPath = await selecionarFonte("o PPT/Tela", false);
 
-    definirStatus("Processando na IA local...");
+    definirStatus("Sincronizando pelo audio e processando a aula... Aguarde.");
 
     let resposta;
     try {
@@ -110,7 +113,16 @@ async function processarAula() {
     if (!resposta.ok) {
       const detalhe = await resposta.text();
       console.error("[Decupagem] HTTP", resposta.status, detalhe);
-      definirStatus("Erro ao processar a aula (HTTP " + resposta.status + ").");
+      let mensagem = detalhe;
+      try {
+        const erro = JSON.parse(detalhe);
+        mensagem = typeof erro.detail === "string" ? erro.detail : detalhe;
+      } catch (_) {
+        // Servidores intermediarios podem retornar texto em vez de JSON.
+      }
+      definirStatus(
+        "Erro ao processar a aula (HTTP " + resposta.status + "): " + mensagem
+      );
       return;
     }
 
@@ -120,7 +132,11 @@ async function processarAula() {
     if (dados.status === "success" && dados.xml_path) {
       definirStatus("XML gerado. Importando no Premiere Pro...");
       await importarXmlNoPremiere(dados.xml_path);
-      definirStatus("Sucesso! Timeline multicâmera importada.");
+      const sincronizacao = dados.synchronization || [];
+      const resumo = sincronizacao.map((fonte) =>
+        fonte.source + ": inicio no PGM " + fonte.offset_seconds.toFixed(3) + "s"
+      ).join("; ");
+      definirStatus("Sucesso! Timeline importada. " + resumo);
       return;
     }
 
@@ -130,6 +146,8 @@ async function processarAula() {
     definirStatus(
       "Erro: " + (erro && erro.message ? erro.message : String(erro))
     );
+  } finally {
+    if (botao) botao.disabled = false;
   }
 }
 

@@ -20,7 +20,7 @@ def obter_metadados(file_path: str) -> dict:
 
     comando = [
         "ffprobe", "-v", "error", "-select_streams", "v:0",
-        "-show_entries", "stream=width,height,avg_frame_rate:format=duration",
+        "-show_entries", "stream=width,height,avg_frame_rate,duration,start_time:format=duration,start_time",
         "-of", "json", str(caminho),
     ]
     logger.info("Lendo metadados de: %s", file_path)
@@ -32,7 +32,13 @@ def obter_metadados(file_path: str) -> dict:
     stream = streams[0]
     numerador, denominador = stream["avg_frame_rate"].split("/", 1)
     fps = float(numerador) / float(denominador)
-    duracao = float(dados["format"]["duration"])
+    # A faixa de audio pode terminar depois do video no mesmo container.
+    duracao_video = stream.get("duration")
+    duracao = float(
+        duracao_video
+        if duracao_video not in (None, "N/A", "")
+        else dados["format"]["duration"]
+    )
     if fps <= 0 or duracao <= 0:
         raise ValueError(f"Metadados inválidos para: {file_path}")
     return {
@@ -41,21 +47,32 @@ def obter_metadados(file_path: str) -> dict:
         "fps": fps,
         "width": int(stream["width"]),
         "height": int(stream["height"]),
+        "video_start": float(stream.get("start_time", 0) or 0),
     }
 
 
 @contextmanager
-def extrair_audio_temporario(file_path: str) -> Iterator[str]:
+def extrair_audio_temporario(file_path: str, video_start: float = 0.0) -> Iterator[str]:
     """Extrai WAV mono/16 kHz e remove o arquivo ao final do processamento."""
     descritor, audio_path = tempfile.mkstemp(prefix="decupagem_", suffix=".wav")
     os.close(descritor)
     try:
         comando = [
-            "ffmpeg", "-y", "-v", "error", "-i", file_path,
-            "-vn", "-ac", "1", "-ar", "16000", "-c:a", "pcm_s16le", audio_path,
+            "ffmpeg", "-nostdin", "-y", "-v", "error", "-copyts", "-i", file_path,
+            "-map", "0:a:0", "-vn", "-ac", "1", "-ar", "16000",
+            "-af", f"asetpts=PTS-({video_start:.9f})/TB,aresample=16000:first_pts=0",
+            "-c:a", "pcm_s16le", audio_path,
         ]
-        logger.info("Extraindo áudio temporário do PGM.")
-        subprocess.run(comando, capture_output=True, text=True, check=True)
+        logger.info("Extraindo audio temporario: %s", file_path)
+        try:
+            subprocess.run(comando, capture_output=True, text=True, check=True)
+        except subprocess.CalledProcessError as exc:
+            logger.error("FFmpeg: %s", exc.stderr)
+            raise ValueError(
+                f"Nao foi possivel extrair o audio de {Path(file_path).name}. "
+                "Verifique se o arquivo possui uma faixa de audio valida; "
+                "fontes opcionais sem audio devem ser puladas."
+            ) from exc
         yield audio_path
     finally:
         try:

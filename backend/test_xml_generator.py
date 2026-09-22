@@ -91,3 +91,32 @@ def test_gera_xml_somente_com_pgm(tmp_path) -> None:
 
     raiz = ET.parse(output_path).getroot()
     assert len(raiz.findall("./sequence/media/video/track")) == 1
+
+
+def test_offsets_lacunas_limites_e_declaracao_tardia(tmp_path) -> None:
+    fontes = _fontes()
+    fontes[1].update(offset_seconds=2.0, duration=0.5)
+    fontes[2].update(offset_seconds=-1.0, duration=3.0)
+    fontes[3].update(offset_seconds=-2.0, duration=10.0)
+    path = tmp_path / "offsets.xml"
+    gerar_fcp_xml([
+        {"start": 0.0, "end": 1.0, "enabled": True},
+        {"start": 1.0, "end": 3.0, "enabled": False},
+    ], fontes, str(path), 30, 3)
+    root = ET.parse(path)
+    tracks = root.findall("./sequence/media/video/track")
+    late = tracks[1].find("clipitem")
+    assert [late.findtext(key) for key in ("start", "end", "in", "out")] == ["60", "75", "0", "15"]
+    assert late.find("file/pathurl") is not None
+    assert late.findtext("enabled") == "FALSE"
+    early = tracks[2].findall("clipitem")
+    assert early[0].findtext("in") == "30"
+    assert early[-1].findtext("end") == "60"
+    for track, fonte in zip(tracks, fontes):
+        for clip in track.findall("clipitem"):
+            start, end, entry, out = [int(clip.findtext(k)) for k in ("start", "end", "in", "out")]
+            assert 0 <= entry < out <= round(fonte["duration"] * 30)
+            assert 0 <= start < end <= 90
+            assert end - start == out - entry
+    audio = root.findall("./sequence/media/audio/track/clipitem")
+    assert [(clip.findtext("in"), clip.findtext("out")) for clip in audio] == [("0", "30"), ("30", "90")]
