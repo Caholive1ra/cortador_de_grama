@@ -21,7 +21,7 @@ logging.basicConfig(
     format="%(asctime)s | %(levelname)s | %(name)s | %(message)s",
 )
 logger = logging.getLogger(__name__)
-BACKEND_REVISION = "retake-ultima-tentativa-v7"
+BACKEND_REVISION = "cortes-largos-permitidos-v8"
 
 app = FastAPI(
     title="Assistente de Decapagem",

@@ -17,7 +17,6 @@ LIMITE_SILENCIO_SEGUNDOS = 1.0
 JANELA_REPETICAO_SEGUNDOS = 15.0
 SIMILARIDADE_REPETICAO = 0.72
 MINIMO_PALAVRAS_REPETICAO = 3
-MAXIMO_DESCARTE_SEMANTICO_PORCENTAGEM = 0.70
 JANELA_MICROSEGMENTO_SEGUNDOS = 2.0
 GATILHOS_ERRO += ("ficou ruim essa parte", "deixa eu voltar essa parte")
 
@@ -140,10 +139,13 @@ def _montar_microsegmento(palavras: list[dict]) -> dict:
 def _validar_decisao_semantica(
     segmentos: list[dict], decisao: EditorialDecision
 ) -> EditorialDecision:
-    """Recusa uma resposta do revisor que removeria quase toda a fala.
+    """Mantém somente índices válidos devolvidos pelo revisor.
 
-    Um modelo pode errar de forma sistematica. Neste caso a falha segura e
-    manter a aula para revisao humana, nunca desabilita-la em massa.
+    Não limitamos a proporção total de cortes: em uma gravação bruta, uma
+    abertura longa com conversa, retakes e pausas pode legitimamente ocupar a
+    maior parte da fala transcrita. A validação editorial fica a cargo do
+    Gemini, que recebe o áudio original, e o XML continua sendo revisável no
+    Premiere antes da exportação final.
     """
     if not segmentos or not decisao.reasons:
         return decisao
@@ -151,18 +153,9 @@ def _validar_decisao_semantica(
     indices_validos = {
         indice for indice in decisao.reasons if 0 <= indice < len(segmentos)
     }
-    duracao_total = sum(
-        max(0.0, float(segmentos[indice]["end"]) - float(segmentos[indice]["start"]))
-        for indice in range(len(segmentos))
-    )
-    duracao_descartada = sum(
-        max(0.0, float(segmentos[indice]["end"]) - float(segmentos[indice]["start"]))
-        for indice in indices_validos
-    )
-    if duracao_total and duracao_descartada / duracao_total > MAXIMO_DESCARTE_SEMANTICO_PORCENTAGEM:
+    if len(indices_validos) == len(segmentos):
         logger.warning(
-            "Revisor semantico sugeriu descartar %.1f%% da fala; decisao ignorada por seguranca.",
-            duracao_descartada / duracao_total * 100,
+            "Revisor semantico sugeriu remover toda a fala; decisao ignorada por seguranca."
         )
         return EditorialDecision(set(), {})
     return EditorialDecision(indices_validos, {

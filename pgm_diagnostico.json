@@ -1,0 +1,11 @@
+{
+  "source": "pgm.mp4",
+  "editorial_review": {
+    "mode": "gemini_audio",
+    "input_segments": 2,
+    "status": "ok",
+    "gemini_discarded": 1,
+    "gemini_response": "{\"discard\": [{\"i\": 0, \"reason\": \"falsa_partida\"}]}"
+  },
+  "segmentos": []
+}
