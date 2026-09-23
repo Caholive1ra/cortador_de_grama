@@ -19,6 +19,10 @@ SIMILARIDADE_REPETICAO = 0.72
 MINIMO_PALAVRAS_REPETICAO = 3
 JANELA_MICROSEGMENTO_SEGUNDOS = 2.0
 GATILHOS_ERRO += ("ficou ruim essa parte", "deixa eu voltar essa parte")
+GATILHOS_ERRO += (
+    "deixa eu ver um gancho", "deixa eu pegar um gancho",
+    "vou procurar um gancho", "isso a gente corta depois",
+)
 
 
 def classificar_segmentos(
@@ -73,6 +77,7 @@ def classificar_segmentos(
 
         texto_normalizado = _normalizar_texto(texto)
         motivo_semantico = decisao.reasons.get(indice_original)
+        revisar = indice_original in decisao.review_indexes
         contem_gatilho = _contem_gatilho(texto_normalizado) or motivo_semantico is not None
         atual = {
             "start": inicio,
@@ -81,6 +86,8 @@ def classificar_segmentos(
             "track": "V1" if contem_gatilho else "V2",
             "enabled": not contem_gatilho,
             "reason": motivo_semantico or ("comando_de_corte" if contem_gatilho else "fala_util"),
+            "review": revisar,
+            "review_reason": decisao.review_reasons.get(indice_original) if revisar else None,
         }
 
         classificados.append(atual)

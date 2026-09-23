@@ -467,6 +467,52 @@ def test_gemini_multimodal_pode_marcar_risada(monkeypatch):
     assert resultado.reasons == {0: "risada"}
 
 
+def test_gemini_multimodal_marca_duvida_para_revisao(monkeypatch):
+    from editorial_ai import decidir_cortes_semanticos
+
+    monkeypatch.setattr("editorial_ai.GEMINI_API_KEY", "chave-de-teste")
+    monkeypatch.setattr(
+        "editorial_ai._gemini_audio_request",
+        lambda prompt, audio_path: json.dumps({"discard": [], "review": [
+            {"i": 0, "reason": "duvida_editorial"}
+        ]}),
+    )
+    resultado = decidir_cortes_semanticos([segmento(0, 1, "Deixa eu ver.")], "audio.wav")
+    assert resultado.discard_indexes == set()
+    assert resultado.review_indexes == {0}
+
+
+def test_identifica_indisponibilidade_temporaria_do_gemini() -> None:
+    from editorial_ai import _gemini_esta_sobrecarregado
+
+    assert _gemini_esta_sobrecarregado(RuntimeError("503 UNAVAILABLE"))
+    assert not _gemini_esta_sobrecarregado(RuntimeError("429 RESOURCE_EXHAUSTED"))
+
+
+def test_prioriza_tres_modelos_gemini_sem_repeticao(monkeypatch) -> None:
+    from editorial_ai import _modelos_gemini
+
+    monkeypatch.setattr("editorial_ai.GEMINI_MODEL", "gemini-2.5-flash")
+    monkeypatch.setattr(
+        "editorial_ai.GEMINI_FALLBACK_MODELS",
+        ("gemini-2.5-flash", "gemini-3.8-flash", "gemini-3.7-flash", "gemini-3.6-flash"),
+    )
+    assert _modelos_gemini() == (
+        "gemini-2.5-flash", "gemini-3.8-flash", "gemini-3.7-flash",
+    )
+
+
+def test_json_invalido_do_gemini_e_rejeitado_com_seguranca(monkeypatch):
+    from editorial_ai import GeminiReviewError, _decidir_cortes_com_gemini
+
+    monkeypatch.setattr(
+        "editorial_ai._gemini_audio_request",
+        lambda prompt, audio_path: '{"discard": [{"i": 0, "reason": "erro}',
+    )
+    resultado = _decidir_cortes_com_gemini([segmento(0, 1, "Teste")], "audio.wav")
+    assert resultado.discard_indexes == set()
+
+
 def test_prompt_multimodal_instrui_preservar_ultima_tentativa(monkeypatch):
     from editorial_ai import decidir_cortes_semanticos
 
@@ -482,3 +528,4 @@ def test_prompt_multimodal_instrui_preservar_ultima_tentativa(monkeypatch):
     )
     assert resultado.discard_indexes == {0}
     assert "mantenha sempre a ULTIMA tentativa completa" in prompt_recebido[0]
+    assert "deixa eu ver um gancho aqui" in prompt_recebido[0]

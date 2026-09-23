@@ -1,0 +1,7767 @@
+{
+  "source": "C:\\Users\\carolina.feitosa\\Documents\\temporários\\I\\EDICAO\\#VIDEOAULAS\\GRAD100\\1TGD\\GD\\CAP02\\BRUTOS\\VIDEO06\\PGM\\2026_09_17_GRAD100_1TGD_GD_CAP02_GUILHERME_QUINTANA_PGM_06.mp4",
+  "editorial_review": {
+    "mode": "gemini_audio",
+    "input_segments": 606,
+    "status": "failed",
+    "error": "Unterminated string starting at: line 1 column 906 (char 905)"
+  },
+  "segmentos": [
+    {
+      "start": 0.0,
+      "end": 1.07,
+      "text": "[SILÊNCIO]",
+      "track": "V1",
+      "enabled": false,
+      "reason": "silencio"
+    },
+    {
+      "start": 1.07,
+      "end": 3.35,
+      "text": "Eu fui levando com o Tidia, só já estava",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 3.35,
+      "end": 4.01,
+      "text": "lá e me olhando.",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 4.01,
+      "end": 6.82,
+      "text": "[SILÊNCIO]",
+      "track": "V1",
+      "enabled": false,
+      "reason": "silencio"
+    },
+    {
+      "start": 6.82,
+      "end": 8.64,
+      "text": "Vou lá, para a Tidia.",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 8.64,
+      "end": 8.92,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 8.92,
+      "end": 9.44,
+      "text": "Maravilha.",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 9.44,
+      "end": 23.71,
+      "text": "[SILÊNCIO]",
+      "track": "V1",
+      "enabled": false,
+      "reason": "silencio"
+    },
+    {
+      "start": 23.71,
+      "end": 25.87,
+      "text": "Você jogaria um jogo que mistura",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 25.87,
+      "end": 28.03,
+      "text": "a meníngia com um lugar",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 28.03,
+      "end": 28.73,
+      "text": "silencioso?",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 28.73,
+      "end": 29.62,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 29.62,
+      "end": 30.46,
+      "text": "Essa é a ideia.",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 30.46,
+      "end": 30.78,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 30.78,
+      "end": 33.08,
+      "text": "Esse é o game concept que eu quero apresentar para você.",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 33.08,
+      "end": 34.2,
+      "text": "[SILÊNCIO]",
+      "track": "V1",
+      "enabled": false,
+      "reason": "silencio"
+    },
+    {
+      "start": 34.2,
+      "end": 36.22,
+      "text": "A ideia desse game concept foi um",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 36.22,
+      "end": 37.22,
+      "text": "projeto de...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 37.22,
+      "end": 38.6,
+      "text": "...recer um projeto de terror.",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 38.6,
+      "end": 39.26,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 39.26,
+      "end": 41.52,
+      "text": "E aí a gente tem o primeiro elemento que",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 41.52,
+      "end": 43.3,
+      "text": "a gente viu...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 43.3,
+      "end": 45.38,
+      "text": "...eu ia retornar",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 45.38,
+      "end": 45.98,
+      "text": "o anterior.",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 45.98,
+      "end": 46.2,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 46.2,
+      "end": 46.7,
+      "text": "Vamos de novo.",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 46.7,
+      "end": 54.5,
+      "text": "[SILÊNCIO]",
+      "track": "V1",
+      "enabled": false,
+      "reason": "silencio"
+    },
+    {
+      "start": 54.5,
+      "end": 56.52,
+      "text": "Então aqui, a ideia",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 56.52,
+      "end": 59.08,
+      "text": "é mostrar um pouco dos ingredientes...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 59.08,
+      "end": 61.18,
+      "text": "...as referências que eu estou trazendo",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 61.18,
+      "end": 62.28,
+      "text": "para a experiência...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 62.28,
+      "end": 63.82,
+      "text": "...de esse jogo que eu estou produzindo.",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 63.82,
+      "end": 64.0,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 64.0,
+      "end": 64.84,
+      "text": "Ele é um jogo de terror.",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 64.84,
+      "end": 65.6,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 65.6,
+      "end": 67.9,
+      "text": "Mas dentro do espectro de jogos",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 67.9,
+      "end": 69.02,
+      "text": "de terror...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 69.02,
+      "end": 71.06,
+      "text": "...você pode ter diferentes tipos de",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 71.06,
+      "end": 71.24,
+      "text": "jogos.",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 71.24,
+      "end": 71.38,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 71.38,
+      "end": 73.46,
+      "text": "Você pode ter desde um residentível",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 73.46,
+      "end": 74.14,
+      "text": "da vida...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 74.14,
+      "end": 74.96,
+      "text": "...mais voltado para ação...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 74.96,
+      "end": 76.3,
+      "text": "[SILÊNCIO]",
+      "track": "V1",
+      "enabled": false,
+      "reason": "silencio"
+    },
+    {
+      "start": 76.3,
+      "end": 78.34,
+      "text": "...tiros, voadoras, facas",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 78.34,
+      "end": 78.96,
+      "text": "e tudo mais...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 78.96,
+      "end": 79.5,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 79.5,
+      "end": 81.02,
+      "text": "...a até um jogo com uma meníngia...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 81.02,
+      "end": 81.74,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 81.74,
+      "end": 83.86,
+      "text": "...aonde você é muito mais",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 83.86,
+      "end": 85.92,
+      "text": "fraco do que os amientes...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 85.92,
+      "end": 88.16,
+      "text": "...do que o monstro que te persegue.",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 88.16,
+      "end": 88.56,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 88.56,
+      "end": 90.94,
+      "text": "E a ideia do jogo que eu estava trabalhando...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 90.94,
+      "end": 92.44,
+      "text": "...eram um pouco seguir nessa linha.",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 92.44,
+      "end": 93.06,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 93.06,
+      "end": 94.24,
+      "text": "Você não é o herói.",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 94.24,
+      "end": 94.5,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 94.5,
+      "end": 96.72,
+      "text": "Você não é o personagem mais forte",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 96.72,
+      "end": 97.92,
+      "text": "que derrota todo mundo.",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 97.92,
+      "end": 98.32,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 98.32,
+      "end": 100.0,
+      "text": "Você é um ser humano normal.",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 100.0,
+      "end": 100.68,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 100.68,
+      "end": 102.68,
+      "text": "Então, os primeiros ingredientes que eu",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 102.68,
+      "end": 104.36,
+      "text": "peguei aqui foram jogos...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 104.36,
+      "end": 106.46,
+      "text": "...que têm experiências parecidas com",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 106.46,
+      "end": 107.24,
+      "text": "o que eu estava buscando.",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 107.24,
+      "end": 108.63,
+      "text": "[SILÊNCIO]",
+      "track": "V1",
+      "enabled": false,
+      "reason": "silencio"
+    },
+    {
+      "start": 108.63,
+      "end": 110.05,
+      "text": "E aí, eu trouxe o próprio meníngia.",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 110.05,
+      "end": 110.35,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 110.35,
+      "end": 112.99,
+      "text": "Eu trouxe o island isolation...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 112.99,
+      "end": 115.21,
+      "text": "...aonde você está numa nave infestada",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 115.21,
+      "end": 115.81,
+      "text": "de alienígenas...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 115.81,
+      "end": 116.41,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 116.41,
+      "end": 117.57,
+      "text": "...e você não é o herói.",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 117.57,
+      "end": 117.69,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 117.69,
+      "end": 120.23,
+      "text": "Se o alienígena consegue pegar para você...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 120.23,
+      "end": 120.87,
+      "text": "...você morre.",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 120.87,
+      "end": 121.49,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 121.49,
+      "end": 123.51,
+      "text": "Você é fraco em relação aos monstros.",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 123.51,
+      "end": 123.97,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 123.97,
+      "end": 125.73,
+      "text": "Tem a série Autileste também.",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 125.73,
+      "end": 125.97,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 125.97,
+      "end": 128.29,
+      "text": "Tem o residentível 7, que ele tem uma pegado",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 128.29,
+      "end": 128.87,
+      "text": "um pouco...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 128.87,
+      "end": 131.07,
+      "text": "...mais nessa linha e você não certa um poderoso.",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 131.07,
+      "end": 131.63,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 131.63,
+      "end": 134.29,
+      "text": "Mas, além disso...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 134.29,
+      "end": 136.15,
+      "text": "...eu trouxe outras referências.",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 136.15,
+      "end": 136.37,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 136.37,
+      "end": 138.01,
+      "text": "E eu sou muito fã de filmes de terror.",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 138.01,
+      "end": 138.47,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 138.47,
+      "end": 140.61,
+      "text": "Então, eu trouxe outras experiências,",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 140.61,
+      "end": 140.77,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 140.77,
+      "end": 142.15,
+      "text": "outros filmes...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 142.15,
+      "end": 144.33,
+      "text": "...que venden a mesma ideia.",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 144.33,
+      "end": 144.71,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 144.71,
+      "end": 146.81,
+      "text": "O personagem principal está",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 146.81,
+      "end": 149.37,
+      "text": "sendo perseguido por um oponente...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 149.37,
+      "end": 151.53,
+      "text": "...um vilão muito mais forte",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 151.53,
+      "end": 152.11,
+      "text": "do que ele.",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 152.11,
+      "end": 152.55,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 152.55,
+      "end": 154.29,
+      "text": "Então, eu coloquei aqui o lugar silencioso...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 154.29,
+      "end": 154.83,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 154.83,
+      "end": 156.67,
+      "text": "...a série, né, o lugar silencioso.",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 156.67,
+      "end": 157.19,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 157.19,
+      "end": 157.89,
+      "text": "Esse aqui...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 157.89,
+      "end": 160.13,
+      "text": "Eu não sei o nome em português, mas ele",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 160.13,
+      "end": 161.21,
+      "text": "é bem nessa linha...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 161.21,
+      "end": 161.83,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 161.83,
+      "end": 162.61,
+      "text": "...que é...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 162.61,
+      "end": 164.79,
+      "text": "...você está sendo perseguido por um homem que ele",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 164.79,
+      "end": 165.21,
+      "text": "é cego...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 165.21,
+      "end": 165.79,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 165.79,
+      "end": 167.45,
+      "text": "...só aquele tema audição muito boa.",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 167.45,
+      "end": 167.63,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 167.63,
+      "end": 169.21,
+      "text": "Ele é muito forte, tem a série Autilêncio...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 169.21,
+      "end": 169.83,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 169.83,
+      "end": 172.03,
+      "text": "...tem o Bird Box, que fez muito sucesso.",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 172.03,
+      "end": 172.49,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 172.49,
+      "end": 174.71,
+      "text": "E são todos cada um",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 174.71,
+      "end": 176.79,
+      "text": "dentro da sua particularidade...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 176.79,
+      "end": 179.33,
+      "text": "...esperências que você",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 179.33,
+      "end": 181.25,
+      "text": "ou protagonista, no caso...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 181.25,
+      "end": 183.67,
+      "text": "...ele é muito mais fraco do que os monstros...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 183.67,
+      "end": 185.93,
+      "text": "...do que o ambiente que persegue ele.",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 185.93,
+      "end": 186.8,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 186.8,
+      "end": 189.16,
+      "text": "A partir disso daqui, eu consegui",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 189.16,
+      "end": 190.38,
+      "text": "desenhar uma frase...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 190.38,
+      "end": 192.46,
+      "text": "...que explica um pouco essa experiência.",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 192.46,
+      "end": 194.84,
+      "text": "É o Aminígia, a série de jogos...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 194.84,
+      "end": 197.72,
+      "text": "...simcontrando com o lugar silencioso...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 197.72,
+      "end": 200.38,
+      "text": "...simcontrando com um vilão...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 200.38,
+      "end": 202.82,
+      "text": "...que é muito mais forte que o protagonista...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 202.82,
+      "end": 204.96,
+      "text": "...que você precisa usar a sua inteligência, o",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 204.96,
+      "end": 205.38,
+      "text": "ambiente...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 205.38,
+      "end": 205.9,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 205.9,
+      "end": 207.16,
+      "text": "...para poder vencer ele.",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 207.16,
+      "end": 207.94,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 207.94,
+      "end": 210.32,
+      "text": "A partir disso daqui, eu comecei",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 210.32,
+      "end": 211.4,
+      "text": "a desenhar...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 211.4,
+      "end": 218.05,
+      "text": "[SILÊNCIO]",
+      "track": "V1",
+      "enabled": false,
+      "reason": "silencio"
+    },
+    {
+      "start": 218.05,
+      "end": 218.61,
+      "text": "...oi...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 218.61,
+      "end": 219.43,
+      "text": "Ah, beleza...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 219.43,
+      "end": 226.66,
+      "text": "[SILÊNCIO]",
+      "track": "V1",
+      "enabled": false,
+      "reason": "silencio"
+    },
+    {
+      "start": 226.66,
+      "end": 227.5,
+      "text": "...na 2 aqui, né?",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 227.5,
+      "end": 229.61,
+      "text": "[SILÊNCIO]",
+      "track": "V1",
+      "enabled": false,
+      "reason": "silencio"
+    },
+    {
+      "start": 229.61,
+      "end": 229.89,
+      "text": "Boa.",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 229.89,
+      "end": 230.13,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 230.13,
+      "end": 231.67,
+      "text": "E aí, como é que vocês querem o Vault?",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 231.67,
+      "end": 235.13,
+      "text": "[SILÊNCIO]",
+      "track": "V1",
+      "enabled": false,
+      "reason": "silencio"
+    },
+    {
+      "start": 235.13,
+      "end": 235.89,
+      "text": "Pode seguir?",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 235.89,
+      "end": 236.41,
+      "text": "Tá.",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 236.41,
+      "end": 236.87,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 236.87,
+      "end": 239.07,
+      "text": "Então, eu sigo aqui explicando",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 239.07,
+      "end": 239.59,
+      "text": "os pilares.",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 239.59,
+      "end": 239.61,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 239.61,
+      "end": 240.01,
+      "text": "Pode ser?",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 240.01,
+      "end": 241.03,
+      "text": "[SILÊNCIO]",
+      "track": "V1",
+      "enabled": false,
+      "reason": "silencio"
+    },
+    {
+      "start": 241.03,
+      "end": 241.29,
+      "text": "Tá.",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 241.29,
+      "end": 245.22,
+      "text": "[SILÊNCIO]",
+      "track": "V1",
+      "enabled": false,
+      "reason": "silencio"
+    },
+    {
+      "start": 245.22,
+      "end": 245.68,
+      "text": "Beleza.",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 245.68,
+      "end": 252.92,
+      "text": "[SILÊNCIO]",
+      "track": "V1",
+      "enabled": false,
+      "reason": "silencio"
+    },
+    {
+      "start": 252.92,
+      "end": 255.5,
+      "text": "Aí, fazer uma transição aqui, e aí eu posso...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 255.5,
+      "end": 255.62,
+      "text": "Tá.",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 255.62,
+      "end": 259.35,
+      "text": "[SILÊNCIO]",
+      "track": "V1",
+      "enabled": false,
+      "reason": "silencio"
+    },
+    {
+      "start": 259.35,
+      "end": 259.83,
+      "text": "Beleza.",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 259.83,
+      "end": 263.24,
+      "text": "[SILÊNCIO]",
+      "track": "V1",
+      "enabled": false,
+      "reason": "silencio"
+    },
+    {
+      "start": 263.24,
+      "end": 265.4,
+      "text": "A partir desses ingredientes, eu comecei",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 265.4,
+      "end": 266.16,
+      "text": "a pensar...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 266.16,
+      "end": 267.8,
+      "text": "...os pilares da experiência.",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 267.8,
+      "end": 267.96,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 267.96,
+      "end": 270.08,
+      "text": "E aí, dentro do borde aqui",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 270.08,
+      "end": 270.84,
+      "text": "do Miro...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 270.84,
+      "end": 273.12,
+      "text": "...eu comecei a colocar o que eu achava",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 273.12,
+      "end": 274.0,
+      "text": "que era mais importante...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 274.0,
+      "end": 274.54,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 274.54,
+      "end": 276.56,
+      "text": "...que eu gostaria de reforçar para o",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 276.56,
+      "end": 276.96,
+      "text": "jogador.",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 276.96,
+      "end": 277.66,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 277.66,
+      "end": 279.82,
+      "text": "Então, aqui a gente conseguiu definir quatro",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 279.82,
+      "end": 281.26,
+      "text": "pilares essenciais.",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 281.26,
+      "end": 284.64,
+      "text": "Eu tenho um pouco da ambiguidade...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 284.64,
+      "end": 286.32,
+      "text": "...eu tenho o perigo...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 286.32,
+      "end": 288.58,
+      "text": "...eu tenho a lore, a história",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 288.58,
+      "end": 289.86,
+      "text": "narrativa do jogo...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 289.86,
+      "end": 291.26,
+      "text": "...porque aquilo está acontecendo...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 291.26,
+      "end": 291.82,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 291.82,
+      "end": 293.66,
+      "text": "...e eu distrair e se esconder.",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 293.66,
+      "end": 294.46,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 294.46,
+      "end": 296.5,
+      "text": "Esses são os quatro pilares que",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 296.5,
+      "end": 297.74,
+      "text": "eu defini...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 297.74,
+      "end": 299.12,
+      "text": "...para guiar a experiência.",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 299.12,
+      "end": 299.4,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 299.4,
+      "end": 301.5,
+      "text": "Toda construção que eu fosse fazer",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 301.5,
+      "end": 302.42,
+      "text": "dentro do jogo...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 302.42,
+      "end": 302.86,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 302.86,
+      "end": 304.54,
+      "text": "...eu precisaria, pelo menos,",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 304.54,
+      "end": 305.14,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 305.14,
+      "end": 306.46,
+      "text": "que um desses pilares...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 306.46,
+      "end": 307.12,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 307.12,
+      "end": 308.82,
+      "text": "...estivesse sendo reforçado.",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 308.82,
+      "end": 311.28,
+      "text": "E a partir da construção",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 311.28,
+      "end": 311.98,
+      "text": "deles...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 311.98,
+      "end": 313.88,
+      "text": "...eu comecei a pensar o que eles são...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 313.88,
+      "end": 314.46,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 314.46,
+      "end": 315.4,
+      "text": "...e o que eles não são.",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 315.4,
+      "end": 316.26,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 316.26,
+      "end": 318.28,
+      "text": "Esse é um exercício que pode parecer um pouquinho",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 318.28,
+      "end": 319.08,
+      "text": "bobo...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 319.08,
+      "end": 321.28,
+      "text": "...mas ele clarifica muito a",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 321.28,
+      "end": 323.3,
+      "text": "visão do que que é cada",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 323.3,
+      "end": 323.68,
+      "text": "pilar.",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 323.68,
+      "end": 324.48,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 324.48,
+      "end": 326.64,
+      "text": "Pense assim, você vai estar trabalhando com o",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 326.64,
+      "end": 326.86,
+      "text": "time.",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 326.86,
+      "end": 327.06,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 327.06,
+      "end": 328.84,
+      "text": "Você pode ter lá duas,",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 328.84,
+      "end": 329.1,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 329.1,
+      "end": 330.84,
+      "text": "três, quatro, cinco pessoas...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 330.84,
+      "end": 331.78,
+      "text": "...talvez um time maior.",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 331.78,
+      "end": 332.56,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 332.56,
+      "end": 334.86,
+      "text": "E a partir do momento de você estar trabalhando",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 334.86,
+      "end": 335.82,
+      "text": "com essas pessoas...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 335.82,
+      "end": 337.82,
+      "text": "...game design é muito sobre comunicar",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 337.82,
+      "end": 338.56,
+      "text": "as ideias.",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 338.56,
+      "end": 338.92,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 338.92,
+      "end": 340.94,
+      "text": "Só que, se você não consegue fazer",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 340.94,
+      "end": 342.06,
+      "text": "um exercício...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 342.06,
+      "end": 344.06,
+      "text": "...de esse el não é,",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 344.06,
+      "end": 344.66,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 344.66,
+      "end": 346.82,
+      "text": "cada um pode ter uma ideia diferente...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 346.82,
+      "end": 348.18,
+      "text": "...de como aplicar a espilar.",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 348.18,
+      "end": 348.72,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 348.72,
+      "end": 350.76,
+      "text": "O el não é um exercício que você",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 350.76,
+      "end": 351.4,
+      "text": "pode fazer...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 351.4,
+      "end": 352.82,
+      "text": "...en conjunto com o seu grupo...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 352.82,
+      "end": 353.48,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 353.48,
+      "end": 356.1,
+      "text": "...para vocês definirem muito claramente...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 356.1,
+      "end": 357.86,
+      "text": "...o que é cada um desses pilares.",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 357.86,
+      "end": 358.08,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 358.08,
+      "end": 359.44,
+      "text": "É muito comum em jogos.",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 359.44,
+      "end": 360.06,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 360.06,
+      "end": 362.06,
+      "text": "Se você não faz isso, cada um...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 362.06,
+      "end": 362.62,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 362.62,
+      "end": 363.94,
+      "text": "...pensa de uma forma diferente...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 363.94,
+      "end": 366.32,
+      "text": "...aquilo elemento ou aquele sistema",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 366.32,
+      "end": 367.08,
+      "text": "ou aquele pilar...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 367.08,
+      "end": 367.68,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 367.68,
+      "end": 368.82,
+      "text": "...e isso gera desvio.",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 368.82,
+      "end": 369.0,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 369.0,
+      "end": 371.08,
+      "text": "Você vai ter mais problemas...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 371.08,
+      "end": 373.84,
+      "text": "...de para acertar o que foi construído...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 373.84,
+      "end": 376.02,
+      "text": "...para alinhar a comunicação com o seu time.",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 376.02,
+      "end": 376.78,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 376.78,
+      "end": 379.1,
+      "text": "Então, por exemplo, na ambiguidade...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 379.1,
+      "end": 381.36,
+      "text": "...o que a gente está querendo trabalhar nos nossos",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 381.36,
+      "end": 381.94,
+      "text": "jogos...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 381.94,
+      "end": 382.64,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 382.64,
+      "end": 384.74,
+      "text": "...é que seja um jogo que você",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 384.74,
+      "end": 386.62,
+      "text": "pode se perder com facilidade.",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 386.62,
+      "end": 387.77,
+      "text": "[SILÊNCIO]",
+      "track": "V1",
+      "enabled": false,
+      "reason": "silencio"
+    },
+    {
+      "start": 387.77,
+      "end": 389.95,
+      "text": "Por exemplo, se eu quero que o nosso jogo seja",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 389.95,
+      "end": 391.13,
+      "text": "um amigo...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 391.13,
+      "end": 393.49,
+      "text": "...peiro um minimapa que",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 393.49,
+      "end": 395.63,
+      "text": "é um sistema super...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 395.63,
+      "end": 397.77,
+      "text": "...comun e simples de ser feito no",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 397.77,
+      "end": 399.13,
+      "text": "desenvolvimento de jogos...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 399.13,
+      "end": 399.73,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 399.73,
+      "end": 400.63,
+      "text": "...não faz sentido.",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 400.63,
+      "end": 401.11,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 401.11,
+      "end": 403.39,
+      "text": "Eu estou fazendo",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 403.39,
+      "end": 404.39,
+      "text": "com o que o pilar...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 404.39,
+      "end": 406.13,
+      "text": "...ambiguidade fique mais fraco.",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 406.13,
+      "end": 406.75,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 406.75,
+      "end": 408.41,
+      "text": "Na mesma forma...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 408.41,
+      "end": 410.43,
+      "text": "...que eu quero que o cenário ele",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 410.43,
+      "end": 411.61,
+      "text": "não seja estável...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 411.61,
+      "end": 413.63,
+      "text": "...he pode mudar com o forma o jogo vai",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 413.63,
+      "end": 414.35,
+      "text": "avançando.",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 414.35,
+      "end": 414.65,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 414.65,
+      "end": 417.07,
+      "text": "A ideia de você fazer o el não é...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 417.07,
+      "end": 419.77,
+      "text": "...você tem muito claro como que você reforça",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 419.77,
+      "end": 420.33,
+      "text": "aquele pilar...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 420.33,
+      "end": 422.41,
+      "text": "...e como que algumas coisas",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 422.41,
+      "end": 424.11,
+      "text": "podem enfraquecer o pilar.",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 424.11,
+      "end": 424.61,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 424.61,
+      "end": 426.83,
+      "text": "Como esses exemplos fica muito",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 426.83,
+      "end": 427.36,
+      "text": "mais fácil...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 427.36,
+      "end": 428.09,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 428.09,
+      "end": 430.33,
+      "text": "...você e as pessoas do time entenderem...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 430.33,
+      "end": 431.21,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 431.21,
+      "end": 433.43,
+      "text": "...o que é bom ou ruim para o jogo.",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 433.43,
+      "end": 433.91,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 433.91,
+      "end": 436.01,
+      "text": "Numa discussão de coisas que vocês querem",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 436.01,
+      "end": 436.83,
+      "text": "fazer...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 436.83,
+      "end": 439.27,
+      "text": "...por exemplo, personagens, mecânicas,",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 439.27,
+      "end": 439.59,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 439.59,
+      "end": 440.54,
+      "text": "cenários, aplicações...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 440.54,
+      "end": 440.89,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 440.89,
+      "end": 442.31,
+      "text": "...que vocês querem fazer...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 442.31,
+      "end": 444.57,
+      "text": "...a discussão sai muito do que eu",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 444.57,
+      "end": 445.29,
+      "text": "acho...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 445.29,
+      "end": 447.41,
+      "text": "...como jogador que deveria ser...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 447.41,
+      "end": 449.79,
+      "text": "...mas sim o que o pilar que é que seja.",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 449.79,
+      "end": 451.83,
+      "text": "E aí o pilar ele vira esse",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 451.83,
+      "end": 452.09,
+      "text": "norte.",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 452.09,
+      "end": 452.33,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 452.33,
+      "end": 454.89,
+      "text": "Essa estrela guia que você e o seu time...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 454.89,
+      "end": 456.99,
+      "text": "...vão seguir ao longo da produção inteira.",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 456.99,
+      "end": 457.99,
+      "text": "[SILÊNCIO]",
+      "track": "V1",
+      "enabled": false,
+      "reason": "silencio"
+    },
+    {
+      "start": 457.99,
+      "end": 460.75,
+      "text": "Então aqui a gente explorou também o pilar do perigo...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 460.75,
+      "end": 461.85,
+      "text": "...que o ambiente é tenso...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 461.85,
+      "end": 462.75,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 462.75,
+      "end": 464.75,
+      "text": "...que eu não posso memorizar os",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 464.75,
+      "end": 465.01,
+      "text": "layouts...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 465.01,
+      "end": 466.07,
+      "text": "[SILÊNCIO]",
+      "track": "V1",
+      "enabled": false,
+      "reason": "silencio"
+    },
+    {
+      "start": 466.07,
+      "end": 468.43,
+      "text": "...eu nunca sei aqui exatamente",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 468.43,
+      "end": 470.73,
+      "text": "o que eu posso encontrar na exploração...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 470.73,
+      "end": 472.65,
+      "text": "...eu tento trazer esse elemento de aleatoridade,",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 472.65,
+      "end": 472.95,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 472.95,
+      "end": 473.79,
+      "text": "de surpresa...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 473.79,
+      "end": 474.39,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 474.39,
+      "end": 474.99,
+      "text": "...e tudo mais.",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 474.99,
+      "end": 475.47,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 475.47,
+      "end": 477.63,
+      "text": "A gente tem um inimigo que também é um elemento",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 477.63,
+      "end": 478.99,
+      "text": "super importante...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 478.99,
+      "end": 481.19,
+      "text": "...o perigo é de quem você está tentando escapar...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 481.19,
+      "end": 483.39,
+      "text": "...é de quem você está tentando ser",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 483.39,
+      "end": 484.05,
+      "text": "mais esperto...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 484.05,
+      "end": 484.53,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 484.53,
+      "end": 486.79,
+      "text": "...para poder resolver as questões que estão acontecendo",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 486.79,
+      "end": 487.25,
+      "text": "lá.",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 487.25,
+      "end": 487.79,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 487.79,
+      "end": 489.79,
+      "text": "Então esse desenho bem claro",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 489.79,
+      "end": 491.07,
+      "text": "de cada um dos pilares...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 491.07,
+      "end": 491.83,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 491.83,
+      "end": 493.97,
+      "text": "...é um trabalho de design muito importante.",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 493.97,
+      "end": 494.65,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 494.65,
+      "end": 496.33,
+      "text": "Por outras razões também.",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 496.33,
+      "end": 496.69,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 496.69,
+      "end": 498.73,
+      "text": "Você pode ter uma pessoa que entrou do meio",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 498.73,
+      "end": 499.33,
+      "text": "do projeto.",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 499.33,
+      "end": 499.65,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 499.65,
+      "end": 501.79,
+      "text": "Você estava lá trabalhando 2, 3, 4",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 501.79,
+      "end": 503.25,
+      "text": "meses no seu jogo...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 503.25,
+      "end": 504.45,
+      "text": "...e entra uma pessoa nova.",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 504.45,
+      "end": 505.03,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 505.03,
+      "end": 506.99,
+      "text": "Para você explicar tudo isso...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 506.99,
+      "end": 509.17,
+      "text": "...pode ficar muito difícil se",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 509.17,
+      "end": 510.89,
+      "text": "ela não tiver a clareza dos pilares.",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 510.89,
+      "end": 511.43,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 511.43,
+      "end": 513.19,
+      "text": "Então esse trabalho também ajuda...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 513.19,
+      "end": 513.57,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 513.57,
+      "end": 515.21,
+      "text": "...todo mundo que está entrando nesse projeto...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 515.21,
+      "end": 515.91,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 515.91,
+      "end": 517.87,
+      "text": "...a entender o que precisa ser produzido...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 517.87,
+      "end": 519.97,
+      "text": "...cual que o objetivo final que vocês estão tentando",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 519.97,
+      "end": 520.29,
+      "text": "chegar.",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 520.29,
+      "end": 521.17,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 521.17,
+      "end": 523.37,
+      "text": "Então, a partir dos pilares aqui bem",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 523.37,
+      "end": 524.23,
+      "text": "desenhados...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 524.23,
+      "end": 526.33,
+      "text": "...bem conversados e explicados a",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 526.33,
+      "end": 527.47,
+      "text": "partir do E...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 527.47,
+      "end": 528.73,
+      "text": "...e do não E...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 528.73,
+      "end": 531.39,
+      "text": "...a gente começou a desenhar o raiconcept",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 531.39,
+      "end": 532.03,
+      "text": "do jogo.",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 532.03,
+      "end": 532.71,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 532.71,
+      "end": 534.97,
+      "text": "Então, qual era a ação básica",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 534.97,
+      "end": 535.99,
+      "text": "que a gente estava imaginando...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 535.99,
+      "end": 538.19,
+      "text": "...prou o nosso projeto,",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 538.19,
+      "end": 539.39,
+      "text": "projetos zero.",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 539.39,
+      "end": 539.89,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 539.89,
+      "end": 542.07,
+      "text": "O que eu faço 1 milhão de vezes.",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 542.07,
+      "end": 543.22,
+      "text": "[SILÊNCIO]",
+      "track": "V1",
+      "enabled": false,
+      "reason": "silencio"
+    },
+    {
+      "start": 543.22,
+      "end": 545.54,
+      "text": "E aqui a ideia do raiconcept",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 545.54,
+      "end": 547.46,
+      "text": "é que você monte uma frase...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 547.46,
+      "end": 548.34,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 548.34,
+      "end": 550.24,
+      "text": "...que explique a ação básica,",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 550.24,
+      "end": 550.64,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 550.64,
+      "end": 552.08,
+      "text": "a progressão de curto prazo...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 552.08,
+      "end": 554.46,
+      "text": "...progressão de médio prazo e a aspiração.",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 554.46,
+      "end": 554.78,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 554.78,
+      "end": 556.22,
+      "text": "Pode parecer um exercício fácil...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 556.22,
+      "end": 556.82,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 556.82,
+      "end": 559.06,
+      "text": "...mas ele leva muitas e muitas e muitas",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 559.06,
+      "end": 559.38,
+      "text": "interações...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 559.38,
+      "end": 559.88,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 559.88,
+      "end": 562.16,
+      "text": "...tava você chegar realmente numa frase que explica",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 562.16,
+      "end": 562.94,
+      "text": "bem o seu jogo.",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 562.94,
+      "end": 564.28,
+      "text": "Então, por exemplo,",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 564.28,
+      "end": 565.04,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 565.04,
+      "end": 566.2,
+      "text": "no zero...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 566.2,
+      "end": 568.26,
+      "text": "...eu fujo do monstro com um estéu...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 568.26,
+      "end": 569.94,
+      "text": "...fil usando sons para sobreviver...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 569.94,
+      "end": 570.58,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 570.58,
+      "end": 572.94,
+      "text": "...para na progressão de curto prazo...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 572.94,
+      "end": 573.48,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 573.48,
+      "end": 575.7,
+      "text": "...resolver os pasos e avançar pelos",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 575.7,
+      "end": 576.02,
+      "text": "níveis...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 576.02,
+      "end": 576.88,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 576.88,
+      "end": 578.82,
+      "text": "...para na progressão de médio prazo.",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 578.82,
+      "end": 578.92,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 578.92,
+      "end": 581.22,
+      "text": "Descubriu o que está acontecendo e aonde",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 581.22,
+      "end": 582.14,
+      "text": "que eu estou...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 582.14,
+      "end": 583.96,
+      "text": "...e a aspiração final...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 583.96,
+      "end": 586.3,
+      "text": "...preo fugir desse escritório, desse espaço",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 586.3,
+      "end": 587.34,
+      "text": "que eu estou...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 587.34,
+      "end": 588.52,
+      "text": "...esso sobreviver.",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 588.52,
+      "end": 591.72,
+      "text": "Essa frase explica",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 591.72,
+      "end": 593.82,
+      "text": "a experiência total do jogo...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 593.82,
+      "end": 595.86,
+      "text": "...de uma forma simples e muito",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 595.86,
+      "end": 596.78,
+      "text": "concreta...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 596.78,
+      "end": 598.82,
+      "text": "...para quem for trabalhar dentro do jogo...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 598.82,
+      "end": 601.12,
+      "text": "...e para o próprio jogador que vai viver",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 601.12,
+      "end": 601.8,
+      "text": "essa experiência.",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 601.8,
+      "end": 602.64,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 602.64,
+      "end": 604.76,
+      "text": "Então, o High Concept é um processo de",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 604.76,
+      "end": 606.42,
+      "text": "muita interação...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 606.42,
+      "end": 609.24,
+      "text": "...e sempre pensando a ação básica...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 609.24,
+      "end": 611.54,
+      "text": "...progressão de curto prazo, médio prazo",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 611.54,
+      "end": 612.98,
+      "text": "e a aspiração.",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 612.98,
+      "end": 614.18,
+      "text": "[SILÊNCIO]",
+      "track": "V1",
+      "enabled": false,
+      "reason": "silencio"
+    },
+    {
+      "start": 614.18,
+      "end": 616.0,
+      "text": "Como isso aqui construído...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 616.0,
+      "end": 618.24,
+      "text": "...a gente vai pro último elemento que",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 618.24,
+      "end": 619.46,
+      "text": "é o Corlup.",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 619.46,
+      "end": 619.84,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 619.84,
+      "end": 621.88,
+      "text": "O Corlup e ele é um termo",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 621.88,
+      "end": 623.9,
+      "text": "muito comum do mercado de jogo...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 623.9,
+      "end": 625.9,
+      "text": "...são as ações principais que",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 625.9,
+      "end": 627.94,
+      "text": "você precisa fazer dentro do seu jogo.",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 627.94,
+      "end": 628.64,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 628.64,
+      "end": 630.36,
+      "text": "Aqui é a base.",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 630.36,
+      "end": 631.22,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 631.22,
+      "end": 633.3,
+      "text": "Se você vai fazer um protótipo de jogo...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 633.3,
+      "end": 635.68,
+      "text": "...se você vai vender uma ideia de jogo...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 635.68,
+      "end": 638.04,
+      "text": "...esse é o mínimo que você precisa",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 638.04,
+      "end": 638.9,
+      "text": "ter...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 638.9,
+      "end": 640.98,
+      "text": "...para as pessoas entendam o coi",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 640.98,
+      "end": 642.14,
+      "text": "da ideia do jogo...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 642.14,
+      "end": 643.62,
+      "text": "...e também para que você produza.",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 643.62,
+      "end": 644.44,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 644.44,
+      "end": 645.96,
+      "text": "Normalmente, num protótipo...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 645.96,
+      "end": 648.1,
+      "text": "...o grande foco que a gente vai ter é",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 648.1,
+      "end": 648.6,
+      "text": "o Corlup.",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 648.6,
+      "end": 648.84,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 648.84,
+      "end": 649.18,
+      "text": "Por quê?",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 649.18,
+      "end": 649.9,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 649.9,
+      "end": 651.46,
+      "text": "O Corl, ele é o principal.",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 651.46,
+      "end": 652.91,
+      "text": "[SILÊNCIO]",
+      "track": "V1",
+      "enabled": false,
+      "reason": "silencio"
+    },
+    {
+      "start": 652.91,
+      "end": 655.37,
+      "text": "Se o Corlup do",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 655.37,
+      "end": 657.39,
+      "text": "seu jogo não for divertido...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 657.39,
+      "end": 659.47,
+      "text": "...o não estiver divertido...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 659.47,
+      "end": 661.55,
+      "text": "...não adianta você fazer as outras coisas...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 661.55,
+      "end": 663.27,
+      "text": "...não adianta você fazer...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 663.27,
+      "end": 665.35,
+      "text": "...o seu sistema de batalha exploração",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 665.35,
+      "end": 666.09,
+      "text": "não está legal...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 666.09,
+      "end": 668.45,
+      "text": "...e você quer por level up, você quer por mais monstros,",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 668.45,
+      "end": 668.65,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 668.65,
+      "end": 669.53,
+      "text": "mais cenários...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 669.53,
+      "end": 670.57,
+      "text": "...mais isso, mais aquilo.",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 670.57,
+      "end": 671.25,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 671.25,
+      "end": 672.09,
+      "text": "Não vai adiantar.",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 672.09,
+      "end": 672.33,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 672.33,
+      "end": 673.27,
+      "text": "Ele não vai ficar mais legal.",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 673.27,
+      "end": 675.09,
+      "text": "Porque o centro,",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 675.09,
+      "end": 675.29,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 675.29,
+      "end": 677.27,
+      "text": "o serno do jogo não funciona.",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 677.27,
+      "end": 677.75,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 677.75,
+      "end": 680.67,
+      "text": "Então, o Corlup ele é importante nesse sentido...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 680.67,
+      "end": 683.17,
+      "text": "...porque no processo de produção de jogos...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 683.17,
+      "end": 685.27,
+      "text": "...de jogos vai ser o que você",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 685.27,
+      "end": 686.69,
+      "text": "vai fazer primeiro...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 686.69,
+      "end": 688.51,
+      "text": "...o que você vai validar primeiro.",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 688.51,
+      "end": 689.27,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 689.27,
+      "end": 691.31,
+      "text": "E aqui, no projeto que a gente estava fazendo",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 691.31,
+      "end": 692.33,
+      "text": "de terror...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 692.33,
+      "end": 694.61,
+      "text": "...a gente tinha três focos dentro do",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 694.61,
+      "end": 695.13,
+      "text": "Corlup.",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 695.13,
+      "end": 695.71,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 695.71,
+      "end": 697.91,
+      "text": "Primeiro, era explorar",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 697.91,
+      "end": 698.33,
+      "text": "o mundo...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 698.33,
+      "end": 699.28,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 699.28,
+      "end": 701.08,
+      "text": "...secondo, explorando o mundo...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 701.08,
+      "end": 702.72,
+      "text": "...eu resolvo os pasos...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 702.72,
+      "end": 704.86,
+      "text": "...e resolvendo os pasos eu também tenho",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 704.86,
+      "end": 706.42,
+      "text": "que fugir do monstro...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 706.42,
+      "end": 708.54,
+      "text": "...para continuar explorando o mundo...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 708.54,
+      "end": 710.16,
+      "text": "...para resolver os pasos...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 710.16,
+      "end": 711.08,
+      "text": "...para fugir do monstro...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 711.08,
+      "end": 711.68,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 711.68,
+      "end": 712.52,
+      "text": "...para explorar o mundo.",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 712.52,
+      "end": 712.88,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 712.88,
+      "end": 715.46,
+      "text": "Então, o Corlup ele é um loop...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 715.46,
+      "end": 717.7,
+      "text": "...ele é um ciclo fechado de ações",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 717.7,
+      "end": 718.08,
+      "text": "repetitivas...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 718.08,
+      "end": 718.62,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 718.62,
+      "end": 720.06,
+      "text": "...que você faz em cada jogo.",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 720.06,
+      "end": 720.92,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 720.92,
+      "end": 722.26,
+      "text": "Pega um jogo que você conhece...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 722.26,
+      "end": 722.94,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 722.94,
+      "end": 725.4,
+      "text": "...um jogo que você tem bastante experiência...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 725.4,
+      "end": 727.32,
+      "text": "...tenta de se construir o Corlup dele.",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 727.32,
+      "end": 729.42,
+      "text": "Qual é o ciclo repetitivo que você",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 729.42,
+      "end": 730.45,
+      "text": "faz a cada partida...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 730.45,
+      "end": 731.22,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 731.22,
+      "end": 733.3,
+      "text": "...jogando cinco minutos ou",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 733.3,
+      "end": 733.98,
+      "text": "três horas?",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 733.98,
+      "end": 734.44,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 734.44,
+      "end": 735.5,
+      "text": "Quais são esses caras?",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 735.5,
+      "end": 735.56,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 735.56,
+      "end": 737.06,
+      "text": "Quais são as ações principais?",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 737.06,
+      "end": 737.88,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 737.88,
+      "end": 739.39,
+      "text": "Se você for reparar aqui...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 739.39,
+      "end": 740.06,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 740.06,
+      "end": 742.54,
+      "text": "...todas as caixas do Corlup são um",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 742.54,
+      "end": 743.4,
+      "text": "verbo...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 743.4,
+      "end": 744.5,
+      "text": "...mação que você faz.",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 744.5,
+      "end": 745.16,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 745.16,
+      "end": 747.24,
+      "text": "Isso é uma prática muito boa na hora de",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 747.24,
+      "end": 748.78,
+      "text": "construir um Corlup...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 748.78,
+      "end": 750.96,
+      "text": "...são as ações do jogador.",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 750.96,
+      "end": 751.76,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 751.76,
+      "end": 754.48,
+      "text": "E aí, a partir dessas ações...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 754.48,
+      "end": 756.96,
+      "text": "...a gente começa a quebrar nos sistemas...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 756.96,
+      "end": 759.1,
+      "text": "...nás mecânicas que a gente quer que",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 759.1,
+      "end": 759.58,
+      "text": "tenha...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 759.58,
+      "end": 761.94,
+      "text": "...dentro de cada ponto do Corlup.",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 761.94,
+      "end": 762.93,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 762.93,
+      "end": 765.15,
+      "text": "Então, ampliando um pouquinho mais",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 765.15,
+      "end": 765.57,
+      "text": "aqui...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 765.57,
+      "end": 767.21,
+      "text": "...o explorar o mundo...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 767.21,
+      "end": 767.34,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 767.34,
+      "end": 769.58,
+      "text": "...da pra ver que tem umas imagens em",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 769.58,
+      "end": 769.74,
+      "text": "cima...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 769.74,
+      "end": 770.76,
+      "text": "...es uma em cima...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 770.76,
+      "end": 772.86,
+      "text": "...algunas imagens em cima aqui do explorar",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 772.86,
+      "end": 773.26,
+      "text": "o mundo.",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 773.26,
+      "end": 773.7,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 773.7,
+      "end": 775.46,
+      "text": "Se você prestar atenção...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 775.46,
+      "end": 777.8,
+      "text": "... essas imagens são as mesmas",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 777.8,
+      "end": 779.52,
+      "text": "imagens dos pilares.",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 779.52,
+      "end": 780.16,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 780.16,
+      "end": 781.68,
+      "text": "Eu tenho lá o nome do pilar...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 781.68,
+      "end": 783.72,
+      "text": "...e eu tenho uma imagem acima dele.",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 783.72,
+      "end": 785.04,
+      "text": "[SILÊNCIO]",
+      "track": "V1",
+      "enabled": false,
+      "reason": "silencio"
+    },
+    {
+      "start": 785.04,
+      "end": 787.06,
+      "text": "Porque quando a gente chega",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 787.06,
+      "end": 788.06,
+      "text": "no Corlup...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 788.06,
+      "end": 791.14,
+      "text": "...eu preciso sempre validar...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 791.14,
+      "end": 793.16,
+      "text": "...se o que eu estou colocando do",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 793.16,
+      "end": 794.04,
+      "text": "meu Corlup...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 794.04,
+      "end": 795.88,
+      "text": "...reforça a experiência do pilar.",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 795.88,
+      "end": 796.62,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 796.62,
+      "end": 796.98,
+      "text": "Lembra?",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 796.98,
+      "end": 797.6,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 797.6,
+      "end": 799.08,
+      "text": "O pilar é o guia.",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 799.08,
+      "end": 799.9,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 799.9,
+      "end": 800.98,
+      "text": "É ele que fala...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 800.98,
+      "end": 803.08,
+      "text": "...se aquilo que você está fazendo está correto ou",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 803.08,
+      "end": 803.32,
+      "text": "não.",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 803.32,
+      "end": 803.76,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 803.76,
+      "end": 806.1,
+      "text": "Então, se você tem pilares bem definidos...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 806.1,
+      "end": 807.82,
+      "text": "... eles vão te guiar...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 807.82,
+      "end": 809.9,
+      "text": "...para tomar as decisões de design...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 809.9,
+      "end": 811.78,
+      "text": "...que servem ou não para o seu jogo.",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 811.78,
+      "end": 813.82,
+      "text": "Então, uma boa prática",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 813.82,
+      "end": 814.9,
+      "text": "que eu gosto de aplicar...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 814.9,
+      "end": 815.7,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 815.7,
+      "end": 817.66,
+      "text": "... é sempre eu validar e colo...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 817.66,
+      "end": 819.16,
+      "text": "[SILÊNCIO]",
+      "track": "V1",
+      "enabled": false,
+      "reason": "silencio"
+    },
+    {
+      "start": 819.16,
+      "end": 819.68,
+      "text": "...diga...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 819.68,
+      "end": 852.44,
+      "text": "[SILÊNCIO]",
+      "track": "V1",
+      "enabled": false,
+      "reason": "silencio"
+    },
+    {
+      "start": 852.44,
+      "end": 852.96,
+      "text": "...pap...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 852.96,
+      "end": 854.8,
+      "text": "...e aí eu volto na câmera ou na tela.",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 854.8,
+      "end": 857.31,
+      "text": "[SILÊNCIO]",
+      "track": "V1",
+      "enabled": false,
+      "reason": "silencio"
+    },
+    {
+      "start": 857.31,
+      "end": 857.77,
+      "text": "Paz de na tela?",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 857.77,
+      "end": 858.07,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 858.07,
+      "end": 858.37,
+      "text": "Beleza.",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 858.37,
+      "end": 859.46,
+      "text": "[SILÊNCIO]",
+      "track": "V1",
+      "enabled": false,
+      "reason": "silencio"
+    },
+    {
+      "start": 859.46,
+      "end": 859.98,
+      "text": "Pode ser?",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 859.98,
+      "end": 866.1,
+      "text": "[SILÊNCIO]",
+      "track": "V1",
+      "enabled": false,
+      "reason": "silencio"
+    },
+    {
+      "start": 866.1,
+      "end": 868.06,
+      "text": "Então, uma boa prática.",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 868.06,
+      "end": 869.79,
+      "text": "[SILÊNCIO]",
+      "track": "V1",
+      "enabled": false,
+      "reason": "silencio"
+    },
+    {
+      "start": 869.79,
+      "end": 871.89,
+      "text": "Deu uma enroscada aqui, ferei.",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 871.89,
+      "end": 874.25,
+      "text": "[SILÊNCIO]",
+      "track": "V1",
+      "enabled": false,
+      "reason": "silencio"
+    },
+    {
+      "start": 874.25,
+      "end": 876.47,
+      "text": "Então, uma boa prática que você pode",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 876.47,
+      "end": 876.73,
+      "text": "aplicar...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 876.73,
+      "end": 877.61,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 877.61,
+      "end": 879.63,
+      "text": "... é sempre que você pensar em",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 879.63,
+      "end": 881.63,
+      "text": "uma nova coisa, uma nova ação...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 881.63,
+      "end": 883.23,
+      "text": "... ou no seu próprio cor loop...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 883.23,
+      "end": 885.57,
+      "text": "...você validar com os seus pilares.",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 885.57,
+      "end": 886.15,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 886.15,
+      "end": 887.63,
+      "text": "Se você olhar aqui no borde...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 887.63,
+      "end": 888.19,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 888.19,
+      "end": 889.99,
+      "text": "...eu coloquei as imagens em cima...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 889.99,
+      "end": 891.63,
+      "text": "...e aí eu consegui pensando...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 891.63,
+      "end": 892.65,
+      "text": "[SILÊNCIO]",
+      "track": "V1",
+      "enabled": false,
+      "reason": "silencio"
+    },
+    {
+      "start": 892.65,
+      "end": 894.61,
+      "text": "...dentro do explorar o mundo...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 894.61,
+      "end": 897.17,
+      "text": "...eu estou reforçando três pilares.",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 897.17,
+      "end": 897.91,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 897.91,
+      "end": 900.23,
+      "text": "A ambiguidade, o perigo e",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 900.23,
+      "end": 900.45,
+      "text": "a lore.",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 900.45,
+      "end": 900.79,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 900.79,
+      "end": 901.29,
+      "text": "Então, ok.",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 901.29,
+      "end": 901.75,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 901.75,
+      "end": 904.01,
+      "text": "Esse pilar, essa ação do cor loop...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 904.01,
+      "end": 905.11,
+      "text": "... faz sentido ter num jogo.",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 905.11,
+      "end": 906.78,
+      "text": "[SILÊNCIO]",
+      "track": "V1",
+      "enabled": false,
+      "reason": "silencio"
+    },
+    {
+      "start": 906.78,
+      "end": 908.94,
+      "text": "A ideia é que cada ação do cor",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 908.94,
+      "end": 909.36,
+      "text": "loop...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 909.36,
+      "end": 911.44,
+      "text": "...reforce pelo menos...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 911.44,
+      "end": 913.26,
+      "text": "... um dos pilares que você criou.",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 913.26,
+      "end": 913.8,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 913.8,
+      "end": 915.54,
+      "text": "Se ele não está reforçando nenhum...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 915.54,
+      "end": 916.97,
+      "text": "[SILÊNCIO]",
+      "track": "V1",
+      "enabled": false,
+      "reason": "silencio"
+    },
+    {
+      "start": 916.97,
+      "end": 917.75,
+      "text": "... você já tem um problema.",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 917.75,
+      "end": 918.23,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 918.23,
+      "end": 919.67,
+      "text": "Você já precisa tomar cuidado...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 919.67,
+      "end": 921.79,
+      "text": "...você já precisa repensar essa",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 921.79,
+      "end": 922.53,
+      "text": "ação...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 922.53,
+      "end": 924.71,
+      "text": "... porque talvez você esteja colocando uma ação",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 924.71,
+      "end": 925.81,
+      "text": "que não é necessário.",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 925.81,
+      "end": 926.56,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 926.56,
+      "end": 928.66,
+      "text": "E aí, aqui vem o segundo",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 928.66,
+      "end": 929.2,
+      "text": "passo.",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 929.2,
+      "end": 929.8,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 929.8,
+      "end": 932.1,
+      "text": "Você, dentro da ação",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 932.1,
+      "end": 934.5,
+      "text": "principal do cor",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 934.5,
+      "end": 935.12,
+      "text": "loop...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 935.12,
+      "end": 937.3,
+      "text": "...você pensar todas as coisas que",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 937.3,
+      "end": 939.04,
+      "text": "compõem aquela ação.",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 939.04,
+      "end": 939.46,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 939.46,
+      "end": 941.6,
+      "text": "Então, por exemplo, olhando aqui no borde...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 941.6,
+      "end": 943.5,
+      "text": "...para explorar o mundo...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 943.5,
+      "end": 945.48,
+      "text": "...eu precisou andar pelo mundo...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 945.48,
+      "end": 946.78,
+      "text": "...eu posso correr...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 946.78,
+      "end": 948.22,
+      "text": "...eu posso pular...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 948.22,
+      "end": 950.38,
+      "text": "...eu posso movimentar a minha câmera...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 950.38,
+      "end": 953.52,
+      "text": "...eu posso marcar o cenário em pontos específicos...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 953.52,
+      "end": 955.94,
+      "text": "...eu tenho que mudar esse cenário...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 955.94,
+      "end": 958.0,
+      "text": "...eu tenho toda a parte de level design que precisa",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 958.0,
+      "end": 958.6,
+      "text": "ser produzida...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 958.6,
+      "end": 959.18,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 959.18,
+      "end": 961.02,
+      "text": "...eu tenho as armadilhas...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 961.02,
+      "end": 962.3,
+      "text": "...eu tenho a lore...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 962.3,
+      "end": 964.38,
+      "text": "...a história do jogo aplicada a pontos",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 964.38,
+      "end": 966.82,
+      "text": "ali elementos do level design...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 966.82,
+      "end": 969.56,
+      "text": "...eu tenho que coletar alguns itens...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 969.56,
+      "end": 972.94,
+      "text": "...então, tudo isso daqui são sistemas...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 972.94,
+      "end": 974.96,
+      "text": "...que você poderia depois...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 974.96,
+      "end": 975.86,
+      "text": "...preparar para o programa.",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 975.86,
+      "end": 976.48,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 976.48,
+      "end": 978.6,
+      "text": "Então, quando a gente começou a fazer o protótipo",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 978.6,
+      "end": 979.58,
+      "text": "desse jogo...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 979.58,
+      "end": 980.6,
+      "text": "...eu tinha que fazer lá...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 980.6,
+      "end": 982.42,
+      "text": "...a mecânica de andar...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 982.42,
+      "end": 983.56,
+      "text": "...a mecânica de correr...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 983.56,
+      "end": 984.62,
+      "text": "...a mecânica de pular...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 984.62,
+      "end": 986.0,
+      "text": "...a mecânica de pegar itens.",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 986.0,
+      "end": 986.66,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 986.66,
+      "end": 989.36,
+      "text": "Só que eu sabia que tudo que eu estava criando...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 989.36,
+      "end": 991.56,
+      "text": "...estava me guiando para fechar a ação",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 991.56,
+      "end": 992.2,
+      "text": "principal...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 992.2,
+      "end": 993.8,
+      "text": "...que era explorar o mundo.",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 993.8,
+      "end": 994.52,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 994.52,
+      "end": 996.06,
+      "text": "Da mesma forma...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 996.06,
+      "end": 998.32,
+      "text": "...eu a gente tem essa parte aqui...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 998.32,
+      "end": 1000.26,
+      "text": "...que são resolver os pasos...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 1000.26,
+      "end": 1001.16,
+      "text": "...e de novo...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 1001.16,
+      "end": 1002.28,
+      "text": "...eu estou pegando aqui...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 1002.28,
+      "end": 1003.76,
+      "text": "...o pilar da ambiguidade...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 1003.76,
+      "end": 1005.26,
+      "text": "...o pilar do perigo...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 1005.26,
+      "end": 1007.04,
+      "text": "...e o pilar da lore...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 1007.04,
+      "end": 1008.08,
+      "text": "...a ambiguidade...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 1008.08,
+      "end": 1009.42,
+      "text": "...porque como o cenário muda...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 1009.42,
+      "end": 1011.48,
+      "text": "...eu vou ter dificuldade de achar os itens todas",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 1011.48,
+      "end": 1012.34,
+      "text": "as vezes...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 1012.34,
+      "end": 1014.32,
+      "text": "...e era um objetivo nosso...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 1014.32,
+      "end": 1015.03,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 1015.03,
+      "end": 1017.23,
+      "text": "...você ter dificuldade em achar os",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 1017.23,
+      "end": 1017.69,
+      "text": "itens...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 1017.69,
+      "end": 1019.75,
+      "text": "...uitem nem sempre estar no mesmo lugar...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 1019.75,
+      "end": 1021.93,
+      "text": "...você precisa explorar o cenário para poder",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 1021.93,
+      "end": 1023.63,
+      "text": "encontrar ele...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 1023.63,
+      "end": 1024.41,
+      "text": "...isso...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 1024.41,
+      "end": 1026.65,
+      "text": "...reforça tanto o pilar dos",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 1026.65,
+      "end": 1027.35,
+      "text": "pasos...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 1027.35,
+      "end": 1028.11,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 1028.11,
+      "end": 1029.45,
+      "text": "...quanto o do perigo...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 1029.45,
+      "end": 1031.21,
+      "text": "...porque quando eu exploro o cenário...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 1031.21,
+      "end": 1032.97,
+      "text": "...eu posso encontrar o inimigo...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 1032.97,
+      "end": 1034.91,
+      "text": "...então faz sentido esse cara...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 1034.91,
+      "end": 1037.53,
+      "text": "...que está reforçando o pilar do perigo...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 1037.53,
+      "end": 1039.29,
+      "text": "...e aqui eu tenho outros sistemas...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 1039.29,
+      "end": 1040.99,
+      "text": "...eu estou tentando resolver pasos...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 1040.99,
+      "end": 1042.39,
+      "text": "...eu vou ter que pegar coisas...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 1042.39,
+      "end": 1044.21,
+      "text": "...eu vou ter que carregar coisas...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 1044.21,
+      "end": 1046.41,
+      "text": "...eu vou ter que ler itens para entender como",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 1046.41,
+      "end": 1047.61,
+      "text": "resolver o puzzle...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 1047.61,
+      "end": 1049.91,
+      "text": "...tão vezes eu preciso encaixar alguma coisa...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 1049.91,
+      "end": 1051.19,
+      "text": "...tão vezes ordenar...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 1051.19,
+      "end": 1052.51,
+      "text": "...e quando eu feche um puzzle...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 1052.51,
+      "end": 1053.33,
+      "text": "...resolvo ele...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 1053.33,
+      "end": 1054.65,
+      "text": "...eu abra a saída...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 1054.65,
+      "end": 1055.63,
+      "text": "...de novo...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 1055.63,
+      "end": 1056.39,
+      "text": "...todo os sistemas...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 1056.39,
+      "end": 1058.85,
+      "text": "...que eu preciso produzir...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 1058.85,
+      "end": 1060.23,
+      "text": "...que eu preciso programar...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 1060.23,
+      "end": 1061.79,
+      "text": "...que eu preciso pensar...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 1061.79,
+      "end": 1064.35,
+      "text": "...para poder elaborar o meu jogo...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 1064.35,
+      "end": 1066.43,
+      "text": "...e por último aqui eu tenho...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 1066.43,
+      "end": 1067.87,
+      "text": "...o fugir do monstro...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 1067.87,
+      "end": 1069.87,
+      "text": "...aquí novamente eu estou reforçando o",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 1069.87,
+      "end": 1070.55,
+      "text": "pilar do perigo...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 1070.55,
+      "end": 1071.03,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 1071.03,
+      "end": 1073.01,
+      "text": "...e eu estou reforçando aquele último pilar...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 1073.01,
+      "end": 1074.55,
+      "text": "...que é o distrair esse esconder...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 1074.55,
+      "end": 1075.47,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 1075.47,
+      "end": 1077.49,
+      "text": "...aquí a ideia de novo...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 1077.49,
+      "end": 1078.59,
+      "text": "...você não é o herói...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 1078.59,
+      "end": 1079.35,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 1079.35,
+      "end": 1081.39,
+      "text": "...o monstro é muito mais forte",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 1081.39,
+      "end": 1082.33,
+      "text": "que você...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 1082.33,
+      "end": 1084.45,
+      "text": "...então se você tenta brigar com",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 1084.45,
+      "end": 1085.51,
+      "text": "ele de frente...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 1085.51,
+      "end": 1086.37,
+      "text": "...você morre...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 1086.37,
+      "end": 1088.85,
+      "text": "...a ideia é que você seja inteligente...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 1088.85,
+      "end": 1090.54,
+      "text": "...achando lugares para se esconder...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 1090.54,
+      "end": 1091.23,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 1091.23,
+      "end": 1093.29,
+      "text": "...e também usando artifícios de",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 1093.29,
+      "end": 1093.6,
+      "text": "som...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 1093.6,
+      "end": 1094.31,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 1094.31,
+      "end": 1096.45,
+      "text": "...jogando coisas pelo cenário...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 1096.45,
+      "end": 1098.45,
+      "text": "...para poder distrair esse monstro que está",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 1098.45,
+      "end": 1099.67,
+      "text": "te perseguindo...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 1099.67,
+      "end": 1101.29,
+      "text": "...para você poder resolver os puzzles...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 1101.29,
+      "end": 1103.33,
+      "text": "...para você poder explorar o mundo...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 1103.33,
+      "end": 1105.37,
+      "text": "...então aqui outros sistemas...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 1105.37,
+      "end": 1106.15,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 1106.15,
+      "end": 1107.67,
+      "text": "...eu posso me agachar...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 1107.67,
+      "end": 1109.67,
+      "text": "...para fazer menos barulho andando...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 1109.67,
+      "end": 1110.81,
+      "text": "...eu posso me esconder...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 1110.81,
+      "end": 1111.65,
+      "text": "...dentro de armários...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 1111.65,
+      "end": 1112.65,
+      "text": "...dentro de caixas...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 1112.65,
+      "end": 1113.37,
+      "text": "...dentro de lugares...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 1113.37,
+      "end": 1113.97,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 1113.97,
+      "end": 1115.51,
+      "text": "...para o monstro não me achar...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 1115.51,
+      "end": 1117.61,
+      "text": "...eu preciso pensar na inteligência",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 1117.61,
+      "end": 1118.97,
+      "text": "artificial desse monstro...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 1118.97,
+      "end": 1120.57,
+      "text": "...como é que ele reage a determinadas soções...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 1120.57,
+      "end": 1121.39,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 1121.39,
+      "end": 1122.55,
+      "text": "...como é que ele acha o player...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 1122.55,
+      "end": 1123.39,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 1123.39,
+      "end": 1125.61,
+      "text": "...eu preciso de um sistema que detecta...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 1125.61,
+      "end": 1127.01,
+      "text": "...o som que o jogador faz...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 1127.01,
+      "end": 1128.51,
+      "text": "...a variação que o jogador faz...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 1128.51,
+      "end": 1129.35,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 1129.35,
+      "end": 1130.89,
+      "text": "...eu preciso de um sistema de dano...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 1130.89,
+      "end": 1132.63,
+      "text": "...que mata o meu personagem...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 1132.63,
+      "end": 1134.49,
+      "text": "...quando ele é atingido pelo monstro...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 1134.49,
+      "end": 1136.47,
+      "text": "...eu quero pensar que ele...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 1136.47,
+      "end": 1138.19,
+      "text": "...eu vou dar uma chance para o jogador...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 1138.19,
+      "end": 1139.71,
+      "text": "...a primeira vez que ele achado ele está mudando...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 1139.71,
+      "end": 1140.59,
+      "text": "...na segunda ele morre...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 1140.59,
+      "end": 1141.37,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 1141.37,
+      "end": 1143.77,
+      "text": "...eu preciso poder reiniciar",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 1143.77,
+      "end": 1144.51,
+      "text": "minhas fases...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 1144.51,
+      "end": 1145.53,
+      "text": "...quando o jogador morre...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 1145.53,
+      "end": 1146.63,
+      "text": "...eu vou ter a morte também...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 1146.63,
+      "end": 1147.19,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 1147.19,
+      "end": 1148.95,
+      "text": "...tão aqui eu estou desconstruindo...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 1148.95,
+      "end": 1151.11,
+      "text": "...tudo que compõe essa parte",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 1151.11,
+      "end": 1152.25,
+      "text": "do core loop...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 1152.25,
+      "end": 1154.51,
+      "text": "...e com essa visão completa...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 1154.51,
+      "end": 1155.39,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 1155.39,
+      "end": 1157.51,
+      "text": "...eu consigo entender...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 1157.51,
+      "end": 1158.31,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 1158.31,
+      "end": 1161.07,
+      "text": "...o que pelo menos um começo...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 1161.07,
+      "end": 1162.99,
+      "text": "...do que eu preciso produzir...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 1162.99,
+      "end": 1165.29,
+      "text": "...então essa é a grande vantagem",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 1165.29,
+      "end": 1165.83,
+      "text": "do game concept...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 1165.83,
+      "end": 1166.59,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 1166.59,
+      "end": 1167.89,
+      "text": "...a partir desse trabalho...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 1167.89,
+      "end": 1169.57,
+      "text": "...de essa construção que você está fazendo...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 1169.57,
+      "end": 1171.31,
+      "text": "...você tem um primeiro momento...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 1171.31,
+      "end": 1173.67,
+      "text": "...ma primeira visão completa...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 1173.67,
+      "end": 1175.67,
+      "text": "...do planejamento do seu jogo...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 1175.67,
+      "end": 1176.37,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 1176.37,
+      "end": 1178.41,
+      "text": "...para mostrar para outras pessoas...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 1178.41,
+      "end": 1180.45,
+      "text": "...para você mesmo entender a",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 1180.45,
+      "end": 1180.79,
+      "text": "complexidade...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 1180.79,
+      "end": 1181.47,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 1181.47,
+      "end": 1183.01,
+      "text": "...o tamanho do projeto...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 1183.01,
+      "end": 1184.99,
+      "text": "...quanto tempo você vai gastar...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 1184.99,
+      "end": 1186.69,
+      "text": "...apartir disso...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 1186.69,
+      "end": 1188.73,
+      "text": "...você começa a conseguir se planejar...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 1188.73,
+      "end": 1189.37,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 1189.37,
+      "end": 1191.81,
+      "text": "...e começa a desconstruir nas mecânicas",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 1191.81,
+      "end": 1192.43,
+      "text": "do jogo...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 1192.43,
+      "end": 1194.23,
+      "text": "...no que precisa ser produzido...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 1194.23,
+      "end": 1196.73,
+      "text": "...para você chegar naquele resultado final...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 1196.73,
+      "end": 1198.73,
+      "text": "...e isso é muito valioso...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 1198.73,
+      "end": 1199.69,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    },
+    {
+      "start": 1199.69,
+      "end": 1201.41,
+      "text": "... hoje tem muita gente que fala...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 1201.41,
+      "end": 1203.41,
+      "text": "...mossos, eu tenho ideias maravilhosas para",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 1203.41,
+      "end": 1204.27,
+      "text": "jogos...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 1204.27,
+      "end": 1206.27,
+      "text": "...mas a partir do momento que você coloca no",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 1206.27,
+      "end": 1206.97,
+      "text": "game concept...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 1206.97,
+      "end": 1208.95,
+      "text": "...que você desconstrói aquilo...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 1208.95,
+      "end": 1211.21,
+      "text": "...você entende a complexidade...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 1211.21,
+      "end": 1212.49,
+      "text": "...o cenário muda...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 1212.49,
+      "end": 1213.81,
+      "text": "...e a partir disso...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 1213.81,
+      "end": 1216.87,
+      "text": "...que você começa a ficar mais profissional...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 1216.87,
+      "end": 1218.63,
+      "text": "...como game designer...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 1218.63,
+      "end": 1222.25,
+      "text": "[SILÊNCIO]",
+      "track": "V1",
+      "enabled": false,
+      "reason": "silencio"
+    },
+    {
+      "start": 1222.25,
+      "end": 1224.01,
+      "text": "...es foi longo...",
+      "track": "V2",
+      "enabled": true,
+      "reason": "fala_util",
+      "review": false,
+      "review_reason": null
+    },
+    {
+      "start": 1224.01,
+      "end": 1224.457758,
+      "text": "[PAUSA CURTA]",
+      "track": "V2",
+      "enabled": true,
+      "reason": "pausa_curta"
+    }
+  ]
+}

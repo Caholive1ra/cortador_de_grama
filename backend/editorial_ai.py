@@ -11,7 +11,7 @@ import json
 import logging
 import os
 import ssl
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
@@ -19,6 +19,10 @@ from urllib.request import Request, urlopen
 from dotenv import load_dotenv
 import truststore
 
+# O SDK Gemini usa clientes HTTP internos. A injecao global garante que todos
+# eles respeitem o repositório de certificados do Windows, inclusive em redes
+# corporativas que interceptam HTTPS.
+truststore.inject_into_ssl()
 load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
 logger = logging.getLogger(__name__)
@@ -26,12 +30,20 @@ OLLAMA_URL = os.getenv("OLLAMA_URL", "http://127.0.0.1:11434")
 OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "qwen2.5:3b")
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+GEMINI_FALLBACK_MODELS = tuple(
+    modelo.strip()
+    for modelo in os.getenv(
+        "GEMINI_FALLBACK_MODELS", "gemini-3.8-flash,gemini-3.7-flash"
+    ).split(",")
+    if modelo.strip()
+)
 GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models"
 MAX_SEGMENTOS_POR_LOTE = 45
 ULTIMO_DIAGNOSTICO: dict[str, object] = {"mode": "not_started"}
+ULTIMO_MODELO_GEMINI_USADO: str | None = None
 MOTIVOS_CORTE_PERMITIDOS = [
     "erro", "falsa_partida", "autocorrecao", "risada",
-    "conversa_lateral", "devaneio", "problema_tecnico",
+    "conversa_lateral", "devaneio", "problema_tecnico", "comentario_bastidor",
 ]
 
 
@@ -52,6 +64,8 @@ def obter_diagnostico_editorial() -> dict[str, object]:
 class EditorialDecision:
     discard_indexes: set[int]
     reasons: dict[int, str]
+    review_indexes: set[int] = field(default_factory=set)
+    review_reasons: dict[int, str] = field(default_factory=dict)
 
 
 def verificar_modelo_editorial() -> None:
@@ -117,6 +131,14 @@ claramente fora do contexto. Mantenha explicacoes, exemplos, repeticoes
 didaticas e qualquer duvida. Use o audio para identificar risadas e conversas
 que nao aparecem na transcricao.
 
+FALAS DE BASTIDOR DEVEM SER DESCARTADAS, nao marcadas para revisao: comentarios
+para si/equipe sobre encontrar um gancho, roteiro, edicao, gravacao, proxima
+tomada, reiniciar, checar equipamento ou organizar a fala. Por exemplo,
+"deixa eu ver um gancho aqui" nao pertence a aula e deve ser descartado como
+"comentario_bastidor". Se uma fala nao ensina nada e parece uma anotacao de
+producao, descarte-a; use "review" somente quando houver duvida real se ela
+faz parte da explicacao pedagogica.
+
 REGRA DE RETAKE: quando o professor fizer uma tentativa, interromper a fala
 para corrigir/recomecar/comentar que ficou ruim, e em seguida repetir a mesma
 abertura ou explicacao, descarte TODOS os microtrechos da tentativa ANTERIOR
@@ -124,29 +146,41 @@ como "falsa_partida" e mantenha sempre a ULTIMA tentativa completa. Procure
 esse padrao mesmo quando a frase de erro estiver entre as duas tentativas.
 Nao aplique esta regra a repeticao didatica: se nao houver evidencia de
 interrupcao, regravacao ou substituicao, mantenha as duas ocorrencias.
-Responda APENAS JSON valido: {"discard":[{"i":0,"reason":"erro|falsa_partida|autocorrecao|risada|conversa_lateral|devaneio|problema_tecnico"}]}.
+Se estiver em duvida razoavel entre manter ou descartar um trecho, NAO o
+descarte: coloque-o em "review" para o editor revisar no Premiere.
+Responda APENAS JSON valido: {"discard":[{"i":0,"reason":"erro|falsa_partida|autocorrecao|risada|conversa_lateral|devaneio|problema_tecnico|comentario_bastidor"}],"review":[{"i":0,"reason":"duvida_editorial"}]}.
 Use somente os indices existentes; nunca invente timestamps ou indices.
 Transcricao:\n""" + json.dumps(transcricao, ensure_ascii=False)
     global ULTIMO_DIAGNOSTICO
-    ULTIMO_DIAGNOSTICO = {"mode": "gemini_audio", "input_segments": len(segmentos)}
+    ULTIMO_DIAGNOSTICO = {
+        "mode": "gemini_audio", "input_segments": len(segmentos),
+        "gemini_models_attempted": list(_modelos_gemini()),
+    }
     try:
         resposta_texto = _gemini_audio_request(prompt, audio_path)
         bruto = json.loads(resposta_texto)
         motivos_permitidos = {
             "erro", "falsa_partida", "autocorrecao", "risada",
-            "conversa_lateral", "devaneio", "problema_tecnico",
+            "conversa_lateral", "devaneio", "problema_tecnico", "comentario_bastidor",
         }
         motivos: dict[int, str] = {}
+        revisoes: dict[int, str] = {}
         for item in bruto.get("discard", []):
             indice, motivo = int(item["i"]), str(item["reason"])
             if 0 <= indice < len(segmentos) and motivo in motivos_permitidos:
                 motivos[indice] = motivo
+        for item in bruto.get("review", []):
+            indice = int(item["i"])
+            if 0 <= indice < len(segmentos) and indice not in motivos:
+                revisoes[indice] = "duvida_editorial"
         ULTIMO_DIAGNOSTICO.update({
             "status": "ok", "gemini_discarded": len(motivos),
+            "gemini_review": len(revisoes),
+            "gemini_model_used": ULTIMO_MODELO_GEMINI_USADO or GEMINI_MODEL,
             "gemini_response": resposta_texto,
         })
         logger.info("Gemini multimodal sugeriu %d corte(s).", len(motivos))
-        return EditorialDecision(set(motivos), motivos)
+        return EditorialDecision(set(motivos), motivos, set(revisoes), revisoes)
     except (GeminiReviewError, KeyError, TypeError, ValueError, json.JSONDecodeError) as exc:
         ULTIMO_DIAGNOSTICO.update({"status": "failed", "error": str(exc)})
         logger.error("Gemini multimodal falhou; nenhum corte semantico foi liberado: %s", exc)
@@ -170,40 +204,34 @@ def _gemini_audio_request(prompt: str, audio_path: str) -> str:
             "async_client_args": {"verify": contexto},
         },
     )
+    global ULTIMO_MODELO_GEMINI_USADO
     arquivo = None
     try:
         arquivo = client.files.upload(
             file=audio_path, config={"mime_type": "audio/wav"}
         )
-        resposta = client.models.generate_content(
-            model=GEMINI_MODEL,
-            contents=[prompt, arquivo],
-            config={
-                "temperature": 0,
-                "response_mime_type": "application/json",
-                "response_json_schema": {
-                    "type": "object",
-                    "properties": {
-                        "discard": {
-                            "type": "array",
-                            "items": {
-                                "type": "object",
-                                "properties": {
-                                    "i": {"type": "integer"},
-                                    "reason": {"type": "string", "enum": MOTIVOS_CORTE_PERMITIDOS},
-                                },
-                                "required": ["i", "reason"],
-                            },
-                        },
-                    },
-                    "required": ["discard"],
-                },
-                "max_output_tokens": 8192,
-            },
-        )
-        if not resposta.text:
-            raise GeminiReviewError("Gemini retornou resposta vazia.")
-        return resposta.text
+        erros: list[str] = []
+        for modelo in _modelos_gemini():
+            try:
+                resposta = _gerar_conteudo(client, prompt, arquivo, modelo)
+            except Exception as exc:
+                if not _erro_gemini_recuperavel(exc):
+                    raise
+                erros.append(f"{modelo}: {type(exc).__name__}: {exc}")
+                logger.warning("Gemini %s falhou; tentando o proximo modelo.", modelo)
+                continue
+            texto = (resposta.text or "").strip()
+            if not texto:
+                erros.append(f"{modelo}: resposta vazia")
+                continue
+            try:
+                json.loads(texto)
+                ULTIMO_MODELO_GEMINI_USADO = modelo
+                return texto
+            except json.JSONDecodeError as exc:
+                erros.append(f"{modelo}: JSON invalido: {exc}")
+                logger.warning("Gemini %s devolveu JSON invalido; tentando o proximo modelo.", modelo)
+        raise GeminiReviewError("Nenhum modelo Gemini concluiu a revisao: " + " | ".join(erros))
     except GeminiReviewError:
         raise
     except Exception as exc:
@@ -216,6 +244,63 @@ def _gemini_audio_request(prompt: str, audio_path: str) -> str:
                 client.files.delete(name=arquivo.name)
             except Exception:
                 logger.warning("Nao foi possivel remover o audio temporario do Gemini.")
+
+
+def _gerar_conteudo(client, prompt: str, arquivo, modelo: str):
+    """Pede uma decisao JSON a um modelo Gemini especifico."""
+    config = {
+        "response_mime_type": "application/json",
+        "response_json_schema": {
+            "type": "object",
+            "properties": {
+                "discard": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "i": {"type": "integer"},
+                            "reason": {"type": "string", "enum": MOTIVOS_CORTE_PERMITIDOS},
+                        },
+                        "required": ["i", "reason"],
+                    },
+                },
+                "review": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {"i": {"type": "integer"}, "reason": {"type": "string"}},
+                        "required": ["i", "reason"],
+                    },
+                },
+            },
+            "required": ["discard", "review"],
+        },
+        "max_output_tokens": 8192,
+    }
+    return client.models.generate_content(
+        model=modelo, contents=[prompt, arquivo], config=config,
+    )
+
+
+def _gemini_esta_sobrecarregado(erro: Exception) -> bool:
+    texto = str(erro).upper()
+    return "503" in texto and "UNAVAILABLE" in texto
+
+
+def _erro_gemini_recuperavel(erro: Exception) -> bool:
+    texto = str(erro).upper()
+    return any(indicador in texto for indicador in (
+        "429", "503", "UNAVAILABLE", "RESOURCE_EXHAUSTED", "TIMEOUT", "CONNECT",
+    ))
+
+
+def _modelos_gemini() -> tuple[str, ...]:
+    """Retorna no maximo tres modelos, sem repetir o modelo principal."""
+    modelos: list[str] = []
+    for modelo in (GEMINI_MODEL, *GEMINI_FALLBACK_MODELS):
+        if modelo not in modelos:
+            modelos.append(modelo)
+    return tuple(modelos[:3])
 
 
 def _aprovar_proposta_com_gemini(
@@ -256,7 +341,7 @@ Candidatos do Ollama:\n""" + json.dumps(candidatos, ensure_ascii=False) + "\nTra
         motivos: dict[int, str] = {}
         motivos_permitidos = {
             "erro", "falsa_partida", "autocorrecao", "risada",
-            "conversa_lateral", "devaneio", "problema_tecnico",
+            "conversa_lateral", "devaneio", "problema_tecnico", "comentario_bastidor",
         }
         for item in bruto.get("approve", []):
             indice, motivo = int(item["i"]), str(item["reason"])
@@ -276,7 +361,6 @@ def _gemini_request(prompt: str) -> str:
     payload = {
         "contents": [{"parts": [{"text": prompt}]}],
         "generationConfig": {
-            "temperature": 0,
             "responseMimeType": "application/json",
             "maxOutputTokens": 2048,
         },

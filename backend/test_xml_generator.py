@@ -93,6 +93,41 @@ def test_gera_xml_somente_com_pgm(tmp_path) -> None:
     assert len(raiz.findall("./sequence/media/video/track")) == 1
 
 
+def test_une_microsegmentos_e_mantem_fronteiras_de_descarte(tmp_path) -> None:
+    path = tmp_path / "cortes_reais.xml"
+    fonte = _fontes()[:1]
+    fonte[0]["duration"] = 5.0
+    gerar_fcp_xml(
+        [
+            {"start": 0.0, "end": 1.0, "enabled": True},
+            {"start": 1.0, "end": 2.0, "enabled": True},
+            {"start": 2.0, "end": 3.0, "enabled": False},
+            {"start": 3.0, "end": 4.0, "enabled": True},
+            {"start": 4.0, "end": 5.0, "enabled": True},
+        ],
+        fonte, str(path), 30.0, 5.0,
+    )
+    raiz = ET.parse(path).getroot()
+    clipes = raiz.findall("./sequence/media/video/track/clipitem")
+    assert [
+        (clipe.findtext("start"), clipe.findtext("end"), clipe.findtext("enabled"))
+        for clipe in clipes
+    ] == [("0", "60", "TRUE"), ("60", "90", "FALSE"), ("90", "150", "TRUE")]
+
+
+def test_adiciona_marcador_para_trecho_com_duvida_da_ia(tmp_path) -> None:
+    path = tmp_path / "revisar.xml"
+    gerar_fcp_xml(
+        [{"start": 0.0, "end": 3.0, "enabled": True, "review": True,
+          "review_reason": "duvida_editorial"}],
+        _fontes()[:1], str(path), 30.0, 3.0,
+    )
+    marcador = ET.parse(path).getroot().find("./sequence/marker")
+    assert marcador is not None
+    assert marcador.findtext("name") == "REVISAR: duvida da IA"
+    assert (marcador.findtext("in"), marcador.findtext("out")) == ("0", "90")
+
+
 def test_gera_audio_externo_sincronizado(tmp_path) -> None:
     output_path = tmp_path / "audio_externo.xml"
     audio = {

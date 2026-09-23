@@ -99,6 +99,15 @@ def test_gatilho_com_acento_e_normalizado() -> None:
     assert resultado[0]["reason"] == "comando_de_corte"
 
 
+def test_comentario_de_bastidor_e_marcado_para_descarte() -> None:
+    resultado = _classificar([
+        {"start": 0.0, "end": 2.0, "text": "Deixa eu ver um gancho aqui."},
+    ])
+
+    assert resultado[0]["track"] == "V1"
+    assert resultado[0]["reason"] == "comando_de_corte"
+
+
 def test_timeline_cobre_do_zero_ate_a_duracao_total_sem_gaps() -> None:
     resultado = _classificar(
         [{"start": 0.5, "end": 2.0, "text": "Conteúdo da aula."}],

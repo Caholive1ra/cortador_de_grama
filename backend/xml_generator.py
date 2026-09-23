@@ -55,7 +55,12 @@ def gerar_fcp_xml(
         arquivos_declarados: set[int] = set()
         arquivos_audio_declarados: set[int] = set()
 
-        for indice_segmento, segmento in enumerate(segmentos):
+        # A analise usa microsegmentos para localizar cortes com precisao.
+        # No XML, unimos trechos adjacentes iguais para evitar emendas visuais
+        # que nao representam um corte ou uma troca de camera no Premiere.
+        segmentos_xml, cameras_xml = _compactar_segmentos(segmentos, camera_por_segmento)
+
+        for indice_segmento, segmento in enumerate(segmentos_xml):
             frame_start = seconds_to_frames(float(segmento["start"]), fps)
             frame_end = seconds_to_frames(float(segmento["end"]), fps)
             if frame_end <= frame_start:
@@ -64,8 +69,8 @@ def gerar_fcp_xml(
                 segmento.get("enabled", segmento.get("track") != "V1")
             )
             camera_ativa = (
-                camera_por_segmento[indice_segmento]
-                if camera_por_segmento and indice_segmento < len(camera_por_segmento)
+                cameras_xml[indice_segmento]
+                if cameras_xml and indice_segmento < len(cameras_xml)
                 else None
             )
             for indice_fonte, (fonte, trilha) in enumerate(
@@ -141,6 +146,8 @@ def gerar_fcp_xml(
                 )
                 arquivos_audio_declarados.add(indice_audio)
 
+        _adicionar_marcadores_revisao(sequencia, segmentos, fps)
+
         xml_documento = _serializar_xmeml(raiz)
         diretorio = os.path.dirname(os.path.abspath(output_path))
         os.makedirs(diretorio, exist_ok=True)
@@ -169,6 +176,58 @@ def _validar_entrada(segmentos: list[dict], fontes: list[dict], duracao: float) 
         cursor = fim
     if abs(cursor - duracao) > 0.001:
         raise ValueError("A timeline não termina na duração total da mídia.")
+
+
+def _compactar_segmentos(
+    segmentos: list[dict], camera_por_segmento: list[str] | None,
+) -> tuple[list[dict], list[str] | None]:
+    """Une microsegmentos sem esconder descartes ou trocas de camera."""
+    compactados: list[dict] = []
+    cameras_compactadas: list[str] | None = [] if camera_por_segmento else None
+
+    for indice, segmento in enumerate(segmentos):
+        camera = (
+            camera_por_segmento[indice]
+            if camera_por_segmento and indice < len(camera_por_segmento)
+            else None
+        )
+        habilitado = bool(segmento.get("enabled", segmento.get("track") != "V1"))
+        anterior = compactados[-1] if compactados else None
+        camera_anterior = cameras_compactadas[-1] if cameras_compactadas else None
+        if (
+            anterior is not None
+            and abs(float(anterior["end"]) - float(segmento["start"])) <= 0.001
+            and bool(anterior.get("enabled", anterior.get("track") != "V1")) == habilitado
+            and camera_anterior == camera
+        ):
+            anterior["end"] = segmento["end"]
+            continue
+
+        compactados.append(dict(segmento))
+        if cameras_compactadas is not None:
+            cameras_compactadas.append(camera)
+
+    return compactados, cameras_compactadas
+
+
+def _adicionar_marcadores_revisao(
+    sequencia: ET.Element, segmentos: list[dict], fps: float,
+) -> None:
+    """Inclui marcadores para trechos mantidos por duvida editorial da IA."""
+    for segmento in segmentos:
+        if not segmento.get("review"):
+            continue
+        marcador = ET.SubElement(sequencia, "marker")
+        ET.SubElement(marcador, "name").text = "REVISAR: duvida da IA"
+        ET.SubElement(marcador, "comment").text = str(
+            segmento.get("review_reason") or "duvida_editorial"
+        )
+        ET.SubElement(marcador, "in").text = str(
+            seconds_to_frames(float(segmento["start"]), fps)
+        )
+        ET.SubElement(marcador, "out").text = str(
+            seconds_to_frames(float(segmento["end"]), fps)
+        )
 
 
 def _serializar_xmeml(raiz: ET.Element) -> str:

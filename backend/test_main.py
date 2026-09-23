@@ -53,11 +53,15 @@ def test_sync_insegura_interrompe_antes_da_transcricao(monkeypatch) -> None:
     assert "Audio ambiguo" in resposta.json()["detail"]
 
 
-def test_health_check() -> None:
+def test_health_check(monkeypatch) -> None:
+    monkeypatch.setattr("main.GEMINI_API_KEY", "chave-de-teste")
     resposta = client.get("/health")
     assert resposta.status_code == 200
     assert resposta.json() == {
-        "status": "ok", "revision": "diretor-cameras-audio-v15"
+        "status": "ok",
+        "revision": "gemini38-retry-v16",
+        "gemini_model": "gemini-2.5-flash",
+        "gemini_configured": "yes",
     }
 
 

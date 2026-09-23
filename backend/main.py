@@ -12,7 +12,9 @@ from pydantic import BaseModel
 
 from audio_sync import SyncError, sincronizar_audio
 from camera_director import dirigir_cameras
-from editorial_ai import EditorialModelError, obter_diagnostico_editorial
+from editorial_ai import (
+    GEMINI_API_KEY, GEMINI_MODEL, EditorialModelError, obter_diagnostico_editorial,
+)
 from logic_engine import classificar_segmentos
 from media_utils import extrair_audio_temporario, obter_metadados, obter_metadados_audio
 from transcriber import ModelUnavailableError, transcrever_audio
@@ -23,7 +25,7 @@ logging.basicConfig(
     format="%(asctime)s | %(levelname)s | %(name)s | %(message)s",
 )
 logger = logging.getLogger(__name__)
-BACKEND_REVISION = "diretor-cameras-audio-v15"
+BACKEND_REVISION = "gemini38-retry-v16"
 
 app = FastAPI(
     title="Assistente de Decapagem",
@@ -67,7 +69,12 @@ def health_check() -> dict[str, str]:
     """Confirma que o servidor local está no ar."""
     try:
         logger.info("Health-check solicitado.")
-        return {"status": "ok", "revision": BACKEND_REVISION}
+        return {
+            "status": "ok",
+            "revision": BACKEND_REVISION,
+            "gemini_model": GEMINI_MODEL,
+            "gemini_configured": "yes" if GEMINI_API_KEY else "no",
+        }
     except Exception:
         logger.error("Falha no health-check.\n%s", traceback.format_exc())
         raise
