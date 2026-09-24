@@ -15,6 +15,7 @@ from camera_director import dirigir_cameras
 from editorial_ai import (
     GEMINI_API_KEY, GEMINI_MODEL, EditorialModelError, obter_diagnostico_editorial,
 )
+from lettering_ai import LetteringModelError, sugerir_letterings
 from logic_engine import classificar_segmentos
 from media_utils import extrair_audio_temporario, obter_metadados, obter_metadados_audio
 from transcriber import ModelUnavailableError, transcrever_audio
@@ -62,6 +63,18 @@ class MediaRequest(BaseModel):
     audio_participante_3_path: str | None = None
     audio_participante_4_path: str | None = None
     audio_camera_geral_path: str | None = None
+
+
+class LetteringRequest(BaseModel):
+    """Arquivo exportado apos a revisao humana da sequencia."""
+
+    revised_media_path: str
+
+
+class LetteringSegmentsRequest(BaseModel):
+    """Transcricao/timestamps exportados da sequencia ativa do Premiere."""
+
+    segments: list[dict]
 
 
 @app.get("/health")
@@ -260,6 +273,64 @@ def process_media(request: MediaRequest) -> dict:
             traceback.format_exc(),
         )
         raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@app.post("/analyze-lettering")
+def analyze_lettering(request: LetteringRequest) -> dict:
+    """Analisa a versao revisada e gera XML auxiliar com marcadores de texto."""
+    try:
+        midia = obter_metadados(request.revised_media_path)
+        with extrair_audio_temporario(
+            request.revised_media_path, midia.get("video_start", 0.0)
+        ) as audio_path:
+            segmentos = transcrever_audio(audio_path)
+        sugestoes = sugerir_letterings(segmentos)
+        raiz_arquivo, _ = os.path.splitext(request.revised_media_path)
+        xml_path = f"{raiz_arquivo}_lettering_sugerido.xml"
+        diagnostico_path = f"{raiz_arquivo}_lettering_sugerido.json"
+        gerar_fcp_xml(
+            [{"start": 0.0, "end": float(midia["duration"]), "enabled": True}],
+            [dict(midia, name=os.path.basename(request.revised_media_path), label="Video revisado")],
+            xml_path,
+            fps=float(midia["fps"]),
+            duracao_total=float(midia["duration"]),
+            lettering_suggestions=sugestoes,
+            sequence_name="Aula_Revisada_Sugestoes_Lettering",
+        )
+        with open(diagnostico_path, "w", encoding="utf-8") as diagnostico:
+            json.dump({
+                "source": request.revised_media_path,
+                "suggestions": sugestoes,
+                "transcript": segmentos,
+            }, diagnostico, ensure_ascii=False, indent=2)
+        return {
+            "status": "success",
+            "xml_path": os.path.abspath(xml_path),
+            "diagnostic_path": os.path.abspath(diagnostico_path),
+            "suggestions": sugestoes,
+        }
+    except LetteringModelError as exc:
+        logger.warning("Analise de lettering indisponivel: %s", exc)
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    except ModelUnavailableError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except Exception as exc:
+        logger.error("Falha na analise de lettering.\n%s", traceback.format_exc())
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@app.post("/analyze-lettering-segments")
+def analyze_lettering_segments(request: LetteringSegmentsRequest) -> dict:
+    """Sugere letterings sem exigir que a sequencia seja um arquivo no disco."""
+    try:
+        sugestoes = sugerir_letterings(request.segments)
+        return {"status": "success", "suggestions": sugestoes}
+    except LetteringModelError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
 
 
 def _preparar_fontes_audio_xml(

@@ -3,9 +3,9 @@
  */
 
 const BACKEND_URL = "http://127.0.0.1:8000/process";
+const LETTERING_URL = "http://127.0.0.1:8000/analyze-lettering";
 
 const { localFileSystem } = require("uxp").storage;
-const premiere = require("premierepro");
 
 /**
  * Atualiza o texto de status visível no painel.
@@ -51,6 +51,9 @@ async function selecionarFonte(nomeFonte, obrigatoria, tipos = ["mp4"]) {
  * @returns {Promise<void>}
  */
 async function importarXmlNoPremiere(xmlPath) {
+  // Carregamento tardio: uma falha na API do host nao impede os botoes de
+  // abrir o seletor de arquivos e mostrar mensagens ao editor.
+  const premiere = require("premierepro");
   const projeto = await premiere.Project.getActiveProject();
   if (!projeto) {
     throw new Error("Nenhum projeto ativo no Premiere Pro.");
@@ -187,6 +190,133 @@ async function processarAula() {
 }
 
 /**
+ * Cria uma sequencia auxiliar com marcadores de lettering para a versao que
+ * o editor ja revisou. O arquivo deve ser uma exportacao da sequencia final.
+ * @returns {Promise<void>}
+ */
+async function analisarLettering() {
+  const botao = document.getElementById("btnLettering");
+  if (botao && botao.disabled) return;
+  if (botao) botao.disabled = true;
+  try {
+    const premiere = require("premierepro");
+    const projeto = await premiere.Project.getActiveProject();
+    const sequencia = projeto && await projeto.getActiveSequence();
+    if (!sequencia) throw new Error("Abra e deixe ativa a sequência revisada no Premiere Pro.");
+    const segmentos = await obterTranscricaoDaSequencia(sequencia, premiere);
+    if (!segmentos.length) throw new Error("A sequência ativa não possui transcrição com timestamps.");
+    definirStatus("Analisando pontos didáticos da sequência ativa... Aguarde.");
+    const resposta = await fetch("http://127.0.0.1:8000/analyze-lettering-segments", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ segments: segmentos }),
+    });
+    if (!resposta.ok) {
+      const detalhe = await resposta.text();
+      let mensagem = detalhe;
+      try {
+        const erro = JSON.parse(detalhe);
+        mensagem = typeof erro.detail === "string" ? erro.detail : detalhe;
+      } catch (_) {}
+      definirStatus("Erro ao analisar lettering (HTTP " + resposta.status + "): " + mensagem);
+      return;
+    }
+    const dados = await resposta.json();
+    if (dados.status !== "success") {
+      definirStatus("Erro: resposta inesperada da análise de lettering.");
+      return;
+    }
+    await adicionarMarcadoresNaSequencia(projeto, sequencia, premiere, dados.suggestions || []);
+    definirStatus(
+      "Sucesso! " + (dados.suggestions || []).length +
+      " marcador(es) de lettering importado(s)."
+    );
+  } catch (erro) {
+    console.error("[Decupagem] Falha na análise de lettering:", erro);
+    const detalhe = erro && erro.message ? erro.message : String(erro);
+    definirStatus(
+      detalhe.toLowerCase().includes("invalid parameter")
+        ? "A sequência ativa não possui uma transcrição de clipe compatível. Transcreva o áudio no Premiere e tente novamente."
+        : "Erro: " + detalhe
+    );
+  } finally {
+    if (botao) botao.disabled = false;
+  }
+}
+
+async function obterTranscricaoDaSequencia(sequencia, premiere) {
+  // O Premiere pode rejeitar a sequence project item como origem de transcript.
+  // Nesse caso, lemos o primeiro clipe de video e deslocamos seus tempos para
+  // a posicao dele na timeline.
+  try {
+    const itemSequencia = await sequencia.getProjectItem();
+    const itemClipe = premiere.ClipProjectItem.cast(itemSequencia);
+    const json = await exportarOuCriarTranscricao(premiere, itemClipe);
+    return normalizarSegmentosTranscricao(JSON.parse(json));
+  } catch (_) {
+    const trilha = await sequencia.getVideoTrack(0);
+    const tipoClipe = premiere.Constants && premiere.Constants.TrackItemType
+      ? premiere.Constants.TrackItemType.CLIP : 1;
+    const clipes = trilha && trilha.getTrackItems(tipoClipe, false);
+    if (!clipes || !clipes.length) return [];
+    const clipe = clipes[0];
+    const item = premiere.ClipProjectItem.cast(await clipe.getProjectItem());
+    const inicio = await clipe.getStartTime();
+    const json = await exportarOuCriarTranscricao(premiere, item);
+    return normalizarSegmentosTranscricao(JSON.parse(json)).map((segmento) => ({
+      ...segmento,
+      start: segmento.start + Number(inicio.seconds || 0),
+      end: segmento.end + Number(inicio.seconds || 0),
+    }));
+  }
+}
+
+async function exportarOuCriarTranscricao(premiere, itemClipe) {
+  try {
+    return await premiere.Transcript.exportToJSON(itemClipe);
+  } catch (_) {
+    const criado = await premiere.Transcript.transcribeClipProjectItem(
+      itemClipe, { language: "pt-BR" }
+    );
+    if (!criado) throw new Error("Não foi possível transcrever o clipe ativo no Premiere.");
+    return await premiere.Transcript.exportToJSON(itemClipe);
+  }
+}
+
+function normalizarSegmentosTranscricao(valor) {
+  const lista = Array.isArray(valor) ? valor : (valor.segments || valor.textSegments || []);
+  return lista.map((item) => {
+    const inicio = Number(item.start ?? item.startTime ?? item.inicio ?? 0);
+    const duracao = Number(item.duration ?? item.duracao ?? 0);
+    const palavras = Array.isArray(item.words) ? item.words
+      .map((word) => String(word.text || "").trim()).filter(Boolean).join(" ") : "";
+    return {
+      start: inicio,
+      end: Number(item.end ?? item.endTime ?? item.fim ?? (inicio + duracao)),
+      text: String(item.text ?? item.transcript ?? item.texto ?? palavras).trim(),
+    };
+  }).filter((item) => item.end > item.start && item.text);
+}
+
+async function adicionarMarcadoresNaSequencia(projeto, sequencia, premiere, sugestoes) {
+  const marcadores = await premiere.Markers.getMarkers(sequencia);
+  projeto.lockedAccess(() => {
+    projeto.executeTransaction((transacao) => {
+      for (const sugestao of sugestoes) {
+        const inicio = premiere.TickTime.createWithSeconds(Number(sugestao.start));
+        const duracao = premiere.TickTime.createWithSeconds(
+          Math.max(0.1, Number(sugestao.end) - Number(sugestao.start))
+        );
+        transacao.addAction(marcadores.createAddMarkerAction(
+          "LETTERING: " + sugestao.text, "Comment", inicio, duracao,
+          "Sugestão da IA — " + (sugestao.reason || "conceito")
+        ));
+      }
+    }, "Adicionar sugestões de lettering");
+  });
+}
+
+/**
  * Liga o clique do botão Processar Aula.
  * @returns {void}
  */
@@ -196,11 +326,26 @@ function iniciarPainel() {
     console.error("[Decupagem] Botão btnProcessar não encontrado.");
     return;
   }
-  botao.addEventListener("click", () => {
+  botao.onclick = () => {
     processarAula().catch((erro) => {
       console.error("[Decupagem] Falha no clique de Processar Aula:", erro);
     });
-  });
+  };
+  const botaoProcessarTopo = document.getElementById("btnProcessarTopo");
+  if (botaoProcessarTopo) botaoProcessarTopo.onclick = botao.onclick;
+  const botaoLettering = document.getElementById("btnLettering");
+  if (botaoLettering) {
+    botaoLettering.onclick = () => {
+      analisarLettering().catch((erro) => {
+        console.error("[Decupagem] Falha no clique de Lettering:", erro);
+      });
+    };
+  }
+  const botaoLetteringTopo = document.getElementById("btnLetteringTopo");
+  if (botaoLetteringTopo && botaoLettering) {
+    botaoLetteringTopo.onclick = botaoLettering.onclick;
+  }
+  definirStatus("Painel pronto. Escolha uma ação para iniciar.");
 }
 
 if (document.readyState === "loading") {

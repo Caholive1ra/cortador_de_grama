@@ -105,6 +105,26 @@ def test_modelo_indisponivel_retorna_503(monkeypatch) -> None:
     assert resposta.json()["detail"] == "modelo ausente"
 
 
+def test_analyze_lettering_gera_xml_auxiliar(tmp_path, monkeypatch) -> None:
+    monkeypatch.setattr("main.obter_metadados", lambda path: {
+        "path": path, "duration": 12, "fps": 30, "width": 1920,
+        "height": 1080, "video_start": 0,
+    })
+    monkeypatch.setattr("main.extrair_audio_temporario", lambda *args: nullcontext("audio.wav"))
+    monkeypatch.setattr("main.transcrever_audio", lambda path: [
+        {"start": 1, "end": 4, "text": "Uma definição importante."},
+    ])
+    monkeypatch.setattr("main.sugerir_letterings", lambda segmentos: [
+        {"start": 1, "end": 4, "text": "Definição", "reason": "definicao"},
+    ])
+    media = tmp_path / "revisada.mp4"
+    resposta = client.post("/analyze-lettering", json={"revised_media_path": str(media)})
+    assert resposta.status_code == 200, resposta.text
+    dados = resposta.json()
+    assert dados["suggestions"][0]["text"] == "Definição"
+    assert "_lettering_sugerido.xml" in dados["xml_path"]
+
+
 def test_process_sincroniza_midias_e_gera_xml_com_lacunas(tmp_path, monkeypatch) -> None:
     """FFmpeg, correlacao e XML reais; somente a transcricao e substituida."""
     import shutil

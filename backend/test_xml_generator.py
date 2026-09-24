@@ -128,6 +128,22 @@ def test_adiciona_marcador_para_trecho_com_duvida_da_ia(tmp_path) -> None:
     assert (marcador.findtext("in"), marcador.findtext("out")) == ("0", "90")
 
 
+def test_adiciona_marcador_de_lettering_sem_alterar_o_video(tmp_path) -> None:
+    path = tmp_path / "lettering.xml"
+    gerar_fcp_xml(
+        [{"start": 0.0, "end": 3.0, "enabled": True}], _fontes()[:1], str(path),
+        30.0, 3.0,
+        lettering_suggestions=[{"start": 1.0, "end": 2.0, "text": "Conceito-chave", "reason": "conceito"}],
+        sequence_name="Aula_Revisada_Sugestoes_Lettering",
+    )
+    raiz = ET.parse(path).getroot()
+    assert raiz.findtext("./sequence/name") == "Aula_Revisada_Sugestoes_Lettering"
+    marcador = raiz.find("./sequence/marker")
+    assert marcador.findtext("name") == "LETTERING: Conceito-chave"
+    assert marcador.findtext("comment") == "Sugestao da IA — conceito"
+    assert (marcador.findtext("in"), marcador.findtext("out")) == ("30", "60")
+
+
 def test_gera_audio_externo_sincronizado(tmp_path) -> None:
     output_path = tmp_path / "audio_externo.xml"
     audio = {

@@ -29,6 +29,8 @@ def gerar_fcp_xml(
     fonte_audio: dict | None = None,
     fontes_audio: list[dict] | None = None,
     camera_por_segmento: list[str] | None = None,
+    lettering_suggestions: list[dict] | None = None,
+    sequence_name: str = "Aula_Decupada_Multicamera",
 ) -> str:
     """Cria tracks de vídeo sincronizadas e uma track de áudio final."""
     try:
@@ -37,7 +39,7 @@ def gerar_fcp_xml(
 
         raiz = ET.Element("xmeml", version="4")
         sequencia = ET.SubElement(raiz, "sequence")
-        ET.SubElement(sequencia, "name").text = "Aula_Decupada_Multicamera"
+        ET.SubElement(sequencia, "name").text = sequence_name
         ET.SubElement(sequencia, "duration").text = str(
             seconds_to_frames(duracao_total, fps)
         )
@@ -147,6 +149,7 @@ def gerar_fcp_xml(
                 arquivos_audio_declarados.add(indice_audio)
 
         _adicionar_marcadores_revisao(sequencia, segmentos, fps)
+        _adicionar_marcadores_lettering(sequencia, lettering_suggestions or [], fps)
 
         xml_documento = _serializar_xmeml(raiz)
         diretorio = os.path.dirname(os.path.abspath(output_path))
@@ -227,6 +230,24 @@ def _adicionar_marcadores_revisao(
         )
         ET.SubElement(marcador, "out").text = str(
             seconds_to_frames(float(segmento["end"]), fps)
+        )
+
+
+def _adicionar_marcadores_lettering(
+    sequencia: ET.Element, sugestoes: list[dict], fps: float,
+) -> None:
+    """Inclui marcadores editoriais sem criar nem alterar textos na imagem."""
+    for sugestao in sugestoes:
+        marcador = ET.SubElement(sequencia, "marker")
+        ET.SubElement(marcador, "name").text = "LETTERING: " + str(sugestao["text"])
+        ET.SubElement(marcador, "comment").text = "Sugestao da IA — " + str(
+            sugestao.get("reason", "conceito")
+        )
+        ET.SubElement(marcador, "in").text = str(
+            seconds_to_frames(float(sugestao["start"]), fps)
+        )
+        ET.SubElement(marcador, "out").text = str(
+            seconds_to_frames(float(sugestao["end"]), fps)
         )
 
 
