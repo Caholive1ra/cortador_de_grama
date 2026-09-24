@@ -91,6 +91,8 @@ def decidir_cortes_semanticos(
     if GEMINI_API_KEY and audio_path:
         return _decidir_cortes_com_gemini(segmentos, audio_path)
 
+    global ULTIMO_DIAGNOSTICO
+    ULTIMO_DIAGNOSTICO = {"mode": "ollama", "ollama_model": OLLAMA_MODEL}
     verificar_modelo_editorial()
     descartar: set[int] = set()
     motivos: dict[int, str] = {}
@@ -216,6 +218,7 @@ def _gemini_audio_request(prompt: str, audio_path: str) -> str:
                 resposta = _gerar_conteudo(client, prompt, arquivo, modelo)
             except Exception as exc:
                 if not _erro_gemini_recuperavel(exc):
+                    logger.error("Gemini %s falhou de forma nao recuperavel: %s", modelo, exc, exc_info=True)
                     raise
                 erros.append(f"{modelo}: {type(exc).__name__}: {exc}")
                 logger.warning("Gemini %s falhou; tentando o proximo modelo.", modelo)
@@ -375,7 +378,14 @@ def _gemini_request(prompt: str) -> str:
         )
         return str(resposta["candidates"][0]["content"]["parts"][0]["text"])
     except (URLError, TimeoutError, HTTPError, KeyError, IndexError, TypeError) as exc:
-        raise GeminiReviewError("Gemini nao retornou uma aprovacao valida.") from exc
+        detalhe = str(exc)
+        if isinstance(exc, HTTPError):
+            try:
+                detalhe += " | " + exc.read().decode("utf-8", errors="replace")[:1000]
+            except Exception:
+                pass
+        logger.error("Falha na requisicao textual Gemini (%s): %s", GEMINI_MODEL, detalhe)
+        raise GeminiReviewError(f"Gemini nao retornou uma aprovacao valida: {detalhe}") from exc
 
 
 def _decidir_lote(lote: list[dict]) -> dict[int, str]:

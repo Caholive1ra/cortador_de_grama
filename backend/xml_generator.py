@@ -240,8 +240,8 @@ def _adicionar_marcadores_lettering(
     for sugestao in sugestoes:
         marcador = ET.SubElement(sequencia, "marker")
         ET.SubElement(marcador, "name").text = "LETTERING: " + str(sugestao["text"])
-        ET.SubElement(marcador, "comment").text = "Sugestao da IA — " + str(
-            sugestao.get("reason", "conceito")
+        ET.SubElement(marcador, "comment").text = "Por que: " + str(
+            sugestao.get("explanation") or sugestao.get("reason", "conceito")
         )
         ET.SubElement(marcador, "in").text = str(
             seconds_to_frames(float(sugestao["start"]), fps)

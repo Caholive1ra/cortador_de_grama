@@ -174,7 +174,9 @@ async function processarAula() {
       const resumo = sincronizacao.map((fonte) =>
         fonte.source + ": inicio no PGM " + fonte.offset_seconds.toFixed(3) + "s"
       ).join("; ");
-      definirStatus("Sucesso! Timeline importada. " + resumo);
+      const modeloCortes = (dados.ai_models && dados.ai_models.cuts) || "modelo configurado";
+      definirStatus("Sucesso! Timeline importada. " + resumo +
+        " | IA dos cortes: " + modeloCortes);
       return;
     }
 
@@ -227,9 +229,12 @@ async function analisarLettering() {
       return;
     }
     await adicionarMarcadoresNaSequencia(projeto, sequencia, premiere, dados.suggestions || []);
+    const modeloLetterings = (dados.ai_models && dados.ai_models.letterings) ||
+      "modelo configurado";
     definirStatus(
       "Sucesso! " + (dados.suggestions || []).length +
-      " marcador(es) de lettering importado(s)."
+      " marcador(es) de lettering importado(s). | IA dos letterings: " +
+      modeloLetterings
     );
   } catch (erro) {
     console.error("[Decupagem] Falha na análise de lettering:", erro);

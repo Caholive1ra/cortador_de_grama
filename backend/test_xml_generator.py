@@ -140,7 +140,7 @@ def test_adiciona_marcador_de_lettering_sem_alterar_o_video(tmp_path) -> None:
     assert raiz.findtext("./sequence/name") == "Aula_Revisada_Sugestoes_Lettering"
     marcador = raiz.find("./sequence/marker")
     assert marcador.findtext("name") == "LETTERING: Conceito-chave"
-    assert marcador.findtext("comment") == "Sugestao da IA — conceito"
+    assert marcador.findtext("comment") == "Por que: conceito"
     assert (marcador.findtext("in"), marcador.findtext("out")) == ("30", "60")
 
 

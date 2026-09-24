@@ -33,9 +33,11 @@ def sugerir_letterings(segmentos: list[dict]) -> list[dict]:
         return []
 
     prompt = """Voce e diretor pedagogico e roteirista de motion graphics de uma videoaula em portugues.
-O editor humano ja finalizou os cortes. Leia o contexto completo e sugira
-POUCOS letterings que transformem a explicacao oral em apoio visual para o
-aluno. Priorize, nesta ordem:
+O editor humano ja finalizou os cortes. Leia o contexto completo e produza
+COBERTURA COMPLETA de letterings que transformem a explicacao oral em apoio
+visual para o aluno. Nao pare no primeiro conceito: percorra toda a aula e
+marque cada conceito tecnico, definicao, etapa, regra ou conclusao relevante.
+Priorize, nesta ordem:
 1) um termo tecnico que o professor acabou de introduzir;
 2) a definicao simples desse termo (ex.: se ele explica o que e um framework,
 escreva "Framework = estrutura reutilizavel para construir software");
@@ -51,15 +53,27 @@ repita literalmente uma frase longa do professor. Se nao houver uma ideia
 pedagogica clara, nao sugira nada.
 
 Cada sugestao deve usar EXATAMENTE o indice do trecho em que a ideia termina
-de ser explicada e ter texto curto, claro e autocontido (de 1 a 12 palavras).
+de ser explicada e informar, sem ambiguidade, o TEXTO FINAL que sera colocado
+na tela. Esse texto deve ser curto, claro e autocontido (de 1 a 8 palavras;
+no maximo 60 caracteres). Nunca copie um paragrafo ou uma frase longa da
+transcricao. O campo "lettering" e o que o designer vai escrever na tela;
+nao e a fala do professor nem um resumo da transcricao. Alem disso, explique
+POR QUE o lettering ajuda o aluno naquele ponto, citando a funcao pedagogica
+(definicao, introducao de termo, passo, alerta, relacao ou conclusao).
 Um lettering de UMA palavra e valido quando for um termo tecnico, conceito,
 nome de metodo ou palavra-chave que o professor esteja apresentando; nesses
 casos, nao force uma definicao longa. Para definicoes, prefira o formato
 "Termo = definicao". Nao
-invente indices, tempos, fatos ou exemplos. No maximo 24 sugestoes, com pelo
-menos 8 segundos entre sugestoes sempre que possivel, para nao poluir a aula.
+invente indices, tempos, fatos ou exemplos. Gere normalmente de 3 a 12
+sugestoes para uma aula com varios conceitos (uma por conceito relevante).
+No maximo 24 sugestoes, com pelo menos 5 segundos entre sugestoes sempre que
+possivel. Uma aula longa nao deve receber apenas um marcador.
+Exemplos de saida correta:
+{"i":12,"lettering":"FRAMEWORK","reason":"conceito"}
+{"i":18,"lettering":"Framework = estrutura reutilizavel","reason":"definicao"}
+{"i":31,"lettering":"1. Declare a interface","reason":"passo"}
 Responda APENAS JSON valido:
-{"suggestions":[{"i":0,"text":"...","reason":"conceito|definicao|passo|alerta|formula|conclusao"}]}.
+{"suggestions":[{"i":0,"lettering":"TEXTO FINAL NA TELA","reason":"conceito|definicao|passo|alerta|formula|conclusao","explanation":"Por que este texto ajuda o aluno neste momento."}]}.
 Transcricao final:\n""" + json.dumps(trechos, ensure_ascii=False)
     try:
         resposta = _gemini_request(prompt)
@@ -76,18 +90,20 @@ Transcricao final:\n""" + json.dumps(trechos, ensure_ascii=False)
     for item in candidatos:
         try:
             indice = int(item["i"])
-            texto = " ".join(str(item["text"]).split()).strip()
+            texto = " ".join(str(item.get("lettering", item.get("text", ""))).split()).strip()
             motivo = str(item["reason"])
+            explicacao = " ".join(str(item.get("explanation", item.get("why", ""))).split()).strip()
         except (KeyError, TypeError, ValueError):
             continue
         if indice not in por_indice or indice in usados or motivo not in permitidos:
             continue
-        if not texto or len(texto) > 100:
+        if not texto or len(texto) > 60 or len(texto.split()) > 8:
             continue
         trecho = por_indice[indice]
         sugestoes.append({
             "start": trecho["inicio"], "end": trecho["fim"],
             "text": texto, "reason": motivo,
+            "explanation": explicacao or "Resume visualmente uma ideia importante para o aluno.",
         })
         usados.add(indice)
         if len(sugestoes) == MAX_SUGESTOES:
@@ -122,10 +138,11 @@ def _fallback_letterings(segmentos: list[dict]) -> list[dict]:
             continue
         if not any(chave in texto.lower() for chave in palavras_chave):
             continue
+        rotulo = " ".join(texto.split()[:8]).rstrip(" .,;:")
         resultado.append({
             "start": round(float(item["start"]), 3),
             "end": round(float(item["end"]), 3),
-            "text": texto[:80].rstrip(" .,;:") + ("…" if len(texto) > 80 else ""),
+            "text": rotulo[:60],
             "reason": "conceito",
         })
         if len(resultado) >= 8:

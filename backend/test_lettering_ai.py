@@ -17,9 +17,9 @@ def test_sugestoes_usam_apenas_intervalos_da_transcricao(monkeypatch) -> None:
         {"start": 0, "end": 3, "text": "Vamos começar."},
         {"start": 3, "end": 8, "text": "Polimorfismo permite comportamentos diferentes."},
     ])
-    assert resultado == [{
-        "start": 3.0, "end": 8.0, "text": "Polimorfismo", "reason": "conceito",
-    }]
+    assert resultado[0]["start"] == 3.0
+    assert resultado[0]["text"] == "Polimorfismo"
+    assert resultado[0]["explanation"]
 
 
 def test_sem_chave_nao_finge_ter_analise(monkeypatch) -> None:

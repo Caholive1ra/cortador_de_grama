@@ -13,7 +13,8 @@ from pydantic import BaseModel
 from audio_sync import SyncError, sincronizar_audio
 from camera_director import dirigir_cameras
 from editorial_ai import (
-    GEMINI_API_KEY, GEMINI_MODEL, EditorialModelError, obter_diagnostico_editorial,
+    GEMINI_API_KEY, GEMINI_MODEL, OLLAMA_MODEL, EditorialModelError,
+    obter_diagnostico_editorial, _modelos_gemini, _request_url,
 )
 from lettering_ai import LetteringModelError, sugerir_letterings
 from logic_engine import classificar_segmentos
@@ -91,6 +92,39 @@ def health_check() -> dict[str, str]:
     except Exception:
         logger.error("Falha no health-check.\n%s", traceback.format_exc())
         raise
+
+
+@app.get("/diagnostics/gemini")
+def diagnostics_gemini() -> dict:
+    """Lista modelos visiveis para a chave, sem retornar a chave secreta."""
+    if not GEMINI_API_KEY:
+        return {"configured": False, "configured_models": list(_modelos_gemini())}
+    try:
+        resposta = _request_url(
+            "GET", f"https://generativelanguage.googleapis.com/v1beta/models",
+            headers={"x-goog-api-key": GEMINI_API_KEY}, timeout=30,
+        )
+        disponiveis = [
+            item.get("name", "").removeprefix("models/")
+            for item in resposta.get("models", [])
+            if "generateContent" in item.get("supportedGenerationMethods", [])
+        ]
+        return {
+            "configured": True,
+            "configured_models": list(_modelos_gemini()),
+            "available_generate_content_models": disponiveis,
+            "configured_models_available": {
+                modelo: modelo in disponiveis for modelo in _modelos_gemini()
+            },
+        }
+    except Exception as exc:
+        logger.error("Diagnostico Gemini falhou: %s", exc, exc_info=True)
+        return {
+            "configured": True,
+            "configured_models": list(_modelos_gemini()),
+            "error_type": type(exc).__name__,
+            "error": str(exc)[:1000],
+        }
 
 
 @app.post("/process")
@@ -249,6 +283,17 @@ def process_media(request: MediaRequest) -> dict:
             "status": "success", "xml_path": xml_gerado,
             "diagnostic_path": os.path.abspath(diagnostico_path),
             "synchronization": sincronizacao,
+            "ai_models": {
+                "cuts": (
+                    obter_diagnostico_editorial().get("gemini_model_used")
+                    or (
+                        "Ollama/" + OLLAMA_MODEL
+                        if obter_diagnostico_editorial().get("mode") == "ollama"
+                        else GEMINI_MODEL
+                    )
+                ),
+                "letterings": None,
+            },
         }
     except EditorialModelError as exc:
         logger.error("Revisor editorial indisponivel: %s", exc, exc_info=True)
@@ -308,6 +353,7 @@ def analyze_lettering(request: LetteringRequest) -> dict:
             "xml_path": os.path.abspath(xml_path),
             "diagnostic_path": os.path.abspath(diagnostico_path),
             "suggestions": sugestoes,
+            "ai_models": {"cuts": None, "letterings": GEMINI_MODEL},
         }
     except LetteringModelError as exc:
         logger.warning("Analise de lettering indisponivel: %s", exc)
@@ -328,7 +374,11 @@ def analyze_lettering_segments(request: LetteringSegmentsRequest) -> dict:
     """Sugere letterings sem exigir que a sequencia seja um arquivo no disco."""
     try:
         sugestoes = sugerir_letterings(request.segments)
-        return {"status": "success", "suggestions": sugestoes}
+        return {
+            "status": "success",
+            "suggestions": sugestoes,
+            "ai_models": {"cuts": None, "letterings": GEMINI_MODEL},
+        }
     except LetteringModelError as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
 
