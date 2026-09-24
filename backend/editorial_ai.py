@@ -365,7 +365,7 @@ def _gemini_request(prompt: str) -> str:
         "contents": [{"parts": [{"text": prompt}]}],
         "generationConfig": {
             "responseMimeType": "application/json",
-            "maxOutputTokens": 2048,
+            "maxOutputTokens": 8192,
         },
     }
     try:

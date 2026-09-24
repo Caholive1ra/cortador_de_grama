@@ -32,57 +32,58 @@ def sugerir_letterings(segmentos: list[dict]) -> list[dict]:
     if not trechos:
         return []
 
-    prompt = """Voce e diretor pedagogico e roteirista de motion graphics de uma videoaula em portugues.
-O editor humano ja finalizou os cortes. Leia o contexto completo e produza
-COBERTURA COMPLETA de letterings que transformem a explicacao oral em apoio
-visual para o aluno. Nao pare no primeiro conceito: percorra toda a aula e
-marque cada conceito tecnico, definicao, etapa, regra ou conclusao relevante.
-Priorize, nesta ordem:
-1) um termo tecnico que o professor acabou de introduzir;
-2) a definicao simples desse termo (ex.: se ele explica o que e um framework,
-escreva "Framework = estrutura reutilizavel para construir software");
-3) uma relacao de causa/efeito, regra, passo pratico ou alerta importante.
+    prompt = """Voce e um editor de motion graphics especializado em videoaulas.
+O editor humano ja terminou os cortes. Sua tarefa NAO e resumir a aula: e
+encontrar momentos em que um pequeno texto na tela aumenta a compreensao.
 
-O texto do lettering deve ser uma sintese didatica escrita por voce, nao uma
-frase aleatoria da transcricao. Pode combinar informacoes de ate tres trechos
-consecutivos quando isso produzir uma definicao mais correta. Use contexto
-anterior e posterior para entender a que termo o professor se refere.
-Nao sugira lettering para saudacoes, transicoes, frases vagas, exemplos
-isolados, perguntas retoricas ou comentarios de organizacao da aula. Nao
-repita literalmente uma frase longa do professor. Se nao houver uma ideia
-pedagogica clara, nao sugira nada.
+Para cada trecho, faca mentalmente duas perguntas:
+1. O professor acabou de ensinar uma ideia que o aluno precisa lembrar?
+2. Um lettering curto tornaria essa ideia mais clara do que apenas ouvir a fala?
+Se a resposta for nao, nao crie sugestao.
 
-Cada sugestao deve usar EXATAMENTE o indice do trecho em que a ideia termina
-de ser explicada e informar, sem ambiguidade, o TEXTO FINAL que sera colocado
-na tela. Esse texto deve ser curto, claro e autocontido (de 1 a 8 palavras;
-no maximo 60 caracteres). Nunca copie um paragrafo ou uma frase longa da
-transcricao. O campo "lettering" e o que o designer vai escrever na tela;
-nao e a fala do professor nem um resumo da transcricao. Alem disso, explique
-POR QUE o lettering ajuda o aluno naquele ponto, citando a funcao pedagogica
-(definicao, introducao de termo, passo, alerta, relacao ou conclusao).
-Um lettering de UMA palavra e valido quando for um termo tecnico, conceito,
-nome de metodo ou palavra-chave que o professor esteja apresentando; nesses
-casos, nao force uma definicao longa. Para definicoes, prefira o formato
-"Termo = definicao". Nao
-invente indices, tempos, fatos ou exemplos. Gere normalmente de 3 a 12
-sugestoes para uma aula com varios conceitos (uma por conceito relevante).
-No maximo 24 sugestoes, com pelo menos 5 segundos entre sugestoes sempre que
-possivel. Uma aula longa nao deve receber apenas um marcador.
-Exemplos de saida correta:
-{"i":12,"lettering":"FRAMEWORK","reason":"conceito"}
-{"i":18,"lettering":"Framework = estrutura reutilizavel","reason":"definicao"}
-{"i":31,"lettering":"1. Declare a interface","reason":"passo"}
-Responda APENAS JSON valido:
-{"suggestions":[{"i":0,"lettering":"TEXTO FINAL NA TELA","reason":"conceito|definicao|passo|alerta|formula|conclusao","explanation":"Por que este texto ajuda o aluno neste momento."}]}.
-Transcricao final:\n""" + json.dumps(trechos, ensure_ascii=False)
+Crie sugestoes para:
+- termo tecnico novo: \"FRAMEWORK\";
+- definicao essencial: \"Framework = estrutura reutilizavel\";
+- regra ou relacao: \"BAIXO ACOPLAMENTO = MAIS FLEXIBILIDADE\";
+- sequencia de procedimento: \"1. DECLARE A INTERFACE\";
+- alerta conceitual: \"NAO CONFUNDA CLASSE COM OBJETO\";
+- conclusao de um bloco importante.
+
+NAO crie sugestoes para:
+- frases de introducao, saudacao ou transicao;
+- qualquer frase longa copiada da fala;
+- exemplo casual que nao ensina uma regra;
+- uma frase que so descreve o que aparece na tela;
+- palavras genericas como \"importante\", \"atencao\" ou \"resumo\" sem conteudo.
+
+O campo lettering e literalmente o texto que o designer vai colocar na tela.
+Ele deve ter de 1 a 8 palavras e no maximo 60 caracteres. Pode ser apenas
+uma palavra quando for o termo ensinado. Escreva em portugues, com capitalizacao
+normal ou caixa alta quando for um titulo. Nunca invente informacao.
+Escolha o indice do trecho em que a ideia fica compreensivel; use o contexto
+dos trechos vizinhos para entender a ideia, mas nao invente timestamps.
+Cubra todos os conceitos relevantes da aula: normalmente 3 a 12 sugestoes,
+sem parar no primeiro conceito e sem criar duas sugestoes para a mesma ideia.
+
+Retorne APENAS JSON valido neste formato:
+{"suggestions":[{"i":12,"lettering":"FRAMEWORK","reason":"conceito","explanation":"Destaca o termo tecnico que esta sendo introduzido."}]}
+reason deve ser um destes valores: conceito, definicao, regra, passo, alerta, conclusao.
+explanation deve explicar em uma frase por que o aluno se beneficia desse texto.
+Transcricao com indices e timestamps:
+""" + json.dumps(trechos, ensure_ascii=False)
     try:
         resposta = _gemini_request(prompt)
         bruto = _parse_json_resposta(resposta)
     except (GeminiReviewError, KeyError, TypeError, ValueError, json.JSONDecodeError) as exc:
-        logger.warning("Gemini devolveu resposta invalida para lettering: %s", exc)
+        logger.warning(
+            "Gemini devolveu resposta invalida para lettering: %s | resposta=%s",
+            exc, str(locals().get("resposta", ""))[:2000],
+        )
         return _fallback_letterings(segmentos)
 
-    permitidos = {"conceito", "definicao", "passo", "alerta", "formula", "conclusao"}
+    permitidos = {
+        "conceito", "definicao", "regra", "passo", "alerta", "formula", "conclusao",
+    }
     por_indice = {item["i"]: item for item in trechos}
     sugestoes: list[dict] = []
     usados: set[int] = set()
