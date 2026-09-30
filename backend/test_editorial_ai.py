@@ -502,6 +502,48 @@ def test_prioriza_tres_modelos_gemini_sem_repeticao(monkeypatch) -> None:
     )
 
 
+def test_gemini_textual_tenta_proximo_modelo_em_erro_de_modelo(monkeypatch) -> None:
+    from editorial_ai import _gemini_request, obter_ultimo_modelo_gemini_textual
+
+    monkeypatch.setattr("editorial_ai.GEMINI_API_KEY", "chave-de-teste")
+    monkeypatch.setattr(
+        "editorial_ai._modelos_gemini",
+        lambda: ("gemini-3.8-flash", "gemini-3.7-flash"),
+    )
+    chamadas = []
+
+    def responder(_method, url, *_args, **_kwargs):
+        chamadas.append(url)
+        if "gemini-3.8-flash" in url:
+            raise RuntimeError("400 INVALID_ARGUMENT: modelo indisponivel")
+        return {"candidates": [{"content": {"parts": [{"text": '{"approve": []}'}]}}]}
+
+    monkeypatch.setattr("editorial_ai._request_url", responder)
+    assert _gemini_request("teste") == '{"approve": []}'
+    assert chamadas == [
+        "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent",
+        "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.7-flash:generateContent",
+    ]
+    assert obter_ultimo_modelo_gemini_textual() == "gemini-3.7-flash"
+
+
+def test_modo_economico_envia_apenas_candidatos_e_contexto_curto(monkeypatch) -> None:
+    from editorial_ai import decidir_cortes_semanticos, obter_diagnostico_editorial
+
+    monkeypatch.setattr("editorial_ai.GEMINI_API_KEY", "chave-de-teste")
+    prompts = []
+    monkeypatch.setattr("editorial_ai._gemini_request", lambda prompt: prompts.append(prompt) or '{"discard": [{"i": 10, "reason": "erro"}], "review": []}')
+    segmentos = [segmento(indice, indice + 1, "Explicacao didatica comum.") for indice in range(30)]
+    segmentos[10] = segmento(10, 11, "Errei, vou recomecar esta parte.")
+
+    resultado = decidir_cortes_semanticos(segmentos, modo_economico=True)
+    assert resultado.discard_indexes == {10}
+    assert len(prompts) == 1
+    assert '"candidate_id": 10' in prompts[0]
+    assert "candidate_id\": 29" not in prompts[0]
+    assert obter_diagnostico_editorial()["mode"] == "gemini_economic"
+
+
 def test_json_invalido_do_gemini_e_rejeitado_com_seguranca(monkeypatch):
     from editorial_ai import GeminiReviewError, _decidir_cortes_com_gemini
 
@@ -511,6 +553,28 @@ def test_json_invalido_do_gemini_e_rejeitado_com_seguranca(monkeypatch):
     )
     resultado = _decidir_cortes_com_gemini([segmento(0, 1, "Teste")], "audio.wav")
     assert resultado.discard_indexes == set()
+
+
+def test_resposta_parseada_do_sdk_e_preferida_ao_texto_invalido():
+    from editorial_ai import _extrair_json_da_resposta_gemini
+
+    class Resposta:
+        text = '{"discard": [{"i": 0, "reason": "erro}'
+        parsed = {"discard": [{"i": 0, "reason": "erro"}], "review": []}
+
+    assert json.loads(_extrair_json_da_resposta_gemini(Resposta())) == {
+        "discard": [{"i": 0, "reason": "erro"}], "review": [],
+    }
+
+
+def test_resposta_gemini_com_bloco_markdown_e_normalizada():
+    from editorial_ai import _extrair_json_da_resposta_gemini
+
+    class Resposta:
+        text = '```json\n{"discard": [], "review": []}\n```'
+        parsed = None
+
+    assert _extrair_json_da_resposta_gemini(Resposta()) == '{"discard": [], "review": []}'
 
 
 def test_prompt_multimodal_instrui_preservar_ultima_tentativa(monkeypatch):

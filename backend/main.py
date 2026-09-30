@@ -4,6 +4,7 @@ import logging
 import os
 import json
 import traceback
+from uuid import uuid4
 from contextlib import ExitStack
 
 from fastapi import FastAPI, HTTPException
@@ -14,7 +15,8 @@ from audio_sync import SyncError, sincronizar_audio
 from camera_director import dirigir_cameras
 from editorial_ai import (
     GEMINI_API_KEY, GEMINI_MODEL, OLLAMA_MODEL, EditorialModelError,
-    obter_diagnostico_editorial, _modelos_gemini, _request_url,
+    obter_diagnostico_editorial, obter_ultimo_modelo_gemini_textual,
+    _modelos_gemini, _request_url,
 )
 from lettering_ai import LetteringModelError, sugerir_letterings
 from logic_engine import classificar_segmentos
@@ -28,6 +30,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 BACKEND_REVISION = "gemini38-retry-v16"
+LIMITE_AULA_MODO_COMPLETO_SEGUNDOS = 3600.0
 
 app = FastAPI(
     title="Assistente de Decapagem",
@@ -64,18 +67,31 @@ class MediaRequest(BaseModel):
     audio_participante_3_path: str | None = None
     audio_participante_4_path: str | None = None
     audio_camera_geral_path: str | None = None
+    editorial_review: bool = False
+    editorial_mode: str = "full"
+    skip_unsynced_sources: bool = False
 
 
 class LetteringRequest(BaseModel):
     """Arquivo exportado apos a revisao humana da sequencia."""
 
     revised_media_path: str
+    economic_mode: bool = False
 
 
 class LetteringSegmentsRequest(BaseModel):
     """Transcricao/timestamps exportados da sequencia ativa do Premiere."""
 
     segments: list[dict]
+    economic_mode: bool = False
+
+
+class EconomicModeRequiredError(ValueError):
+    """Aula longa precisa de revisao economica para evitar prompt excessivo."""
+
+    def __init__(self, duration_seconds: float):
+        self.duration_seconds = duration_seconds
+        super().__init__("Aulas acima de uma hora exigem o modo economico para revisao por IA.")
 
 
 @app.get("/health")
@@ -131,6 +147,8 @@ def diagnostics_gemini() -> dict:
 def process_media(request: MediaRequest) -> dict:
     """Transcreve o PGM e prepara as fontes para o XML multicâmera."""
     try:
+        if request.editorial_mode not in {"full", "economic"}:
+            raise ValueError("Modo editorial invalido. Use full ou economic.")
         if request.project_type not in {"videoaula", "videocast"}:
             raise ValueError("Tipo de projeto inválido. Use videoaula ou videocast.")
         fontes = (
@@ -164,7 +182,15 @@ def process_media(request: MediaRequest) -> dict:
             metadados.append(dados)
 
         pgm = metadados[0]
+        if (
+            request.editorial_review
+            and request.editorial_mode == "full"
+            and float(pgm["duration"]) > LIMITE_AULA_MODO_COMPLETO_SEGUNDOS
+        ):
+            raise EconomicModeRequiredError(float(pgm["duration"]))
         pgm["offset_seconds"] = 0.0
+        fontes_sincronizadas = [pgm]
+        fontes_ignoradas = []
         for fonte in metadados[1:]:
             if abs(float(fonte["fps"]) - float(pgm["fps"])) > 0.02:
                 logger.info(
@@ -178,8 +204,13 @@ def process_media(request: MediaRequest) -> dict:
                 try:
                     with extrair_audio_temporario(fonte["path"], fonte.get("video_start", 0.0)) as fonte_audio:
                         ajuste = sincronizar_audio(audio_path, fonte_audio, float(pgm["fps"]))
-                except SyncError as exc:
-                    raise SyncError(f"{fonte['label']} ({fonte['name']}): {exc}") from exc
+                except (SyncError, ValueError) as exc:
+                    detalhe = f"{fonte['label']} ({fonte['name']}): {exc}"
+                    if not request.skip_unsynced_sources:
+                        raise SyncError(detalhe) from exc
+                    logger.warning("Fonte opcional ignorada: %s", detalhe)
+                    fontes_ignoradas.append({"source": fonte["label"], "reason": str(exc)})
+                    continue
                 fonte["offset_seconds"] = ajuste.offset_seconds
                 inicio = max(0.0, ajuste.offset_seconds)
                 fim = min(float(pgm["duration"]), ajuste.offset_seconds + float(fonte["duration"]))
@@ -189,6 +220,8 @@ def process_media(request: MediaRequest) -> dict:
                     "source": fonte["label"], **ajuste.to_dict(),
                     "coverage_start": inicio, "coverage_end": fim,
                 })
+                fontes_sincronizadas.append(fonte)
+            metadados = fontes_sincronizadas
             entradas_audio = [("Áudio master", request.audio_path, None)]
             if request.project_type == "videocast":
                 entradas_audio.extend([
@@ -229,8 +262,9 @@ def process_media(request: MediaRequest) -> dict:
             segmentos_classificados = classificar_segmentos(
                 segmentos,
                 duracao_total=float(pgm["duration"]),
-                revisao_semantica=True,
+                revisao_semantica=request.editorial_review,
                 audio_path=audio_path,
+                modo_economico=request.editorial_mode == "economic",
             )
             camera_por_segmento = None
             if request.project_type == "videocast":
@@ -255,7 +289,8 @@ def process_media(request: MediaRequest) -> dict:
                     )
 
         raiz_arquivo, _extensao = os.path.splitext(request.pgm_path)
-        xml_output_path = f"{raiz_arquivo}_cortado.xml"
+        job_id = uuid4().hex[:12]
+        xml_output_path = f"{raiz_arquivo}_cortado_{job_id}.xml"
 
         xml_gerado = gerar_fcp_xml(
             segmentos_classificados,
@@ -268,7 +303,7 @@ def process_media(request: MediaRequest) -> dict:
             ),
             camera_por_segmento=camera_por_segmento,
         )
-        diagnostico_path = f"{raiz_arquivo}_diagnostico.json"
+        diagnostico_path = f"{raiz_arquivo}_diagnostico_{job_id}.json"
         with open(diagnostico_path, "w", encoding="utf-8") as diagnostico:
             json.dump(
                 {
@@ -283,13 +318,16 @@ def process_media(request: MediaRequest) -> dict:
             "status": "success", "xml_path": xml_gerado,
             "diagnostic_path": os.path.abspath(diagnostico_path),
             "synchronization": sincronizacao,
+            "skipped_sources": fontes_ignoradas,
             "ai_models": {
                 "cuts": (
+                    "regras locais" if not request.editorial_review else (
                     obter_diagnostico_editorial().get("gemini_model_used")
                     or (
                         "Ollama/" + OLLAMA_MODEL
                         if obter_diagnostico_editorial().get("mode") == "ollama"
                         else GEMINI_MODEL
+                    )
                     )
                 ),
                 "letterings": None,
@@ -301,6 +339,15 @@ def process_media(request: MediaRequest) -> dict:
     except ModelUnavailableError as exc:
         logger.error("Modelo de transcricao indisponivel: %s", exc, exc_info=True)
         raise HTTPException(status_code=503, detail=str(exc)) from exc
+    except EconomicModeRequiredError as exc:
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "code": "ECONOMIC_MODE_REQUIRED",
+                "duration_seconds": exc.duration_seconds,
+                "message": str(exc),
+            },
+        ) from exc
     except ValueError as exc:
         logger.warning("Midias invalidas: %s", exc, exc_info=True)
         raise HTTPException(status_code=422, detail=str(exc)) from exc
@@ -325,14 +372,20 @@ def analyze_lettering(request: LetteringRequest) -> dict:
     """Analisa a versao revisada e gera XML auxiliar com marcadores de texto."""
     try:
         midia = obter_metadados(request.revised_media_path)
+        if (
+            not request.economic_mode
+            and float(midia["duration"]) > LIMITE_AULA_MODO_COMPLETO_SEGUNDOS
+        ):
+            raise EconomicModeRequiredError(float(midia["duration"]))
         with extrair_audio_temporario(
             request.revised_media_path, midia.get("video_start", 0.0)
         ) as audio_path:
             segmentos = transcrever_audio(audio_path)
-        sugestoes = sugerir_letterings(segmentos)
+        sugestoes = sugerir_letterings(segmentos, modo_economico=request.economic_mode)
         raiz_arquivo, _ = os.path.splitext(request.revised_media_path)
-        xml_path = f"{raiz_arquivo}_lettering_sugerido.xml"
-        diagnostico_path = f"{raiz_arquivo}_lettering_sugerido.json"
+        job_id = uuid4().hex[:12]
+        xml_path = f"{raiz_arquivo}_lettering_sugerido_{job_id}.xml"
+        diagnostico_path = f"{raiz_arquivo}_lettering_sugerido_{job_id}.json"
         gerar_fcp_xml(
             [{"start": 0.0, "end": float(midia["duration"]), "enabled": True}],
             [dict(midia, name=os.path.basename(request.revised_media_path), label="Video revisado")],
@@ -353,13 +406,21 @@ def analyze_lettering(request: LetteringRequest) -> dict:
             "xml_path": os.path.abspath(xml_path),
             "diagnostic_path": os.path.abspath(diagnostico_path),
             "suggestions": sugestoes,
-            "ai_models": {"cuts": None, "letterings": GEMINI_MODEL},
+            "ai_models": {
+                "cuts": None,
+                "letterings": obter_ultimo_modelo_gemini_textual() or GEMINI_MODEL,
+            },
         }
     except LetteringModelError as exc:
         logger.warning("Analise de lettering indisponivel: %s", exc)
         raise HTTPException(status_code=503, detail=str(exc)) from exc
     except ModelUnavailableError as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
+    except EconomicModeRequiredError as exc:
+        raise HTTPException(
+            status_code=409,
+            detail={"code": "ECONOMIC_MODE_REQUIRED", "duration_seconds": exc.duration_seconds, "message": str(exc)},
+        ) from exc
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     except FileNotFoundError as exc:
@@ -373,14 +434,25 @@ def analyze_lettering(request: LetteringRequest) -> dict:
 def analyze_lettering_segments(request: LetteringSegmentsRequest) -> dict:
     """Sugere letterings sem exigir que a sequencia seja um arquivo no disco."""
     try:
-        sugestoes = sugerir_letterings(request.segments)
+        duracao = max((float(item.get("end", 0)) for item in request.segments), default=0.0)
+        if not request.economic_mode and duracao > LIMITE_AULA_MODO_COMPLETO_SEGUNDOS:
+            raise EconomicModeRequiredError(duracao)
+        sugestoes = sugerir_letterings(request.segments, modo_economico=request.economic_mode)
         return {
             "status": "success",
             "suggestions": sugestoes,
-            "ai_models": {"cuts": None, "letterings": GEMINI_MODEL},
+            "ai_models": {
+                "cuts": None,
+                "letterings": obter_ultimo_modelo_gemini_textual() or GEMINI_MODEL,
+            },
         }
     except LetteringModelError as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
+    except EconomicModeRequiredError as exc:
+        raise HTTPException(
+            status_code=409,
+            detail={"code": "ECONOMIC_MODE_REQUIRED", "duration_seconds": exc.duration_seconds, "message": str(exc)},
+        ) from exc
 
 
 def _preparar_fontes_audio_xml(

@@ -7,13 +7,14 @@ from editorial_ai import GEMINI_API_KEY, GeminiReviewError, _gemini_request
 
 logger = logging.getLogger(__name__)
 MAX_SUGESTOES = 24
+MAX_CANDIDATOS_ECONOMICOS = 48
 
 
 class LetteringModelError(RuntimeError):
     """A analise de lettering nao pode ser concluida com seguranca."""
 
 
-def sugerir_letterings(segmentos: list[dict]) -> list[dict]:
+def sugerir_letterings(segmentos: list[dict], modo_economico: bool = False) -> list[dict]:
     """Retorna sugestoes ancoradas estritamente nos trechos transcritos.
 
     A IA nao recebe permissao para inventar tempos: cada sugestao aponta para
@@ -32,6 +33,7 @@ def sugerir_letterings(segmentos: list[dict]) -> list[dict]:
     if not trechos:
         return []
 
+    trechos_para_ia = _selecionar_trechos_economicos(trechos) if modo_economico else trechos
     prompt = """Voce e um editor de motion graphics especializado em videoaulas.
 O editor humano ja terminou os cortes. Sua tarefa NAO e resumir a aula: e
 encontrar momentos em que um pequeno texto na tela aumenta a compreensao.
@@ -69,8 +71,8 @@ Retorne APENAS JSON valido neste formato:
 {"suggestions":[{"i":12,"lettering":"FRAMEWORK","reason":"conceito","explanation":"Destaca o termo tecnico que esta sendo introduzido."}]}
 reason deve ser um destes valores: conceito, definicao, regra, passo, alerta, conclusao.
 explanation deve explicar em uma frase por que o aluno se beneficia desse texto.
-Transcricao com indices e timestamps:
-""" + json.dumps(trechos, ensure_ascii=False)
+    Transcricao com indices e timestamps:
+    """ + json.dumps(trechos_para_ia, ensure_ascii=False)
     try:
         resposta = _gemini_request(prompt)
         bruto = _parse_json_resposta(resposta)
@@ -111,6 +113,23 @@ Transcricao com indices e timestamps:
             break
     logger.info("Analise de lettering gerou %d sugestao(oes).", len(sugestoes))
     return sugestoes or _fallback_letterings(segmentos)
+
+
+def _selecionar_trechos_economicos(trechos: list[dict]) -> list[dict]:
+    """Mantem candidatos didaticos e pouco contexto para reduzir tokens."""
+    pistas = (
+        "significa", "defin", "consiste", "chamamos", "importante", "regra",
+        "passo", "primeiro", "segundo", "terceiro", "formula", "conclus",
+        "aten", "nao confunda", "diferen", "permite",
+    )
+    selecionados: set[int] = set()
+    for posicao, trecho in enumerate(trechos):
+        texto = str(trecho["texto"]).lower()
+        if any(pista in texto for pista in pistas):
+            selecionados.update(range(max(0, posicao - 1), min(len(trechos), posicao + 2)))
+    if not selecionados:
+        return trechos[:min(len(trechos), MAX_CANDIDATOS_ECONOMICOS)]
+    return [trechos[posicao] for posicao in sorted(selecionados)[:MAX_CANDIDATOS_ECONOMICOS]]
 
 
 def _parse_json_resposta(resposta: str) -> dict:

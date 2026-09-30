@@ -10,6 +10,22 @@ from pathlib import Path
 from typing import Iterator
 
 logger = logging.getLogger(__name__)
+FFMPEG_TIMEOUT_SECONDS = int(os.getenv("FFMPEG_TIMEOUT_SECONDS", "3600"))
+
+
+def _executar(comando: list[str]) -> subprocess.CompletedProcess[str]:
+    """Executa utilitarios de midia com limite e mensagens acionaveis."""
+    try:
+        return subprocess.run(
+            comando, capture_output=True, text=True, check=True,
+            timeout=FFMPEG_TIMEOUT_SECONDS,
+        )
+    except FileNotFoundError as exc:
+        raise RuntimeError(f"{comando[0]} nao foi encontrado no PATH.") from exc
+    except subprocess.TimeoutExpired as exc:
+        raise RuntimeError(
+            f"{comando[0]} excedeu o tempo limite de {FFMPEG_TIMEOUT_SECONDS}s."
+        ) from exc
 
 
 def obter_metadados(file_path: str) -> dict:
@@ -24,7 +40,7 @@ def obter_metadados(file_path: str) -> dict:
         "-of", "json", str(caminho),
     ]
     logger.info("Lendo metadados de: %s", file_path)
-    resultado = subprocess.run(comando, capture_output=True, text=True, check=True)
+    resultado = _executar(comando)
     dados = json.loads(resultado.stdout)
     streams = dados.get("streams", [])
     if not streams:
@@ -62,7 +78,7 @@ def obter_metadados_audio(file_path: str) -> dict:
         "-of", "json", str(caminho),
     ]
     logger.info("Lendo metadados de áudio: %s", file_path)
-    resultado = subprocess.run(comando, capture_output=True, text=True, check=True)
+    resultado = _executar(comando)
     dados = json.loads(resultado.stdout)
     streams = dados.get("streams", [])
     if not streams:
@@ -97,7 +113,7 @@ def extrair_audio_temporario(file_path: str, video_start: float = 0.0) -> Iterat
         ]
         logger.info("Extraindo audio temporario: %s", file_path)
         try:
-            subprocess.run(comando, capture_output=True, text=True, check=True)
+            _executar(comando)
         except subprocess.CalledProcessError as exc:
             logger.error("FFmpeg: %s", exc.stderr)
             raise ValueError(

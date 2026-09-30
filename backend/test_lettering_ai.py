@@ -26,3 +26,17 @@ def test_sem_chave_nao_finge_ter_analise(monkeypatch) -> None:
     monkeypatch.setattr("lettering_ai.GEMINI_API_KEY", None)
     with pytest.raises(LetteringModelError, match="GEMINI_API_KEY"):
         sugerir_letterings([{"start": 0, "end": 1, "text": "Teste"}])
+
+
+def test_modo_economico_reduz_transcricao_enviada(monkeypatch) -> None:
+    monkeypatch.setattr("lettering_ai.GEMINI_API_KEY", "teste")
+    prompts = []
+    monkeypatch.setattr("lettering_ai._gemini_request", lambda prompt: prompts.append(prompt) or '{"suggestions": []}')
+    segmentos = [
+        {"start": indice, "end": indice + 1, "text": "Frase casual sem conceito."}
+        for indice in range(80)
+    ]
+    segmentos[40]["text"] = "A definicao importante explica o conceito."
+    sugerir_letterings(segmentos, modo_economico=True)
+    assert '"i": 40' in prompts[0]
+    assert '"i": 79' not in prompts[0]

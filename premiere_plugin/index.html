@@ -21,6 +21,11 @@
       input[type="button"], button { color:white; background:#3d8bfd; cursor:pointer; }
       input[type="button"]:hover, button:hover { background:#5aa0ff; }
       #btnLettering { background:#7954d8; }
+      .opcao { display:block; margin-top:12px; font-size:13px; }
+      .opcao input { width:auto; min-height:auto; margin:0 6px 0 0; vertical-align:middle; }
+      .aviso { margin:5px 0 0; color:#c4c4c4; font-size:11px; }
+      #btnModoEconomico { display:none; background:#c46b13; }
+      #btnModoEconomico.visivel { display:block; }
       #statusText { padding:10px; color:#bbb; background:#2a2a2a; border-radius:6px; }
     </style>
   </head>
@@ -40,6 +45,10 @@
           <option value="videoaula">Vídeo-aula</option>
           <option value="videocast">Videocast</option>
         </select>
+        <label class="opcao"><input id="editorialReview" type="checkbox" /> Usar revisao por IA</label>
+        <p class="aviso">Se o Gemini estiver configurado, essa opcao envia o audio para um servico externo.</p>
+        <label class="opcao"><input id="economicMode" type="checkbox" /> Modo economico de IA</label>
+        <p class="aviso">Analisa apenas candidatos e contextos curtos; recomendado para aulas longas.</p>
         <button id="btnProcessar" type="button">Selecionar fontes e processar</button>
       </section>
       <section class="bloco">
@@ -48,6 +57,7 @@
         <button id="btnLettering" type="button">Selecionar sequência e indicar letterings</button>
       </section>
       <p id="statusText">Aguardando...</p>
+      <button id="btnModoEconomico" type="button">Processar esta aula no modo economico</button>
     </main>
     <script src="main.js"></script>
   </body>

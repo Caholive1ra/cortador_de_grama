@@ -9,6 +9,7 @@ logger = logging.getLogger(__name__)
 
 LIMIAR_FALA = 0.35
 MARGEM_DOMINANCIA = 0.15
+ENERGIA_HZ = 100
 
 
 def dirigir_cameras(
@@ -25,7 +26,9 @@ def dirigir_cameras(
     if not fontes_por_camera:
         return [camera_geral] * len(segmentos)
 
-    sinais = [(camera, *_ler_wav(path), offset) for camera, path, offset in fontes_por_camera]
+    # Mantemos apenas um envelope RMS de 100 Hz. Isso evita reter WAVs de
+    # varias horas como arrays float64 na memoria durante um videocast.
+    sinais = [(camera, *_ler_envelope(path), offset) for camera, path, offset in fontes_por_camera]
     perfis = [_perfil_energia(sinal) for _camera, sinal, _rate, _offset in sinais]
     sugestoes: list[str] = []
     for segmento in segmentos:
@@ -50,11 +53,20 @@ def dirigir_cameras(
     return sugestoes
 
 
-def _ler_wav(path: str) -> tuple[np.ndarray, int]:
+def _ler_envelope(path: str) -> tuple[np.ndarray, int]:
+    """Le um WAV PCM16 mono em blocos e devolve RMS a 100 Hz."""
+    partes = []
     with wave.open(path, "rb") as arquivo:
         rate = arquivo.getframerate()
-        dados = np.frombuffer(arquivo.readframes(arquivo.getnframes()), dtype="<i2")
-    return dados.astype(np.float64) / 32768.0, rate
+        if arquivo.getnchannels() != 1 or arquivo.getsampwidth() != 2 or rate % ENERGIA_HZ:
+            raise ValueError("Direcao de cameras exige WAV mono PCM16 com taxa multipla de 100 Hz.")
+        bloco = rate // ENERGIA_HZ
+        while raw := arquivo.readframes(bloco * 6000):
+            dados = np.frombuffer(raw, dtype="<i2").astype(np.float64) / 32768.0
+            dados = dados[:len(dados) // bloco * bloco]
+            if len(dados):
+                partes.append(np.sqrt(np.mean(dados.reshape(-1, bloco) ** 2, axis=1)))
+    return (np.concatenate(partes) if partes else np.empty(0)), ENERGIA_HZ
 
 
 def _perfil_energia(sinal: np.ndarray) -> tuple[float, float]:

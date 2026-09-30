@@ -10,8 +10,11 @@ pode liberar indices que ja tenham sido propostos pelo revisor local.
 import json
 import logging
 import os
+import re
 import ssl
+import unicodedata
 from dataclasses import dataclass, field
+from difflib import SequenceMatcher
 from pathlib import Path
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
@@ -29,18 +32,23 @@ logger = logging.getLogger(__name__)
 OLLAMA_URL = os.getenv("OLLAMA_URL", "http://127.0.0.1:11434")
 OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "qwen2.5:3b")
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.8-flash")
 GEMINI_FALLBACK_MODELS = tuple(
     modelo.strip()
     for modelo in os.getenv(
-        "GEMINI_FALLBACK_MODELS", "gemini-3.8-flash,gemini-3.7-flash"
+        "GEMINI_FALLBACK_MODELS", "gemini-3.7-flash,gemini-3.5-flash-lite"
     ).split(",")
     if modelo.strip()
 )
 GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models"
 MAX_SEGMENTOS_POR_LOTE = 45
+MAX_TENTATIVAS_JSON_POR_MODELO = 2
+MAX_CANDIDATOS_ECONOMICOS = 72
+TAMANHO_LOTE_ECONOMICO = 18
+CONTEXTO_ECONOMICO = 2
 ULTIMO_DIAGNOSTICO: dict[str, object] = {"mode": "not_started"}
 ULTIMO_MODELO_GEMINI_USADO: str | None = None
+ULTIMO_MODELO_GEMINI_TEXTUAL_USADO: str | None = None
 MOTIVOS_CORTE_PERMITIDOS = [
     "erro", "falsa_partida", "autocorrecao", "risada",
     "conversa_lateral", "devaneio", "problema_tecnico", "comentario_bastidor",
@@ -58,6 +66,11 @@ class GeminiReviewError(RuntimeError):
 def obter_diagnostico_editorial() -> dict[str, object]:
     """Retorna o resultado sanitizado da ultima revisao, sem credenciais."""
     return dict(ULTIMO_DIAGNOSTICO)
+
+
+def obter_ultimo_modelo_gemini_textual() -> str | None:
+    """Modelo usado na ultima chamada textual, inclusive lettering."""
+    return ULTIMO_MODELO_GEMINI_TEXTUAL_USADO
 
 
 @dataclass(frozen=True)
@@ -85,9 +98,11 @@ def verificar_modelo_editorial() -> None:
 
 
 def decidir_cortes_semanticos(
-    segmentos: list[dict], audio_path: str | None = None
+    segmentos: list[dict], audio_path: str | None = None, modo_economico: bool = False,
 ) -> EditorialDecision:
     """Decide cortes com Gemini multimodal ou usa o fluxo local como fallback."""
+    if modo_economico and GEMINI_API_KEY:
+        return _decidir_cortes_economicos(segmentos)
     if GEMINI_API_KEY and audio_path:
         return _decidir_cortes_com_gemini(segmentos, audio_path)
 
@@ -110,6 +125,94 @@ def decidir_cortes_semanticos(
         len(proposta.discard_indexes), len(aprovacao.discard_indexes),
     )
     return aprovacao
+
+
+def _normalizar_para_candidato(texto: str) -> str:
+    sem_acentos = "".join(
+        caractere for caractere in unicodedata.normalize("NFD", texto.lower())
+        if unicodedata.category(caractere) != "Mn"
+    )
+    return " ".join(re.findall(r"[a-z0-9]+", sem_acentos))
+
+
+def _candidatos_economicos(segmentos: list[dict]) -> list[int]:
+    """Seleciona somente trechos com sinais locais de erro ou retake."""
+    pistas = (
+        "errei", "desculpa", "corta", "cortar", "recomecar", "novamente",
+        "nao ficou bom", "falei errado", "gancho", "roteiro", "gravacao",
+        "edicao", "deixa eu ver", "voltar essa parte", "risada",
+    )
+    candidatos: set[int] = set()
+    normalizados = [_normalizar_para_candidato(str(item.get("text", ""))) for item in segmentos]
+    for indice, texto in enumerate(normalizados):
+        if any(pista in texto for pista in pistas):
+            candidatos.add(indice)
+        if indice and len(texto.split()) >= 3 and len(normalizados[indice - 1].split()) >= 3:
+            similaridade = SequenceMatcher(None, normalizados[indice - 1], texto).ratio()
+            ha_indicio_local = any(
+                any(pista in normalizados[posicao] for pista in pistas)
+                for posicao in range(max(0, indice - 2), indice + 1)
+            )
+            if ha_indicio_local and (
+                similaridade >= 0.78 or texto.startswith(normalizados[indice - 1])
+            ):
+                candidatos.update({indice - 1, indice})
+    return sorted(candidatos)[:MAX_CANDIDATOS_ECONOMICOS]
+
+
+def _contexto_economico(segmentos: list[dict], indice: int) -> dict:
+    inicio = max(0, indice - CONTEXTO_ECONOMICO)
+    fim = min(len(segmentos), indice + CONTEXTO_ECONOMICO + 1)
+    return {
+        "candidate_id": indice,
+        "context": [
+            {"i": pos, "texto": str(segmentos[pos].get("text", "")).strip()}
+            for pos in range(inicio, fim)
+        ],
+    }
+
+
+def _decidir_cortes_economicos(segmentos: list[dict]) -> EditorialDecision:
+    """Revisa poucos candidatos textuais, sem subir o audio completo."""
+    candidatos = _candidatos_economicos(segmentos)
+    global ULTIMO_DIAGNOSTICO
+    ULTIMO_DIAGNOSTICO = {
+        "mode": "gemini_economic", "input_segments": len(segmentos),
+        "candidate_count": len(candidatos), "batches": [],
+        "gemini_models_attempted": list(_modelos_gemini()),
+    }
+    motivos: dict[int, str] = {}
+    revisoes: dict[int, str] = {}
+    permitidos = set(MOTIVOS_CORTE_PERMITIDOS)
+    for numero, inicio in enumerate(range(0, len(candidatos), TAMANHO_LOTE_ECONOMICO), start=1):
+        ids = candidatos[inicio:inicio + TAMANHO_LOTE_ECONOMICO]
+        prompt = """Voce revisa candidatos de corte de uma videoaula. Decida SOMENTE os candidate_id recebidos.
+Descarte apenas erro declarado, falsa partida substituida, autocorrecao, conversa de bastidor ou risada.
+Na duvida, mantenha ou marque review. Nunca invente fatos, tempos ou IDs.
+Responda JSON: {"discard":[{"i":0,"reason":"erro|falsa_partida|autocorrecao|risada|conversa_lateral|devaneio|problema_tecnico|comentario_bastidor"}],"review":[{"i":0,"reason":"duvida_editorial"}]}.
+Candidatos com contexto local:\n""" + json.dumps(
+            [_contexto_economico(segmentos, indice) for indice in ids], ensure_ascii=False
+        )
+        registro = {"batch": numero, "candidate_ids": ids}
+        try:
+            bruto = json.loads(_gemini_request(prompt))
+            for item in bruto.get("discard", []):
+                indice, motivo = int(item["i"]), str(item["reason"])
+                if indice in ids and motivo in permitidos:
+                    motivos[indice] = motivo
+            for item in bruto.get("review", []):
+                indice = int(item["i"])
+                if indice in ids and indice not in motivos:
+                    revisoes[indice] = "duvida_editorial"
+            registro.update({"status": "ok", "model": obter_ultimo_modelo_gemini_textual()})
+        except (GeminiReviewError, KeyError, TypeError, ValueError, json.JSONDecodeError) as exc:
+            registro.update({"status": "failed", "error": str(exc)[:500]})
+            logger.warning("Lote economico %d falhou; nenhum corte dele foi aplicado: %s", numero, exc)
+        ULTIMO_DIAGNOSTICO["batches"].append(registro)
+    ULTIMO_DIAGNOSTICO.update({
+        "status": "ok", "gemini_discarded": len(motivos), "gemini_review": len(revisoes),
+    })
+    return EditorialDecision(set(motivos), motivos, set(revisoes), revisoes)
 
 
 def _decidir_cortes_com_gemini(
@@ -217,23 +320,36 @@ def _gemini_audio_request(prompt: str, audio_path: str) -> str:
             try:
                 resposta = _gerar_conteudo(client, prompt, arquivo, modelo)
             except Exception as exc:
-                if not _erro_gemini_recuperavel(exc):
+                if _erro_gemini_fatal(exc):
                     logger.error("Gemini %s falhou de forma nao recuperavel: %s", modelo, exc, exc_info=True)
                     raise
                 erros.append(f"{modelo}: {type(exc).__name__}: {exc}")
                 logger.warning("Gemini %s falhou; tentando o proximo modelo.", modelo)
                 continue
-            texto = (resposta.text or "").strip()
-            if not texto:
-                erros.append(f"{modelo}: resposta vazia")
-                continue
-            try:
-                json.loads(texto)
-                ULTIMO_MODELO_GEMINI_USADO = modelo
-                return texto
-            except json.JSONDecodeError as exc:
-                erros.append(f"{modelo}: JSON invalido: {exc}")
-                logger.warning("Gemini %s devolveu JSON invalido; tentando o proximo modelo.", modelo)
+            for tentativa in range(1, MAX_TENTATIVAS_JSON_POR_MODELO + 1):
+                try:
+                    texto = _extrair_json_da_resposta_gemini(resposta)
+                    ULTIMO_MODELO_GEMINI_USADO = modelo
+                    return texto
+                except json.JSONDecodeError as exc:
+                    erros.append(f"{modelo} (tentativa {tentativa}): JSON invalido: {exc}")
+                    if tentativa == MAX_TENTATIVAS_JSON_POR_MODELO:
+                        logger.warning(
+                            "Gemini %s devolveu JSON invalido em %d tentativa(s); tentando o proximo modelo.",
+                            modelo, tentativa,
+                        )
+                        break
+                    logger.warning(
+                        "Gemini %s devolveu JSON invalido; repetindo a solicitacao.", modelo,
+                    )
+                    try:
+                        resposta = _gerar_conteudo(client, prompt, arquivo, modelo)
+                    except Exception as retry_exc:
+                        if _erro_gemini_fatal(retry_exc):
+                            logger.error("Gemini %s falhou de forma nao recuperavel: %s", modelo, retry_exc, exc_info=True)
+                            raise
+                        erros.append(f"{modelo} (tentativa {tentativa + 1}): {type(retry_exc).__name__}: {retry_exc}")
+                        break
         raise GeminiReviewError("Nenhum modelo Gemini concluiu a revisao: " + " | ".join(erros))
     except GeminiReviewError:
         raise
@@ -279,10 +395,33 @@ def _gerar_conteudo(client, prompt: str, arquivo, modelo: str):
             "required": ["discard", "review"],
         },
         "max_output_tokens": 8192,
+        "temperature": 0,
     }
     return client.models.generate_content(
         model=modelo, contents=[prompt, arquivo], config=config,
     )
+
+
+def _extrair_json_da_resposta_gemini(resposta) -> str:
+    """Retorna JSON valido, preferindo a estrutura parseada pelo SDK.
+
+    Alguns modelos podem devolver ``response.text`` incompleto mesmo com schema.
+    Quando o SDK ja conseguiu interpretar a resposta, ``parsed`` e mais confiavel
+    que reconstruir JSON a partir desse texto.
+    """
+    parsed = getattr(resposta, "parsed", None)
+    if parsed is not None:
+        texto = parsed if isinstance(parsed, str) else json.dumps(parsed, ensure_ascii=False)
+    else:
+        texto = str(getattr(resposta, "text", "") or "").strip()
+        if texto.startswith("```json") and texto.endswith("```"):
+            texto = texto[7:-3].strip()
+        elif texto.startswith("```") and texto.endswith("```"):
+            texto = texto[3:-3].strip()
+    if not texto:
+        raise json.JSONDecodeError("resposta vazia", texto, 0)
+    json.loads(texto)
+    return texto
 
 
 def _gemini_esta_sobrecarregado(erro: Exception) -> bool:
@@ -293,7 +432,17 @@ def _gemini_esta_sobrecarregado(erro: Exception) -> bool:
 def _erro_gemini_recuperavel(erro: Exception) -> bool:
     texto = str(erro).upper()
     return any(indicador in texto for indicador in (
-        "429", "503", "UNAVAILABLE", "RESOURCE_EXHAUSTED", "TIMEOUT", "CONNECT",
+        "400", "404", "409", "422", "429", "500", "502", "503", "504",
+        "UNAVAILABLE", "RESOURCE_EXHAUSTED", "TIMEOUT", "CONNECT", "INVALID_ARGUMENT",
+        "NOT_FOUND", "FAILED_PRECONDITION",
+    ))
+
+
+def _erro_gemini_fatal(erro: Exception) -> bool:
+    """Somente credencial/permissao invalida deve encerrar a cadeia inteira."""
+    texto = str(erro).upper()
+    return any(indicador in texto for indicador in (
+        "401", "403", "UNAUTHENTICATED", "PERMISSION_DENIED", "API KEY NOT VALID",
     ))
 
 
@@ -358,7 +507,7 @@ Candidatos do Ollama:\n""" + json.dumps(candidatos, ensure_ascii=False) + "\nTra
 
 
 def _gemini_request(prompt: str) -> str:
-    """Solicita uma unica aprovacao JSON ao Gemini, sem registrar credenciais."""
+    """Solicita JSON, alternando modelos exceto em erro de chave/permissao."""
     if not GEMINI_API_KEY:
         raise GeminiReviewError("GEMINI_API_KEY ausente.")
     payload = {
@@ -368,24 +517,30 @@ def _gemini_request(prompt: str) -> str:
             "maxOutputTokens": 8192,
         },
     }
-    try:
-        resposta = _request_url(
-            "POST",
-            f"{GEMINI_URL}/{GEMINI_MODEL}:generateContent",
-            payload,
-            {"x-goog-api-key": GEMINI_API_KEY},
-            timeout=120,
-        )
-        return str(resposta["candidates"][0]["content"]["parts"][0]["text"])
-    except (URLError, TimeoutError, HTTPError, KeyError, IndexError, TypeError) as exc:
-        detalhe = str(exc)
-        if isinstance(exc, HTTPError):
-            try:
-                detalhe += " | " + exc.read().decode("utf-8", errors="replace")[:1000]
-            except Exception:
-                pass
-        logger.error("Falha na requisicao textual Gemini (%s): %s", GEMINI_MODEL, detalhe)
-        raise GeminiReviewError(f"Gemini nao retornou uma aprovacao valida: {detalhe}") from exc
+    erros: list[str] = []
+    global ULTIMO_MODELO_GEMINI_TEXTUAL_USADO
+    for modelo in _modelos_gemini():
+        try:
+            resposta = _request_url(
+                "POST", f"{GEMINI_URL}/{modelo}:generateContent", payload,
+                {"x-goog-api-key": GEMINI_API_KEY}, timeout=120,
+            )
+            texto = str(resposta["candidates"][0]["content"]["parts"][0]["text"])
+            json.loads(texto)
+            ULTIMO_MODELO_GEMINI_TEXTUAL_USADO = modelo
+            return texto
+        except Exception as exc:
+            detalhe = str(exc)
+            if isinstance(exc, HTTPError):
+                try:
+                    detalhe += " | " + exc.read().decode("utf-8", errors="replace")[:1000]
+                except Exception:
+                    pass
+            erros.append(f"{modelo}: {type(exc).__name__}: {detalhe}")
+            if _erro_gemini_fatal(exc):
+                break
+            logger.warning("Gemini textual %s falhou; tentando o proximo modelo.", modelo)
+    raise GeminiReviewError("Nenhum modelo Gemini respondeu com JSON valido: " + " | ".join(erros))
 
 
 def _decidir_lote(lote: list[dict]) -> dict[int, str]:

@@ -60,7 +60,7 @@ def test_health_check(monkeypatch) -> None:
     assert resposta.json() == {
         "status": "ok",
         "revision": "gemini38-retry-v16",
-        "gemini_model": "gemini-2.5-flash",
+        "gemini_model": "gemini-3.8-flash",
         "gemini_configured": "yes",
     }
 
@@ -114,7 +114,7 @@ def test_analyze_lettering_gera_xml_auxiliar(tmp_path, monkeypatch) -> None:
     monkeypatch.setattr("main.transcrever_audio", lambda path: [
         {"start": 1, "end": 4, "text": "Uma definição importante."},
     ])
-    monkeypatch.setattr("main.sugerir_letterings", lambda segmentos: [
+    monkeypatch.setattr("main.sugerir_letterings", lambda segmentos, **kwargs: [
         {"start": 1, "end": 4, "text": "Definição", "reason": "definicao"},
     ])
     media = tmp_path / "revisada.mp4"
@@ -122,7 +122,20 @@ def test_analyze_lettering_gera_xml_auxiliar(tmp_path, monkeypatch) -> None:
     assert resposta.status_code == 200, resposta.text
     dados = resposta.json()
     assert dados["suggestions"][0]["text"] == "Definição"
-    assert "_lettering_sugerido.xml" in dados["xml_path"]
+    assert "_lettering_sugerido_" in dados["xml_path"]
+    assert dados["xml_path"].endswith(".xml")
+
+
+def test_aula_longa_com_revisao_completa_exige_modo_economico(monkeypatch) -> None:
+    monkeypatch.setattr("main.obter_metadados", lambda _path: {
+        "path": "pgm.mp4", "duration": 3600.1, "fps": 30,
+        "width": 1920, "height": 1080, "video_start": 0,
+    })
+    resposta = client.post(
+        "/process", json={"pgm_path": "pgm.mp4", "editorial_review": True}
+    )
+    assert resposta.status_code == 409
+    assert resposta.json()["detail"]["code"] == "ECONOMIC_MODE_REQUIRED"
 
 
 def test_process_sincroniza_midias_e_gera_xml_com_lacunas(tmp_path, monkeypatch) -> None:

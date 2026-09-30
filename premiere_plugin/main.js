@@ -4,6 +4,7 @@
 
 const BACKEND_URL = "http://127.0.0.1:8000/process";
 const LETTERING_URL = "http://127.0.0.1:8000/analyze-lettering";
+let ultimaSolicitacaoDeProcessamento = null;
 
 const { localFileSystem } = require("uxp").storage;
 
@@ -25,7 +26,7 @@ function definirStatus(mensagem) {
  * @param {boolean} obrigatoria
  * @returns {Promise<string|null>}
  */
-async function selecionarFonte(nomeFonte, obrigatoria, tipos = ["mp4"]) {
+async function selecionarFonte(nomeFonte, obrigatoria, tipos = ["mp4", "mov", "mxf", "mkv", "avi", "webm"]) {
   definirStatus(
     "Selecione " + nomeFonte + (obrigatoria ? "." : " (Cancelar para pular).")
   );
@@ -85,6 +86,8 @@ async function processarAula() {
       return;
     }
     const tipoProjeto = document.getElementById("projectType").value;
+    const revisaoEditorial = Boolean(document.getElementById("editorialReview").checked);
+    const modoEconomico = Boolean(document.getElementById("economicMode").checked);
     const tiposAudio = ["mp4", "mov", "m4a", "mp3", "wav", "aac"];
     let fontes;
     if (tipoProjeto === "videocast") {
@@ -104,7 +107,9 @@ async function processarAula() {
         "o áudio master/final (Cancelar para usar o áudio do PGM)", false, tiposAudio
       );
       fontes = {
-        pgm_path: pgmPath, project_type: "videocast",
+        pgm_path: pgmPath, project_type: "videocast", editorial_review: revisaoEditorial,
+        editorial_mode: modoEconomico ? "economic" : "full",
+        skip_unsynced_sources: true,
         participante_1_path: participantes[0].video,
         participante_2_path: participantes[1].video,
         participante_3_path: participantes[2].video,
@@ -119,7 +124,9 @@ async function processarAula() {
       };
     } else {
       fontes = {
-        pgm_path: pgmPath, project_type: "videoaula",
+        pgm_path: pgmPath, project_type: "videoaula", editorial_review: revisaoEditorial,
+        editorial_mode: modoEconomico ? "economic" : "full",
+        skip_unsynced_sources: true,
         camera_1_path: await selecionarFonte("a Câmera 1", false),
         camera_2_path: await selecionarFonte("a Câmera 2", false),
         ppt_path: await selecionarFonte("o PPT/Tela", false),
@@ -131,6 +138,7 @@ async function processarAula() {
 
     definirStatus("Sincronizando pelo audio e processando a aula... Aguarde.");
 
+    ultimaSolicitacaoDeProcessamento = fontes;
     let resposta;
     try {
       resposta = await fetch(BACKEND_URL, {
@@ -154,6 +162,14 @@ async function processarAula() {
       let mensagem = detalhe;
       try {
         const erro = JSON.parse(detalhe);
+        if (
+          resposta.status === 409 && erro.detail &&
+          erro.detail.code === "ECONOMIC_MODE_REQUIRED"
+        ) {
+          mostrarAcaoModoEconomico(true);
+          definirStatus("Esta aula tem mais de uma hora. Clique em 'Processar esta aula no modo economico'.");
+          return;
+        }
         mensagem = typeof erro.detail === "string" ? erro.detail : detalhe;
       } catch (_) {
         // Servidores intermediarios podem retornar texto em vez de JSON.
@@ -167,20 +183,7 @@ async function processarAula() {
     const dados = await resposta.json();
     console.log("[Decupagem] Resposta do backend:", dados);
 
-    if (dados.status === "success" && dados.xml_path) {
-      definirStatus("XML gerado. Importando no Premiere Pro...");
-      await importarXmlNoPremiere(dados.xml_path);
-      const sincronizacao = dados.synchronization || [];
-      const resumo = sincronizacao.map((fonte) =>
-        fonte.source + ": inicio no PGM " + fonte.offset_seconds.toFixed(3) + "s"
-      ).join("; ");
-      const modeloCortes = (dados.ai_models && dados.ai_models.cuts) || "modelo configurado";
-      definirStatus("Sucesso! Timeline importada. " + resumo +
-        " | IA dos cortes: " + modeloCortes);
-      return;
-    }
-
-    definirStatus("Erro: resposta inesperada do backend.");
+    await concluirProcessamento(dados);
   } catch (erro) {
     console.error("[Decupagem] Falha inesperada ao processar a aula:", erro);
     definirStatus(
@@ -189,6 +192,61 @@ async function processarAula() {
   } finally {
     if (botao) botao.disabled = false;
   }
+}
+
+async function processarUltimaNoModoEconomico() {
+  if (!ultimaSolicitacaoDeProcessamento) return;
+  const botao = document.getElementById("btnModoEconomico");
+  if (botao) botao.disabled = true;
+  try {
+    const fontes = { ...ultimaSolicitacaoDeProcessamento, editorial_mode: "economic" };
+    ultimaSolicitacaoDeProcessamento = fontes;
+    definirStatus("Processando a mesma aula no modo economico de IA...");
+    const resposta = await fetch(BACKEND_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(fontes),
+    });
+    if (!resposta.ok) {
+      const detalhe = await resposta.text();
+      let mensagem = detalhe;
+      try {
+        const erro = JSON.parse(detalhe);
+        mensagem = typeof erro.detail === "string" ? erro.detail : (erro.detail.message || detalhe);
+      } catch (_) {}
+      definirStatus("Erro no modo economico (HTTP " + resposta.status + "): " + mensagem);
+      return;
+    }
+    await concluirProcessamento(await resposta.json());
+  } catch (erro) {
+    definirStatus("Erro: " + (erro && erro.message ? erro.message : String(erro)));
+  } finally {
+    if (botao) botao.disabled = false;
+  }
+}
+
+function mostrarAcaoModoEconomico(mostrar) {
+  const botao = document.getElementById("btnModoEconomico");
+  if (botao) botao.classList.toggle("visivel", mostrar);
+}
+
+async function concluirProcessamento(dados) {
+  if (dados.status !== "success" || !dados.xml_path) {
+    definirStatus("Erro: resposta inesperada do backend.");
+    return;
+  }
+  mostrarAcaoModoEconomico(false);
+  definirStatus("XML gerado. Importando no Premiere Pro...");
+  await importarXmlNoPremiere(dados.xml_path);
+  const sincronizacao = dados.synchronization || [];
+  const resumo = sincronizacao.map((fonte) =>
+    fonte.source + ": inicio no PGM " + fonte.offset_seconds.toFixed(3) + "s"
+  ).join("; ");
+  const modeloCortes = (dados.ai_models && dados.ai_models.cuts) || "modelo configurado";
+  const ignoradas = (dados.skipped_sources || []).map((fonte) => fonte.source).join(", ");
+  definirStatus("Sucesso! Timeline importada. " + resumo +
+    (ignoradas ? " | Fontes ignoradas por falta de sincronizacao: " + ignoradas : "") +
+    " | IA dos cortes: " + modeloCortes);
 }
 
 /**
@@ -206,12 +264,13 @@ async function analisarLettering() {
     const sequencia = projeto && await projeto.getActiveSequence();
     if (!sequencia) throw new Error("Abra e deixe ativa a sequência revisada no Premiere Pro.");
     const segmentos = await obterTranscricaoDaSequencia(sequencia, premiere);
+    const modoEconomico = Boolean(document.getElementById("economicMode").checked);
     if (!segmentos.length) throw new Error("A sequência ativa não possui transcrição com timestamps.");
     definirStatus("Analisando pontos didáticos da sequência ativa... Aguarde.");
     const resposta = await fetch("http://127.0.0.1:8000/analyze-lettering-segments", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ segments: segmentos }),
+      body: JSON.stringify({ segments: segmentos, economic_mode: modoEconomico }),
     });
     if (!resposta.ok) {
       const detalhe = await resposta.text();
@@ -349,6 +408,14 @@ function iniciarPainel() {
   const botaoLetteringTopo = document.getElementById("btnLetteringTopo");
   if (botaoLetteringTopo && botaoLettering) {
     botaoLetteringTopo.onclick = botaoLettering.onclick;
+  }
+  const botaoModoEconomico = document.getElementById("btnModoEconomico");
+  if (botaoModoEconomico) {
+    botaoModoEconomico.onclick = () => {
+      processarUltimaNoModoEconomico().catch((erro) => {
+        console.error("[Decupagem] Falha no modo economico:", erro);
+      });
+    };
   }
   definirStatus("Painel pronto. Escolha uma ação para iniciar.");
 }

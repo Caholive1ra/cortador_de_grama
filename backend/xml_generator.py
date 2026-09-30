@@ -108,7 +108,7 @@ def gerar_fcp_xml(
                     clip,
                     f"file_{indice_fonte}",
                     fonte,
-                    fps,
+                    fps_fonte,
                     declarar=indice_fonte not in arquivos_declarados,
                 )
                 arquivos_declarados.add(indice_fonte)

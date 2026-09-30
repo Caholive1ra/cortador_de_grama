@@ -30,6 +30,7 @@ def classificar_segmentos(
     duracao_total: float | None = None,
     revisao_semantica: bool = True,
     audio_path: str | None = None,
+    modo_economico: bool = False,
 ) -> list[dict]:
     """Classifica e normaliza os segmentos em uma linha do tempo contínua.
 
@@ -39,7 +40,9 @@ def classificar_segmentos(
     """
     segmentos = _criar_microsegmentos(segmentos)
     decisao = (
-        decidir_cortes_semanticos(segmentos, audio_path=audio_path)
+        decidir_cortes_semanticos(
+            segmentos, audio_path=audio_path, modo_economico=modo_economico
+        )
         if revisao_semantica and segmentos
         else EditorialDecision(set(), {})
     )
