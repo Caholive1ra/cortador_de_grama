@@ -4,6 +4,7 @@ import logging
 import os
 import json
 import traceback
+from time import perf_counter
 from uuid import uuid4
 from contextlib import ExitStack
 
@@ -14,11 +15,14 @@ from pydantic import BaseModel
 from audio_sync import SyncError, sincronizar_audio
 from camera_director import dirigir_cameras
 from editorial_ai import (
-    GEMINI_API_KEY, GEMINI_MODEL, OLLAMA_MODEL, EditorialModelError,
-    obter_diagnostico_editorial, obter_ultimo_modelo_gemini_textual,
-    _modelos_gemini, _request_url,
+    GEMINI_API_KEY, GEMINI_MODEL, NVIDIA_API_KEY, NVIDIA_BASE_URL, NVIDIA_MODEL, OLLAMA_MODEL, EditorialModelError,
+    obter_diagnostico_editorial, obter_ultimo_modelo_textual,
+    _modelos_gemini, _request_url, _detalhe_erro_remoto, _erro_nvidia_autenticacao,
+    _erro_nvidia_bloqueio_rede,
 )
 from lettering_ai import LetteringModelError, sugerir_letterings
+from learning_feedback import comparar_xmls, salvar_feedback
+from learning_bank import listar_banco, ler_registro, anotar, definir_papel, avaliar
 from logic_engine import classificar_segmentos
 from media_utils import extrair_audio_temporario, obter_metadados, obter_metadados_audio
 from transcriber import ModelUnavailableError, transcrever_audio
@@ -29,8 +33,9 @@ logging.basicConfig(
     format="%(asctime)s | %(levelname)s | %(name)s | %(message)s",
 )
 logger = logging.getLogger(__name__)
-BACKEND_REVISION = "gemini38-retry-v16"
+BACKEND_REVISION = "retake-pairs-v21"
 LIMITE_AULA_MODO_COMPLETO_SEGUNDOS = 3600.0
+LIMITE_AUTO_MODO_ECONOMICO_SEGUNDOS = 1200.0
 
 app = FastAPI(
     title="Assistente de Decapagem",
@@ -70,6 +75,7 @@ class MediaRequest(BaseModel):
     editorial_review: bool = False
     editorial_mode: str = "full"
     skip_unsynced_sources: bool = False
+    audio_follows_camera: bool = False
 
 
 class LetteringRequest(BaseModel):
@@ -84,6 +90,30 @@ class LetteringSegmentsRequest(BaseModel):
 
     segments: list[dict]
     economic_mode: bool = False
+
+
+class LearningFeedbackRequest(BaseModel):
+    """XML original da IA e XML da sequencia final exportada pelo editor."""
+
+    suggested_xml_path: str
+    revised_xml_path: str
+    project_type: str | None = None
+    diagnostic_path: str | None = None
+
+
+class LearningAnnotationRequest(BaseModel):
+    example_ids: list[str]
+    status: str
+    reason: str | None = None
+    note: str = ""
+
+
+class LearningRoleRequest(BaseModel):
+    role: str
+
+
+class LearningEvaluationRequest(BaseModel):
+    candidate_xml: str
 
 
 class EconomicModeRequiredError(ValueError):
@@ -104,6 +134,8 @@ def health_check() -> dict[str, str]:
             "revision": BACKEND_REVISION,
             "gemini_model": GEMINI_MODEL,
             "gemini_configured": "yes" if GEMINI_API_KEY else "no",
+            "nvidia_model": NVIDIA_MODEL,
+            "nvidia_configured": "yes" if NVIDIA_API_KEY else "no",
         }
     except Exception:
         logger.error("Falha no health-check.\n%s", traceback.format_exc())
@@ -143,12 +175,54 @@ def diagnostics_gemini() -> dict:
         }
 
 
+@app.get("/diagnostics/nvidia")
+def diagnostics_nvidia() -> dict:
+    """Confere a chave NVIDIA e lista modelos, sem retornar a credencial."""
+    if not NVIDIA_API_KEY:
+        return {"configured": False, "configured_model": NVIDIA_MODEL}
+    try:
+        resposta = _request_url(
+            "GET", f"{NVIDIA_BASE_URL}/models",
+            headers={"Authorization": f"Bearer {NVIDIA_API_KEY}"}, timeout=30,
+        )
+        disponiveis = [item.get("id") for item in resposta.get("data", []) if item.get("id")]
+        return {
+            "configured": True,
+            "configured_model": NVIDIA_MODEL,
+            "configured_model_available": NVIDIA_MODEL in disponiveis,
+            "available_models": disponiveis,
+        }
+    except Exception as exc:
+        logger.error("Diagnostico NVIDIA falhou: %s", exc, exc_info=True)
+        autenticacao = _erro_nvidia_autenticacao(exc)
+        bloqueio_rede = _erro_nvidia_bloqueio_rede(exc)
+        return {
+            "configured": True, "configured_model": NVIDIA_MODEL,
+            "error_type": type(exc).__name__, "error": _detalhe_erro_remoto(exc)[:1000],
+            "authentication_failed": autenticacao,
+            "network_blocked": bloqueio_rede,
+            "action": (
+                "Substitua NVIDIA_API_KEY no .env por uma chave valida do console NVIDIA e reinicie o backend."
+                if autenticacao else
+                "Solicite ao TI a liberacao HTTPS de integrate.api.nvidia.com; a rede devolveu error code 1010."
+                if bloqueio_rede else "Verifique os limites e permissoes do projeto NVIDIA."
+            ),
+        }
+
+
 @app.post("/process")
 def process_media(request: MediaRequest) -> dict:
     """Transcreve o PGM e prepara as fontes para o XML multicâmera."""
     try:
-        if request.editorial_mode not in {"full", "economic"}:
-            raise ValueError("Modo editorial invalido. Use full ou economic.")
+        inicio_processamento = perf_counter()
+        desempenho: dict[str, float] = {}
+
+        def marcar_etapa(nome: str) -> None:
+            desempenho[nome] = round(perf_counter() - inicio_processamento, 3)
+            logger.info("Desempenho: %s concluido em %.3fs.", nome, desempenho[nome])
+
+        if request.editorial_mode not in {"auto", "full", "economic"}:
+            raise ValueError("Modo editorial invalido. Use auto, full ou economic.")
         if request.project_type not in {"videoaula", "videocast"}:
             raise ValueError("Tipo de projeto inválido. Use videoaula ou videocast.")
         fontes = (
@@ -180,11 +254,25 @@ def process_media(request: MediaRequest) -> dict:
             dados["label"] = nome
             dados["name"] = os.path.basename(caminho)
             metadados.append(dados)
+        marcar_etapa("metadata")
 
         pgm = metadados[0]
+        modo_editorial_efetivo = request.editorial_mode
+        if (
+            modo_editorial_efetivo == "auto"
+            and request.editorial_review
+            and float(pgm["duration"]) > LIMITE_AUTO_MODO_ECONOMICO_SEGUNDOS
+        ):
+            modo_editorial_efetivo = "economic"
+            logger.info(
+                "Modo economico selecionado automaticamente para aula de %.1f minutos.",
+                float(pgm["duration"]) / 60,
+            )
+        elif modo_editorial_efetivo == "auto":
+            modo_editorial_efetivo = "full"
         if (
             request.editorial_review
-            and request.editorial_mode == "full"
+            and modo_editorial_efetivo == "full"
             and float(pgm["duration"]) > LIMITE_AULA_MODO_COMPLETO_SEGUNDOS
         ):
             raise EconomicModeRequiredError(float(pgm["duration"]))
@@ -258,14 +346,17 @@ def process_media(request: MediaRequest) -> dict:
                     "coverage_start": inicio, "coverage_end": fim,
                 })
                 audios_externos.append(fonte_audio)
+            marcar_etapa("audio_sync")
             segmentos = transcrever_audio(audio_path)
+            marcar_etapa("transcription")
             segmentos_classificados = classificar_segmentos(
                 segmentos,
                 duracao_total=float(pgm["duration"]),
                 revisao_semantica=request.editorial_review,
                 audio_path=audio_path,
-                modo_economico=request.editorial_mode == "economic",
+                modo_economico=modo_editorial_efetivo == "economic",
             )
+            marcar_etapa("editorial_analysis")
             camera_por_segmento = None
             if request.project_type == "videocast":
                 with ExitStack() as arquivos_temporarios:
@@ -284,9 +375,16 @@ def process_media(request: MediaRequest) -> dict:
                     camera_geral = (
                         "Câmera geral" if request.camera_geral_path else "PGM"
                     )
+                    cameras_detectadas = []
                     camera_por_segmento = dirigir_cameras(
-                        segmentos_classificados, fontes_direcao, camera_geral
+                        segmentos_classificados, fontes_direcao, camera_geral,
+                        cameras_detectadas=cameras_detectadas,
                     )
+                    for segmento, camera, detectada in zip(
+                        segmentos_classificados, camera_por_segmento, cameras_detectadas
+                    ):
+                        segmento["audio_master_required"] = camera != detectada
+            marcar_etapa("camera_direction")
 
         raiz_arquivo, _extensao = os.path.splitext(request.pgm_path)
         job_id = uuid4().hex[:12]
@@ -302,7 +400,9 @@ def process_media(request: MediaRequest) -> dict:
                 pgm, audios_externos, bool(request.audio_path)
             ),
             camera_por_segmento=camera_por_segmento,
+            audio_follows_camera=request.project_type == "videocast" and request.audio_follows_camera,
         )
+        marcar_etapa("xml_generation")
         diagnostico_path = f"{raiz_arquivo}_diagnostico_{job_id}.json"
         with open(diagnostico_path, "w", encoding="utf-8") as diagnostico:
             json.dump(
@@ -316,19 +416,18 @@ def process_media(request: MediaRequest) -> dict:
         logger.info("Esteira concluída. XML gerado em: %s", xml_gerado)
         return {
             "status": "success", "xml_path": xml_gerado,
+            "editorial_mode_used": modo_editorial_efetivo,
+            "performance_seconds": {
+                **desempenho, "total": round(perf_counter() - inicio_processamento, 3),
+            },
+            "review_count": sum(bool(s.get("review")) for s in segmentos_classificados),
             "diagnostic_path": os.path.abspath(diagnostico_path),
             "synchronization": sincronizacao,
             "skipped_sources": fontes_ignoradas,
             "ai_models": {
                 "cuts": (
-                    "regras locais" if not request.editorial_review else (
-                    obter_diagnostico_editorial().get("gemini_model_used")
-                    or (
-                        "Ollama/" + OLLAMA_MODEL
-                        if obter_diagnostico_editorial().get("mode") == "ollama"
-                        else GEMINI_MODEL
-                    )
-                    )
+                    "regras locais" if not request.editorial_review
+                    else _nome_modelo_cortes(obter_diagnostico_editorial())
                 ),
                 "letterings": None,
             },
@@ -408,7 +507,7 @@ def analyze_lettering(request: LetteringRequest) -> dict:
             "suggestions": sugestoes,
             "ai_models": {
                 "cuts": None,
-                "letterings": obter_ultimo_modelo_gemini_textual() or GEMINI_MODEL,
+                "letterings": obter_ultimo_modelo_textual() or GEMINI_MODEL,
             },
         }
     except LetteringModelError as exc:
@@ -443,7 +542,7 @@ def analyze_lettering_segments(request: LetteringSegmentsRequest) -> dict:
             "suggestions": sugestoes,
             "ai_models": {
                 "cuts": None,
-                "letterings": obter_ultimo_modelo_gemini_textual() or GEMINI_MODEL,
+                "letterings": obter_ultimo_modelo_textual() or GEMINI_MODEL,
             },
         }
     except LetteringModelError as exc:
@@ -453,6 +552,61 @@ def analyze_lettering_segments(request: LetteringSegmentsRequest) -> dict:
             status_code=409,
             detail={"code": "ECONOMIC_MODE_REQUIRED", "duration_seconds": exc.duration_seconds, "message": str(exc)},
         ) from exc
+
+
+@app.post("/learning/compare-xml")
+def compare_learning_xml(request: LearningFeedbackRequest) -> dict:
+    """Registra a diferenca entre sugestao e revisao humana, localmente."""
+    try:
+        comparison = comparar_xmls(request.suggested_xml_path, request.revised_xml_path)
+        feedback_path, summary = salvar_feedback(
+            comparison, request.suggested_xml_path, request.revised_xml_path,
+            request.project_type, request.diagnostic_path,
+        )
+        return {
+            "status": "success", "comparison": comparison,
+            "feedback_path": feedback_path, "learning_summary": summary,
+        }
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
+def _learning_call(func, *args) -> dict:
+    try:
+        return func(*args)
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail="Registro ou XML nao encontrado.") from exc
+    except (ValueError, TypeError) as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
+@app.get("/learning/records")
+def learning_records() -> dict:
+    logger.info("Consulta ao banco de feedback.")
+    return _learning_call(listar_banco)
+
+
+@app.get("/learning/records/{record_id}")
+def learning_record(record_id: str) -> dict:
+    return _learning_call(ler_registro, record_id)
+
+
+@app.post("/learning/records/{record_id}/annotations")
+def learning_annotations(record_id: str, request: LearningAnnotationRequest) -> dict:
+    return _learning_call(anotar, record_id, request.example_ids, request.status, request.reason, request.note)
+
+
+@app.post("/learning/records/{record_id}/role")
+def learning_role(record_id: str, request: LearningRoleRequest) -> dict:
+    return _learning_call(definir_papel, record_id, request.role)
+
+
+@app.post("/learning/records/{record_id}/evaluate")
+def learning_evaluate(record_id: str, request: LearningEvaluationRequest) -> dict:
+    logger.info("Avaliacao comparativa de cortes: %s", record_id)
+    return _learning_call(avaliar, record_id, request.candidate_xml)
 
 
 def _preparar_fontes_audio_xml(
@@ -473,6 +627,18 @@ def _preparar_fontes_audio_xml(
         [fonte["name"] for fonte in fontes], master["name"],
     )
     return fontes
+
+
+def _nome_modelo_cortes(diagnostico: dict) -> str:
+    """Converte o diagnóstico do fallback em nome legível para o painel."""
+    modo = str(diagnostico.get("mode", ""))
+    if modo.startswith("nvidia"):
+        return str(diagnostico.get("model") or NVIDIA_MODEL)
+    if modo.startswith("laya"):
+        return "Laya local"
+    if modo == "ollama":
+        return "Ollama/" + OLLAMA_MODEL
+    return str(diagnostico.get("gemini_model_used") or diagnostico.get("model") or GEMINI_MODEL)
 
 
 if __name__ == "__main__":

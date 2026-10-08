@@ -28,6 +28,68 @@ def test_seconds_to_frames() -> None:
     assert seconds_to_frames(1.0, 29.97) == 30
 
 
+def test_plano_retido_preserva_outra_voz_no_master(tmp_path):
+    fonte = dict(_fontes()[0], label="Participante 1", duration=5)
+    audios = [
+        dict(name="master", path="C:/master.wav", duration=5, kind="audio", enabled_by_default=True),
+        dict(name="p1", path="C:/p1.wav", duration=5, kind="audio",
+             camera_label="Participante 1", enabled_by_default=False),
+    ]
+    segmentos = [dict(start=0, end=3, enabled=True),
+                 dict(start=3, end=5, enabled=True, audio_master_required=True)]
+    path = tmp_path / "voz_preservada.xml"
+    gerar_fcp_xml(segmentos, [fonte], str(path), 30, 5, fontes_audio=audios,
+                  camera_por_segmento=["Participante 1"] * 2, audio_follows_camera=True)
+    raiz = ET.parse(path).getroot()
+    assert len(raiz.findall("./sequence/media/video/track/clipitem")) == 1
+    assert [t.findtext("clipitem/enabled") for t in raiz.findall("./sequence/media/audio/track")] == ["TRUE", "FALSE"]
+
+
+@pytest.mark.parametrize("seguir", [False, True])
+def test_audio_segue_camera_com_vinculos_e_fallback(tmp_path, seguir):
+    fontes = [dict(f, label=label, duration=6.0) for f, label in zip(
+        _fontes(), ["PGM", "Participante 1", "Participante 2", "Câmera geral"])]
+    audios = [
+        dict(name="master.wav", path="C:/master.wav", duration=6.0,
+             kind="audio", enabled_by_default=True),
+        dict(name="p1.wav", path="C:/p1.wav", duration=6.0,
+             kind="audio", enabled_by_default=False, camera_label="Participante 1"),
+        dict(name="p2.wav", path="C:/p2.wav", duration=1.5, offset_seconds=1.0,
+             kind="audio", enabled_by_default=False, camera_label="Participante 2"),
+    ]
+    segmentos = [dict(start=i, end=i+1, enabled=i != 5) for i in range(6)]
+    cameras = ["Participante 1", "Participante 2", "Participante 2",
+               "Câmera geral", "Participante 1", "Participante 1"]
+    # Mantem separado o intervalo parcialmente coberto, sem alterar a compactacao.
+    cameras[2] = "Participante 1"
+    audios[1]["duration"] = 2.5
+    destino = tmp_path / "audio_segue.xml"
+    gerar_fcp_xml(segmentos, fontes, str(destino), 30, 6,
+                  fontes_audio=audios, camera_por_segmento=cameras,
+                  audio_follows_camera=seguir)
+    raiz = ET.parse(destino).getroot()
+    trilhas = raiz.findall("./sequence/media/audio/track")
+    for frame, esperado in zip([0, 30, 60, 90, 120, 150], [1, 2, 0, 0, 0, None]):
+        ativos = [i for i, trilha in enumerate(trilhas) for clip in trilha.findall("clipitem")
+                  if int(clip.findtext("start")) <= frame < int(clip.findtext("end"))
+                  and clip.findtext("enabled") == "TRUE"]
+        assert ativos == ([] if esperado is None else [esperado if seguir else 0])
+    clips = {clip.get("id"): clip for clip in raiz.findall(".//clipitem")}
+    links = raiz.findall(".//link")
+    assert bool(links) == seguir
+    for clip in clips.values():
+        refs = {link.findtext("linkclipref") for link in clip.findall("link")}
+        for ref in refs:
+            assert ref in clips
+            assert {link.findtext("linkclipref") for link in clips[ref].findall("link")} == refs
+    for link in links:
+        tipo = link.findtext("mediatype")
+        trilha = int(link.findtext("trackindex")) - 1
+        indice = int(link.findtext("clipindex")) - 1
+        referenciado = raiz.findall(f"./sequence/media/{tipo}/track")[trilha].findall("clipitem")[indice]
+        assert referenciado.get("id") == link.findtext("linkclipref")
+
+
 def test_gera_quatro_trilhas_com_segmentos_sincronizados(tmp_path) -> None:
     output_path = tmp_path / "aula_cortada.xml"
     segmentos = [

@@ -10,11 +10,15 @@ repetições que tenham função didática.
 """
 
 import json
+import sys
+import types
 
 import pytest
 
 from editorial_ai import (
     EditorialModelError,
+    GeminiReviewError,
+    LayaReviewError,
     decidir_cortes_semanticos,
     verificar_modelo_editorial,
 )
@@ -52,6 +56,10 @@ def simular_modelo(monkeypatch, descartes):
     monkeypatch.setattr(
         "editorial_ai._aprovar_proposta_com_gemini",
         lambda segmentos, proposta: proposta,
+    )
+    monkeypatch.setattr(
+        "editorial_ai._decidir_cortes_com_laya",
+        lambda segmentos: (_ for _ in ()).throw(LayaReviewError("isolado no teste do Ollama")),
     )
 
 
@@ -234,6 +242,73 @@ def test_remove_repeticao_acidental(
     decisao = decidir_cortes_semanticos(segmentos)
 
     assert decisao.discard_indexes == {0, 1}
+
+
+def test_regra_local_remove_primeira_abertura_repetida_apos_reinicio(monkeypatch):
+    """Mesmo se a IA mantiver tudo, retake explícito não pode sobreviver."""
+    monkeypatch.setattr("editorial_ai.GEMINI_API_KEY", "chave-de-teste")
+    monkeypatch.setattr(
+        "editorial_ai._gemini_audio_request",
+        lambda prompt, audio_path: '{"discard": [], "review": []}',
+    )
+    segmentos = [
+        segmento(0, 3, "Olá, nesta aula vamos entender a arquitetura do sistema."),
+        segmento(3, 5, "Não, vou recomeçar porque falei errado."),
+        segmento(5, 8, "Olá, nesta aula vamos entender a arquitetura do sistema."),
+        segmento(8, 10, "Primeiro vamos falar sobre os componentes."),
+    ]
+    decisao = decidir_cortes_semanticos(segmentos, audio_path="aula.wav")
+    assert decisao.discard_indexes == {0}
+    assert decisao.reasons == {0: "falsa_partida"}
+
+
+def test_regra_local_preserva_repeticao_sem_aviso_de_reinicio(monkeypatch):
+    monkeypatch.setattr("editorial_ai.GEMINI_API_KEY", "chave-de-teste")
+    monkeypatch.setattr(
+        "editorial_ai._gemini_audio_request",
+        lambda prompt, audio_path: '{"discard": [], "review": []}',
+    )
+    segmentos = [
+        segmento(0, 3, "A arquitetura separa responsabilidades do sistema."),
+        segmento(3, 5, "Isso é importante para manutenção."),
+        segmento(5, 8, "A arquitetura separa responsabilidades do sistema."),
+    ]
+    decisao = decidir_cortes_semanticos(segmentos, audio_path="aula.wav")
+    assert decisao.discard_indexes == set()
+
+
+def test_regra_local_remove_duas_sequencias_iguais_no_inicio_sem_aviso(monkeypatch):
+    monkeypatch.setattr("editorial_ai.GEMINI_API_KEY", "chave-de-teste")
+    monkeypatch.setattr(
+        "editorial_ai._gemini_audio_request",
+        lambda prompt, audio_path: '{"discard": [], "review": []}',
+    )
+    segmentos = [
+        segmento(0, 3, "Olá, hoje vamos aprender os fundamentos da arquitetura."),
+        segmento(3, 6, "Eu sou Arnaldo e vou conduzir esta aula para vocês."),
+        segmento(6, 7, ""),
+        segmento(7, 10, "Olá, hoje vamos aprender os fundamentos da arquitetura."),
+        segmento(10, 13, "Eu sou Arnaldo e vou conduzir esta aula para vocês."),
+    ]
+    decisao = decidir_cortes_semanticos(segmentos, audio_path="aula.wav")
+    assert decisao.discard_indexes == {0, 1}
+
+
+def test_laya_mantem_motivo_de_falsa_partida_confirmado(monkeypatch):
+    from editorial_ai import _decidir_cortes_com_laya
+
+    class RouterFalso:
+        def predict(self, *_args, **_kwargs):
+            return {"answers": {"cut": {"choice": "discard"}}}
+
+    monkeypatch.setitem(sys.modules, "laya", types.SimpleNamespace(Router=RouterFalso))
+    segmentos = [
+        segmento(0, 3, "Olá, nesta aula vamos entender a arquitetura do sistema."),
+        segmento(3, 5, "Não, vou recomeçar porque falei errado."),
+        segmento(5, 8, "Olá, nesta aula vamos entender a arquitetura do sistema."),
+    ]
+    decisao = _decidir_cortes_com_laya(segmentos)
+    assert decisao.reasons[0] == "falsa_partida"
 
     assert 2 not in decisao.discard_indexes
     assert 3 not in decisao.discard_indexes
@@ -492,13 +567,13 @@ def test_identifica_indisponibilidade_temporaria_do_gemini() -> None:
 def test_prioriza_tres_modelos_gemini_sem_repeticao(monkeypatch) -> None:
     from editorial_ai import _modelos_gemini
 
-    monkeypatch.setattr("editorial_ai.GEMINI_MODEL", "gemini-2.5-flash")
+    monkeypatch.setattr("editorial_ai.GEMINI_MODEL", "gemini-3.5-flash")
     monkeypatch.setattr(
         "editorial_ai.GEMINI_FALLBACK_MODELS",
-        ("gemini-2.5-flash", "gemini-3.8-flash", "gemini-3.7-flash", "gemini-3.6-flash"),
+        ("gemini-3.5-flash", "gemini-3.5-flash-lite", "gemini-3.6-flash", "gemini-3.7-flash"),
     )
     assert _modelos_gemini() == (
-        "gemini-2.5-flash", "gemini-3.8-flash", "gemini-3.7-flash",
+        "gemini-3.5-flash", "gemini-3.5-flash-lite", "gemini-3.6-flash",
     )
 
 
@@ -542,6 +617,33 @@ def test_modo_economico_envia_apenas_candidatos_e_contexto_curto(monkeypatch) ->
     assert '"candidate_id": 10' in prompts[0]
     assert "candidate_id\": 29" not in prompts[0]
     assert obter_diagnostico_editorial()["mode"] == "gemini_economic"
+
+
+def test_nvidia_e_usado_quando_gemini_textual_falha(monkeypatch) -> None:
+    from editorial_ai import solicitar_json_textual
+
+    monkeypatch.setattr("editorial_ai.GEMINI_API_KEY", "gemini")
+    monkeypatch.setattr("editorial_ai.NVIDIA_API_KEY", "nvidia")
+    monkeypatch.setattr("editorial_ai._gemini_request", lambda prompt: (_ for _ in ()).throw(GeminiReviewError("indisponivel")))
+    monkeypatch.setattr("editorial_ai._nvidia_request", lambda prompt: '{"approve": []}')
+    assert solicitar_json_textual("teste") == '{"approve": []}'
+
+
+def test_nvidia_usa_parametros_kimi_e_endpoint_nvidia(monkeypatch) -> None:
+    from editorial_ai import _nvidia_request
+
+    monkeypatch.setattr("editorial_ai.NVIDIA_API_KEY", "chave-de-teste")
+    chamadas = []
+    def responder(method, url, payload, headers, timeout):
+        chamadas.append((method, url, payload, headers, timeout))
+        return {"choices": [{"message": {"content": '{"discard": []}'}}]}
+    monkeypatch.setattr("editorial_ai._request_url", responder)
+    assert _nvidia_request("teste") == '{"discard": []}'
+    assert chamadas[0][1] == "https://integrate.api.nvidia.com/v1/chat/completions"
+    assert chamadas[0][2]["stream"] is False
+    assert chamadas[0][2]["model"] == "moonshotai/kimi-k3"
+    assert chamadas[0][2]["max_tokens"] == 16384
+    assert chamadas[0][3]["Authorization"] == "Bearer chave-de-teste"
 
 
 def test_json_invalido_do_gemini_e_rejeitado_com_seguranca(monkeypatch):

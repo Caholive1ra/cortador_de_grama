@@ -18,7 +18,7 @@ JANELA_REPETICAO_SEGUNDOS = 15.0
 SIMILARIDADE_REPETICAO = 0.72
 MINIMO_PALAVRAS_REPETICAO = 3
 JANELA_MICROSEGMENTO_SEGUNDOS = 2.0
-GATILHOS_ERRO += ("ficou ruim essa parte", "deixa eu voltar essa parte")
+GATILHOS_ERRO += ("ficou ruim essa parte", "deixa eu voltar essa parte", "opa")
 GATILHOS_ERRO += (
     "deixa eu ver um gancho", "deixa eu pegar um gancho",
     "vou procurar um gancho", "isso a gente corta depois",

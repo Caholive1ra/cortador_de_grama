@@ -12,6 +12,12 @@ from transcriber import ModelUnavailableError
 client = TestClient(app)
 
 
+@pytest.fixture(autouse=True)
+def isolar_arquivos_da_api(tmp_path, monkeypatch):
+    """Diagnosticos de fontes ficticias devem ficar na area temporaria do teste."""
+    monkeypatch.chdir(tmp_path)
+
+
 @pytest.mark.parametrize(
     "duracao_camera,status", [(1435.402035, 200), (1430.0, 200), (1500.0, 200)]
 )
@@ -34,6 +40,34 @@ def test_validacao_duracao_camera(monkeypatch, duracao_camera, status):
     )
     assert resposta.status_code == status
     assert resposta.json()["synchronization"][0]["offset_seconds"] == 2.0
+    assert resposta.json()["performance_seconds"]["total"] >= 0
+    assert "transcription" in resposta.json()["performance_seconds"]
+
+
+def test_diagnostico_nvidia_distingue_autenticacao_de_limite(monkeypatch) -> None:
+    from urllib.error import HTTPError
+    import io
+    monkeypatch.setattr("main.NVIDIA_API_KEY", "chave")
+    erro = HTTPError("https://integrate.api.nvidia.com/v1/models", 401, "Unauthorized", {}, io.BytesIO(
+        b"Incorrect API key provided."
+    ))
+    monkeypatch.setattr("main._request_url", lambda *args, **kwargs: (_ for _ in ()).throw(erro))
+    resposta = client.get("/diagnostics/nvidia")
+    assert resposta.status_code == 200
+    assert resposta.json()["authentication_failed"] is True
+
+
+def test_diagnostico_nvidia_identifica_bloqueio_de_rede(monkeypatch) -> None:
+    from urllib.error import HTTPError
+    import io
+    monkeypatch.setattr("main.NVIDIA_API_KEY", "chave")
+    erro = HTTPError("https://integrate.api.nvidia.com/v1/models", 403, "Forbidden", {}, io.BytesIO(
+        b"error code: 1010"
+    ))
+    monkeypatch.setattr("main._request_url", lambda *args, **kwargs: (_ for _ in ()).throw(erro))
+    resposta = client.get("/diagnostics/nvidia")
+    assert resposta.status_code == 200
+    assert resposta.json()["network_blocked"] is True
 
 
 def test_sync_insegura_interrompe_antes_da_transcricao(monkeypatch) -> None:
@@ -55,13 +89,18 @@ def test_sync_insegura_interrompe_antes_da_transcricao(monkeypatch) -> None:
 
 def test_health_check(monkeypatch) -> None:
     monkeypatch.setattr("main.GEMINI_API_KEY", "chave-de-teste")
+    monkeypatch.setattr("main.GEMINI_MODEL", "gemini-2.5-flash")
+    monkeypatch.setattr("main.NVIDIA_API_KEY", None)
+    monkeypatch.setattr("main.NVIDIA_MODEL", "moonshotai/kimi-k3")
     resposta = client.get("/health")
     assert resposta.status_code == 200
     assert resposta.json() == {
         "status": "ok",
-        "revision": "gemini38-retry-v16",
-        "gemini_model": "gemini-3.8-flash",
+        "revision": "retake-pairs-v21",
+        "gemini_model": "gemini-2.5-flash",
         "gemini_configured": "yes",
+        "nvidia_model": "moonshotai/kimi-k3",
+        "nvidia_configured": "no",
     }
 
 
@@ -136,6 +175,24 @@ def test_aula_longa_com_revisao_completa_exige_modo_economico(monkeypatch) -> No
     )
     assert resposta.status_code == 409
     assert resposta.json()["detail"]["code"] == "ECONOMIC_MODE_REQUIRED"
+
+
+def test_modo_auto_prioriza_velocidade_em_aula_longa(monkeypatch) -> None:
+    monkeypatch.setattr("main.obter_metadados", lambda _path: {
+        "path": "pgm.mp4", "duration": 1200.1, "fps": 30,
+        "width": 1920, "height": 1080, "video_start": 0,
+    })
+    monkeypatch.setattr("main.extrair_audio_temporario", lambda *args: nullcontext("audio.wav"))
+    monkeypatch.setattr("main.transcrever_audio", lambda _path: [])
+    recebido = {}
+    monkeypatch.setattr("main.classificar_segmentos", lambda _segmentos, **kwargs: recebido.update(kwargs) or [])
+    monkeypatch.setattr("main.gerar_fcp_xml", lambda *args, **kwargs: "resultado.xml")
+    resposta = client.post("/process", json={
+        "pgm_path": "pgm.mp4", "editorial_review": True, "editorial_mode": "auto",
+    })
+    assert resposta.status_code == 200
+    assert recebido["modo_economico"] is True
+    assert resposta.json()["editorial_mode_used"] == "economic"
 
 
 def test_process_sincroniza_midias_e_gera_xml_com_lacunas(tmp_path, monkeypatch) -> None:

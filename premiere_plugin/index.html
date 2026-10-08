@@ -26,7 +26,20 @@
       .aviso { margin:5px 0 0; color:#c4c4c4; font-size:11px; }
       #btnModoEconomico { display:none; background:#c46b13; }
       #btnModoEconomico.visivel { display:block; }
+      #btnTentarNovamente { display:none; background:#4c4c4c; }
+      #btnTentarNovamente.visivel { display:block; }
+      #audioFollowsCameraOption { display:none; }
+      #audioFollowsCameraOption.visivel { display:block; }
       #statusText { padding:10px; color:#bbb; background:#2a2a2a; border-radius:6px; }
+      .abas { display:flex; gap:6px; margin:0 0 14px; padding:4px; background:#202020; border:1px solid #3d3d3d; border-radius:9px; }
+      .aba { flex:1; width:auto; min-height:36px; margin:0; padding:7px 5px; color:#c4c4c4; background:transparent; border:0; border-radius:6px; font-size:12px; }
+      .aba:hover { background:#333; }
+      .aba.ativa { color:#fff; background:#ed145b; }
+      .tab-panel[hidden] { display:none; }
+      .tutorial { margin:10px 0 14px; padding:11px 12px; color:#d4d4d4; background:#202020; border-left:3px solid #ed145b; border-radius:4px; font-size:12px; line-height:1.5; }
+      .tutorial strong { display:block; color:#fff; margin-bottom:3px; }
+      .tutorial ol { margin:4px 0 0 18px; padding:0; }
+      .tab-acao-secundaria { background:#4c4c4c; }
     </style>
   </head>
   <body>
@@ -48,13 +61,52 @@
         <label class="opcao"><input id="editorialReview" type="checkbox" /> Usar revisao por IA</label>
         <p class="aviso">Se o Gemini estiver configurado, essa opcao envia o audio para um servico externo.</p>
         <label class="opcao"><input id="economicMode" type="checkbox" /> Modo economico de IA</label>
-        <p class="aviso">Analisa apenas candidatos e contextos curtos; recomendado para aulas longas.</p>
+        <label class="opcao" id="audioFollowsCameraOption"><input id="audioFollowsCamera" type="checkbox" /> Áudio acompanha a câmera</label>
+        <p class="aviso">Sem esta opção, vídeos acima de 20 minutos usam o modo econômico automaticamente. Marque para usá-lo sempre.</p>
         <button id="btnProcessar" type="button">Selecionar fontes e processar</button>
+        <button id="btnTentarNovamente" type="button" title="Repete o processamento com os mesmos caminhos e opções da última tentativa.">Tentar novamente</button>
       </section>
       <section class="bloco">
         <h2>Indicar letterings</h2>
         <p>Indique a sequência revisada pelo humano para encontrar os pontos que precisam de texto.</p>
         <button id="btnLettering" type="button">Selecionar sequência e indicar letterings</button>
+      </section>
+      <section class="bloco">
+        <h2>Aprender com a edição</h2>
+        <p>Compare o XML criado pela IA com o XML exportado da sequência final. Nenhum vídeo ou áudio é copiado.</p>
+        <button id="btnAprender" type="button">Selecionar XMLs e registrar feedback</button>
+        <p class="aviso">As diferenças ficam pendentes até você confirmar o motivo. O histórico ainda não altera os cortes automaticamente.</p>
+        <button id="btnBanco" type="button">Consultar banco e revisar correções</button>
+        <p id="bankSummary" class="aviso"></p>
+        <select id="feedbackRecord" aria-label="Edição registrada"><option value="">Escolha uma edição</option></select>
+        <button id="btnAbrirFeedback" type="button">Abrir edição selecionada</button>
+        <p id="feedbackDetails"></p>
+        <p id="exampleText" style="white-space:pre-wrap"></p>
+        <button id="btnExamplePrev" type="button">Alteração anterior</button>
+        <button id="btnExampleNext" type="button">Próxima alteração</button>
+        <select id="feedbackReason" aria-label="Motivo da sua correção">
+          <option value="">Escolha o motivo</option>
+          <option value="erro_fala">Erro de fala</option>
+          <option value="retake">Tomada substituída por regravação</option>
+          <option value="bastidor">Conversa de bastidor</option>
+          <option value="conteudo_util">Conteúdo útil ou repetição didática</option>
+          <option value="duracao">Redução de duração</option>
+          <option value="preferencia_projeto">Preferência deste projeto</option>
+          <option value="ajuste_limite">Ajuste fino do limite do corte</option>
+          <option value="outro">Outro motivo</option>
+        </select>
+        <textarea id="feedbackNote" maxlength="2000" placeholder="Observação opcional: por que você alterou este trecho?" style="width:100%;min-height:64px;margin-top:10px"></textarea>
+        <button id="btnConfirmExample" type="button">Confirmar motivo desta alteração</button>
+        <button id="btnExcludeExample" type="button">Excluir esta alteração do aprendizado</button>
+        <button id="btnPendingExample" type="button">Voltar esta alteração para pendente</button>
+        <select id="feedbackRole" aria-label="Uso desta edição">
+          <option value="reference">Referência para aprendizado futuro</option>
+          <option value="benchmark">Reservar para avaliação</option>
+          <option value="archived">Arquivar esta versão</option>
+        </select>
+        <button id="btnSaveRole" type="button">Salvar uso desta edição</button>
+        <button id="btnEvaluate" type="button">Comparar novo XML com esta edição final</button>
+        <p id="evaluationResult" style="white-space:pre-wrap"></p>
       </section>
       <p id="statusText">Aguardando...</p>
       <button id="btnModoEconomico" type="button">Processar esta aula no modo economico</button>

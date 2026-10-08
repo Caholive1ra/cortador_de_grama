@@ -10,11 +10,13 @@ logger = logging.getLogger(__name__)
 LIMIAR_FALA = 0.35
 MARGEM_DOMINANCIA = 0.15
 ENERGIA_HZ = 100
+TEMPO_MINIMO_PLANO_SEGUNDOS = 5.0
 
 
 def dirigir_cameras(
     segmentos: list[dict], fontes_por_camera: list[tuple[str, str, float]],
     camera_geral: str,
+    cameras_detectadas: list[str] | None = None,
 ) -> list[str]:
     """Retorna a câmera sugerida para cada segmento.
 
@@ -24,6 +26,8 @@ def dirigir_cameras(
     pior que permanecer no plano geral.
     """
     if not fontes_por_camera:
+        if cameras_detectadas is not None:
+            cameras_detectadas.extend([camera_geral] * len(segmentos))
         return [camera_geral] * len(segmentos)
 
     # Mantemos apenas um envelope RMS de 100 Hz. Isso evita reter WAVs de
@@ -47,10 +51,49 @@ def dirigir_cameras(
             sugestoes.append(camera_geral)
         else:
             sugestoes.append(melhor_camera)
+    if cameras_detectadas is not None:
+        cameras_detectadas.extend(sugestoes)
+    sugestoes = _estabilizar_planos(segmentos, sugestoes, camera_geral)
     logger.info("Direção automática: %s", {
         camera: sugestoes.count(camera) for camera in sorted(set(sugestoes))
     })
     return sugestoes
+
+
+def _estabilizar_planos(segmentos: list[dict], cameras: list[str], geral: str) -> list[str]:
+    """Segue o falante atual, respeitando permanencia minima de 5s por plano.
+
+    Uma voz diferente nao obriga o plano geral. Antes do minimo, mantem a
+    camera atual; depois, aceita a sugestao do segmento corrente. Nao cria
+    um novo plano quando restam menos de 5s ate o fim do bloco util.
+    """
+    resultado = [geral] * len(segmentos)
+    bloco: list[int] = []
+
+    def concluir() -> None:
+        if not bloco:
+            return
+        camera = cameras[bloco[0]]
+        inicio_plano = float(segmentos[bloco[0]]["start"])
+        fim_bloco = float(segmentos[bloco[-1]]["end"])
+        for i in bloco:
+            inicio = float(segmentos[i]["start"])
+            if (cameras[i] != camera
+                    and inicio - inicio_plano >= TEMPO_MINIMO_PLANO_SEGUNDOS - 1e-9
+                    and fim_bloco - inicio >= TEMPO_MINIMO_PLANO_SEGUNDOS - 1e-9):
+                camera = cameras[i]
+                inicio_plano = inicio
+            resultado[i] = camera
+
+    for i, segmento in enumerate(segmentos):
+        habilitado = segmento.get("enabled", segmento.get("track") != "V1")
+        if bloco and (not habilitado or abs(float(segmento["start"]) - float(segmentos[bloco[-1]]["end"])) > 0.001):
+            concluir()
+            bloco = []
+        if habilitado:
+            bloco.append(i)
+    concluir()
+    return resultado
 
 
 def _ler_envelope(path: str) -> tuple[np.ndarray, int]:

@@ -1,0 +1,392 @@
+[
+  {
+    "start": 0.53,
+    "end": 1.89,
+    "text": "A"
+  },
+  {
+    "start": 2.78,
+    "end": 5.26,
+    "text": "proposta desse rendizão é a"
+  },
+  {
+    "start": 6.1,
+    "end": 8.44,
+    "text": "gente"
+  },
+  {
+    "start": 8.44,
+    "end": 10.92,
+    "text": "utilizar LLM como"
+  },
+  {
+    "start": 10.92,
+    "end": 12.92,
+    "text": "uma ferramenta que vai fazer"
+  },
+  {
+    "start": 12.92,
+    "end": 13.72,
+    "text": "a conversão"
+  },
+  {
+    "start": 13.72,
+    "end": 16.18,
+    "text": "do que o humano disse para"
+  },
+  {
+    "start": 16.18,
+    "end": 18.24,
+    "text": "uma estrutura válida, no"
+  },
+  {
+    "start": 18.24,
+    "end": 20.34,
+    "text": "caso em Jason e"
+  },
+  {
+    "start": 20.34,
+    "end": 22.48,
+    "text": "aí de forma determinística"
+  },
+  {
+    "start": 22.48,
+    "end": 24.76,
+    "text": "usando Python, a gente pega essa resposta"
+  },
+  {
+    "start": 24.76,
+    "end": 27.08,
+    "text": "que a LLM gerou para a gente e"
+  },
+  {
+    "start": 27.08,
+    "end": 28.08,
+    "text": "a gente armazera"
+  },
+  {
+    "start": 28.08,
+    "end": 30.84,
+    "text": "isso em um arquivo para persistir"
+  },
+  {
+    "start": 30.84,
+    "end": 32.22,
+    "text": "essas informações."
+  },
+  {
+    "start": 33.14,
+    "end": 35.14,
+    "text": "Então, o nosso caso de uso vai ser,"
+  },
+  {
+    "start": 35.22,
+    "end": 35.74,
+    "text": "por exemplo,"
+  },
+  {
+    "start": 36.58,
+    "end": 38.6,
+    "text": "poxa, a LLM adiciona"
+  },
+  {
+    "start": 38.6,
+    "end": 40.82,
+    "text": "para mim um teclado de corrente reais,"
+  },
+  {
+    "start": 41.4,
+    "end": 42.42,
+    "text": "a gente define qualquer"
+  },
+  {
+    "start": 42.42,
+    "end": 44.64,
+    "text": "produto, qualquer o valor"
+  },
+  {
+    "start": 44.64,
+    "end": 46.94,
+    "text": "dele, aí qualquer"
+  },
+  {
+    "start": 46.94,
+    "end": 49.08,
+    "text": "a instrução é adicionar, remover,"
+  },
+  {
+    "start": 49.46,
+    "end": 50.54,
+    "text": "listar os arquivos,"
+  },
+  {
+    "start": 50.54,
+    "end": 52.3,
+    "text": "que estão persistidos,"
+  },
+  {
+    "start": 52.8,
+    "end": 55.3,
+    "text": "e aí a LLM vai olhar"
+  },
+  {
+    "start": 55.3,
+    "end": 57.38,
+    "text": "isso, vai estruturar essa saída em"
+  },
+  {
+    "start": 57.38,
+    "end": 58.94,
+    "text": "Jason, com"
+  },
+  {
+    "start": 58.94,
+    "end": 61.14,
+    "text": "chave valor, bonitinho, a gente precisa,"
+  },
+  {
+    "start": 61.38,
+    "end": 62.7,
+    "text": "porque está vindo em linguagem natural,"
+  },
+  {
+    "start": 63.58,
+    "end": 64.6,
+    "text": "isso vai ser"
+  },
+  {
+    "start": 64.6,
+    "end": 67.44,
+    "text": "convertido para ser persistido,"
+  },
+  {
+    "start": 67.7,
+    "end": 69.78,
+    "text": "utilizando nossa funções e Python,"
+  },
+  {
+    "start": 70.26,
+    "end": 72.14,
+    "text": "que vão armazenar essa,"
+  },
+  {
+    "start": 72.14,
+    "end": 73.9,
+    "text": "ah, ficou uma boa centrada aqui, qual é?"
+  },
+  {
+    "start": 78.15,
+    "end": 78.93,
+    "text": "O de novo?"
+  },
+  {
+    "start": 79.13,
+    "end": 79.39,
+    "text": "O"
+  },
+  {
+    "start": 83.1,
+    "end": 83.8,
+    "text": "de novo."
+  },
+  {
+    "start": 84.98,
+    "end": 85.44,
+    "text": "Tá bom,"
+  },
+  {
+    "start": 87.12,
+    "end": 89.24,
+    "text": "você falou, está falido, e"
+  },
+  {
+    "start": 99.58,
+    "end": 101.04,
+    "text": "aqui,"
+  },
+  {
+    "start": 118.32,
+    "end": 120.4,
+    "text": "então vamos lá, um, dois, começando"
+  },
+  {
+    "start": 120.4,
+    "end": 120.84,
+    "text": "agora."
+  },
+  {
+    "start": 122.21,
+    "end": 124.13,
+    "text": "Aí, desse rengisão é muito simples,"
+  },
+  {
+    "start": 124.66,
+    "end": 126.8,
+    "text": "por diversas vezes a gente precisa persistir"
+  },
+  {
+    "start": 126.8,
+    "end": 127.48,
+    "text": "alguns dados,"
+  },
+  {
+    "start": 128.1,
+    "end": 130.12,
+    "text": "mas a gente, às vezes, não lembra qual é"
+  },
+  {
+    "start": 130.12,
+    "end": 132.82,
+    "text": "o nome direitinho do comando"
+  },
+  {
+    "start": 132.82,
+    "end": 133.68,
+    "text": "que a gente tem que colocar"
+  },
+  {
+    "start": 133.68,
+    "end": 136.08,
+    "text": "e das colunas que a gente quer adicionar para otimizar"
+  },
+  {
+    "start": 136.08,
+    "end": 138.1,
+    "text": "isso, a gente pode fazer uma centra"
+  },
+  {
+    "start": 138.1,
+    "end": 140.22,
+    "text": "de comandos usando uma LLM"
+  },
+  {
+    "start": 140.22,
+    "end": 142.14,
+    "text": "para fazer essa intermediação,"
+  },
+  {
+    "start": 142.28,
+    "end": 142.92,
+    "text": "essa ponte."
+  },
+  {
+    "start": 143.7,
+    "end": 145.46,
+    "text": "Se a gente fosse fazer de forma determinística,"
+  },
+  {
+    "start": 145.82,
+    "end": 147.96,
+    "text": "a gente teria que usar uma estrutura de dados"
+  },
+  {
+    "start": 147.96,
+    "end": 150.32,
+    "text": "com o rejects para fazer manipulações"
+  },
+  {
+    "start": 150.32,
+    "end": 152.34,
+    "text": "dentro das strings, que nem"
+  },
+  {
+    "start": 152.34,
+    "end": 154.28,
+    "text": "sempre seria um eficiente,"
+  },
+  {
+    "start": 154.61,
+    "end": 156.44,
+    "text": "a LLM, por outro lado,"
+  },
+  {
+    "start": 156.76,
+    "end": 159.28,
+    "text": "ela consegue entender a intenção"
+  },
+  {
+    "start": 159.28,
+    "end": 161.3,
+    "text": "e fazer essa extração de"
+  },
+  {
+    "start": 161.3,
+    "end": 161.98,
+    "text": "informações,"
+  },
+  {
+    "start": 161.98,
+    "end": 165.58,
+    "text": "de forma muito mais efetiva."
+  },
+  {
+    "start": 166.66,
+    "end": 168.9,
+    "text": "Por essa razão, o nosso sistema"
+  },
+  {
+    "start": 168.9,
+    "end": 170.98,
+    "text": "vai leitado do"
+  },
+  {
+    "start": 170.98,
+    "end": 173.58,
+    "text": "usuário, converter para um formato"
+  },
+  {
+    "start": 173.58,
+    "end": 173.96,
+    "text": "que a gente"
+  },
+  {
+    "start": 173.96,
+    "end": 175.78,
+    "text": "define, e aí sim,"
+  },
+  {
+    "start": 176.16,
+    "end": 178.78,
+    "text": "a gente pega isso que foi solicitado"
+  },
+  {
+    "start": 178.78,
+    "end": 181.12,
+    "text": "e a armazena ir persiste"
+  },
+  {
+    "start": 181.12,
+    "end": 183.32,
+    "text": "dentro de um banco de"
+  },
+  {
+    "start": 183.32,
+    "end": 185.74,
+    "text": "dados ali, no caso, o nosso dados"
+  },
+  {
+    "start": 185.74,
+    "end": 187.76,
+    "text": "CV ou nossa estrutura de AISON."
+  },
+  {
+    "start": 188.17,
+    "end": 190.22,
+    "text": "Vamos ver como a gente pode desenvolver a"
+  },
+  {
+    "start": 190.22,
+    "end": 192.24,
+    "text": "primeira etapa do nosso"
+  },
+  {
+    "start": 192.24,
+    "end": 192.7,
+    "text": "reenzona."
+  },
+  {
+    "start": 194.56,
+    "end": 197,
+    "text": "Então aqui, nesse diagrama legal, para a gente visualizar"
+  }
+]

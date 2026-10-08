@@ -31,6 +31,7 @@ def gerar_fcp_xml(
     camera_por_segmento: list[str] | None = None,
     lettering_suggestions: list[dict] | None = None,
     sequence_name: str = "Aula_Decupada_Multicamera",
+    audio_follows_camera: bool = False,
 ) -> str:
     """Cria tracks de vídeo sincronizadas e uma track de áudio final."""
     try:
@@ -75,6 +76,18 @@ def gerar_fcp_xml(
                 if cameras_xml and indice_segmento < len(cameras_xml)
                 else None
             )
+            videos_do_segmento = {}
+            audio_escolhido = next((i for i, f in enumerate(fontes_audio_finais)
+                                    if f.get("enabled_by_default", True)), 0)
+            if (audio_follows_camera and camera_ativa and camera_ativa.startswith("Participante ")
+                    and not segmento.get("audio_master_required", False)):
+                video_ativo = next((f for f in fontes if f.get("label") == camera_ativa), None)
+                for i, f in enumerate(fontes_audio_finais):
+                    if (f.get("camera_label") == camera_ativa and video_ativo
+                            and _cobre_segmento(f, frame_start, frame_end, fps)
+                            and _cobre_segmento(video_ativo, frame_start, frame_end, fps)):
+                        audio_escolhido = i
+                        break
             for indice_fonte, (fonte, trilha) in enumerate(
                 zip(fontes, trilhas_video), start=1
             ):
@@ -112,6 +125,7 @@ def gerar_fcp_xml(
                     declarar=indice_fonte not in arquivos_declarados,
                 )
                 arquivos_declarados.add(indice_fonte)
+                videos_do_segmento[fonte.get("label")] = (clip, indice_fonte, len(trilha.findall("clipitem")))
 
             for indice_audio, (fonte_audio_final, trilha_audio) in enumerate(
                 zip(fontes_audio_finais, trilhas_audio), start=1
@@ -119,6 +133,8 @@ def gerar_fcp_xml(
                 habilitado_audio = habilitado and bool(
                     fonte_audio_final.get("enabled_by_default", True)
                 )
+                if audio_follows_camera:
+                    habilitado_audio = habilitado and indice_audio - 1 == audio_escolhido
                 offset_audio = seconds_to_frames(
                     float(fonte_audio_final.get("offset_seconds", 0.0)), fps
                 )
@@ -147,6 +163,12 @@ def gerar_fcp_xml(
                     declarar=indice_audio not in arquivos_audio_declarados,
                 )
                 arquivos_audio_declarados.add(indice_audio)
+                if audio_follows_camera:
+                    associado = videos_do_segmento.get(fonte_audio_final.get("camera_label"))
+                    if associado and fonte_audio_final.get("camera_label"):
+                        video_clip, video_track, video_index = associado
+                        _vincular_clipes(video_clip, video_track, video_index,
+                                         clip_audio, indice_audio, len(trilha_audio.findall("clipitem")))
 
         _adicionar_marcadores_revisao(sequencia, segmentos, fps)
         _adicionar_marcadores_lettering(sequencia, lettering_suggestions or [], fps)
@@ -163,6 +185,26 @@ def gerar_fcp_xml(
     except Exception:
         logger.error("Falha ao gerar XML em %s.\n%s", output_path, traceback.format_exc())
         raise
+
+
+def _cobre_segmento(fonte: dict, inicio: int, fim: int, fps: float) -> bool:
+    """Evita silenciar o master quando a fonte individual cobre so parte do trecho."""
+    offset = seconds_to_frames(float(fonte.get("offset_seconds", 0.0)), fps)
+    duracao = seconds_to_frames(float(fonte["duration"]), fps)
+    return offset <= inicio and offset + duracao >= fim
+
+
+def _vincular_clipes(video: ET.Element, trilha_video: int, indice_video: int,
+                     audio: ET.Element, trilha_audio: int, indice_audio: int) -> None:
+    """Referencia reciproca XMEML, incluindo o proprio clipe em cada grupo."""
+    for destino in (video, audio):
+        for clipe, tipo, trilha, indice in ((video, "video", trilha_video, indice_video),
+                                           (audio, "audio", trilha_audio, indice_audio)):
+            link = ET.SubElement(destino, "link")
+            ET.SubElement(link, "linkclipref").text = clipe.get("id")
+            ET.SubElement(link, "mediatype").text = tipo
+            ET.SubElement(link, "trackindex").text = str(trilha)
+            ET.SubElement(link, "clipindex").text = str(indice)
 
 
 def _validar_entrada(segmentos: list[dict], fontes: list[dict], duracao: float) -> None:
@@ -204,6 +246,11 @@ def _compactar_segmentos(
             and camera_anterior == camera
         ):
             anterior["end"] = segmento["end"]
+            # A permanencia minima pode manter a camera enquanto outro fala.
+            # Nesse plano, o master preserva todas as vozes sem microcortes.
+            anterior["audio_master_required"] = bool(
+                anterior.get("audio_master_required") or segmento.get("audio_master_required")
+            )
             continue
 
         compactados.append(dict(segmento))
@@ -217,14 +264,28 @@ def _adicionar_marcadores_revisao(
     sequencia: ET.Element, segmentos: list[dict], fps: float,
 ) -> None:
     """Inclui marcadores para trechos mantidos por duvida editorial da IA."""
+    motivos = {
+        "duvida_editorial": "Conferir se este trecho pertence à explicação",
+        "possivel_retake": "Comparar com a tomada seguinte antes de cortar",
+        "retake_nao_validado": "A IA não concluiu a comparação das tomadas",
+        "retake_pendente_limite_de_analise": "Retake aguardando revisão: limite de análise atingido",
+        "conflito_entre_retakes": "Decisões conflitantes: conferir qual tomada preservar",
+    }
+    grupos = []
     for segmento in segmentos:
         if not segmento.get("review"):
             continue
+        motivo = segmento.get("review_reason") or "duvida_editorial"
+        if grupos and grupos[-1]["review_reason"] == motivo and abs(float(grupos[-1]["end"]) - float(segmento["start"])) < 0.05:
+            grupos[-1]["end"] = segmento["end"]
+            grupos[-1]["text"] += " " + str(segmento.get("text", ""))
+        else:
+            grupos.append(dict(start=segmento["start"], end=segmento["end"], review_reason=motivo, text=str(segmento.get("text", ""))))
+    for segmento in grupos:
         marcador = ET.SubElement(sequencia, "marker")
         ET.SubElement(marcador, "name").text = "REVISAR: duvida da IA"
-        ET.SubElement(marcador, "comment").text = str(
-            segmento.get("review_reason") or "duvida_editorial"
-        )
+        motivo = segmento["review_reason"]
+        ET.SubElement(marcador, "comment").text = motivos.get(motivo, motivo) + ". Trecho: " + segmento["text"][:500]
         ET.SubElement(marcador, "in").text = str(
             seconds_to_frames(float(segmento["start"]), fps)
         )
