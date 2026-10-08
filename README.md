@@ -118,7 +118,7 @@ Se uma tentativa remota falhar, o painel mantém as escolhas de arquivos e opç�
 | Ordem | Serviço | Papel |
 | --- | --- | --- |
 | 1 | Gemini | Revisão editorial principal. |
-| 2 | NVIDIA NIM / Kimi K3 | Alternativa textual quando Gemini está indisponível. |
+| 2 | NVIDIA NIM / Kimi K3 | Alternativa textual com a transcrição completa e o mesmo contrato editorial do Gemini. Não recebe o WAV. |
 | 3 | Mecanismo local | Continuidade do processamento quando os provedores remotos falham. |
 
 Uma resposta `503` de um provedor significa indisponibilidade temporária do serviço, não necessariamente chave inválida. Dependendo do estágio em que a solicitação falha, ela pode consumir tokens de entrada mesmo sem retornar um resultado editorial válido. Os diagnósticos acima ajudam a separar falha de autenticação, modelo indisponível e sobrecarga.

@@ -629,6 +629,33 @@ def test_nvidia_e_usado_quando_gemini_textual_falha(monkeypatch) -> None:
     assert solicitar_json_textual("teste") == '{"approve": []}'
 
 
+def test_nvidia_fallback_completo_usa_contrato_editorial_unificado(monkeypatch) -> None:
+    from editorial_ai import decidir_cortes_semanticos, obter_diagnostico_editorial
+
+    prompts = []
+    monkeypatch.setattr("editorial_ai.GEMINI_API_KEY", "")
+    monkeypatch.setattr("editorial_ai.NVIDIA_API_KEY", "nvidia")
+    monkeypatch.setattr(
+        "editorial_ai._nvidia_request",
+        lambda prompt: prompts.append(prompt) or '{"discard": [{"i": 1, "reason": "comentario_bastidor"}], "review": []}',
+    )
+    monkeypatch.setattr("editorial_ai._aplicar_retakes_explicitos", lambda _segmentos, decisao: decisao)
+
+    resultado = decidir_cortes_semanticos([
+        segmento(0, 2, "Explicacao didatica que deve permanecer."),
+        segmento(2, 4, "Deixa eu ver um gancho aqui."),
+    ], audio_path="aula.wav")
+
+    assert resultado.discard_indexes == {1}
+    assert '"i": 0' in prompts[0]
+    assert '"i": 1' in prompts[0]
+    assert "FALAS DE BASTIDOR DEVEM SER DESCARTADAS" in prompts[0]
+    assert "REGRA DE RETAKE" in prompts[0]
+    assert "Mantenha explicacoes, exemplos, repeticoes" in prompts[0]
+    assert "O audio nao esta disponivel" in prompts[0]
+    assert obter_diagnostico_editorial()["mode"] == "nvidia_text"
+
+
 def test_nvidia_usa_parametros_kimi_e_endpoint_nvidia(monkeypatch) -> None:
     from editorial_ai import _nvidia_request
 
@@ -643,6 +670,7 @@ def test_nvidia_usa_parametros_kimi_e_endpoint_nvidia(monkeypatch) -> None:
     assert chamadas[0][2]["stream"] is False
     assert chamadas[0][2]["model"] == "moonshotai/kimi-k3"
     assert chamadas[0][2]["max_tokens"] == 16384
+    assert chamadas[0][2]["temperature"] == 0
     assert chamadas[0][3]["Authorization"] == "Bearer chave-de-teste"
 
 

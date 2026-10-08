@@ -136,11 +136,12 @@ def decidir_cortes_semanticos(
         decisao = _decidir_cortes_com_gemini(segmentos, audio_path)
         if ULTIMO_DIAGNOSTICO.get("status") == "ok":
             return _aplicar_retakes_explicitos(segmentos, decisao)
-    # NVIDIA recebe somente candidatos textuais: assim a queda do Gemini nao
-    # transforma uma aula inteira em um prompt caro e sujeito a truncamento.
+    # Sem Gemini, a NVIDIA recebe a mesma transcricao completa e as mesmas
+    # regras editoriais. Ela nao recebe o WAV, portanto nao pode inferir sons
+    # que nao estejam transcritos, mas nao fica limitada a poucos candidatos.
     if NVIDIA_API_KEY and not modo_economico:
-        logger.info("Gemini nao concluiu a revisao; iniciando fallback NVIDIA textual.")
-        decisao = _decidir_cortes_economicos(segmentos, "nvidia")
+        logger.info("Gemini nao concluiu a revisao; iniciando fallback NVIDIA textual completo.")
+        decisao = _decidir_cortes_textuais_completos(segmentos, "nvidia")
         if ULTIMO_DIAGNOSTICO.get("status") == "ok":
             return _aplicar_retakes_explicitos(segmentos, decisao)
     try:
@@ -404,11 +405,8 @@ def _decidir_cortes_com_laya(segmentos: list[dict]) -> EditorialDecision:
     return EditorialDecision(set(motivos), motivos)
 
 
-def _decidir_cortes_com_gemini(
-    segmentos: list[dict], audio_path: str
-) -> EditorialDecision:
-    """Usa audio e transcricao para detectar eventos que texto nao revela."""
-    transcricao = [
+def _transcricao_editorial(segmentos: list[dict]) -> list[dict]:
+    return [
         {
             "i": indice,
             "inicio": round(float(item["start"]), 2),
@@ -417,13 +415,26 @@ def _decidir_cortes_com_gemini(
         }
         for indice, item in enumerate(segmentos)
     ]
-    prompt = """Voce e o revisor principal de uma videoaula em portugues.
-Analise o AUDIO e a transcricao com timestamps. Marque SOMENTE trechos que
+
+
+def _prompt_revisao_editorial(transcricao: list[dict], incluir_audio: bool) -> str:
+    """Contrato editorial unico para Gemini e NVIDIA.
+
+    A diferenca entre provedores e somente a modalidade disponivel. As regras,
+    motivos aceitos, indices validos e a postura conservadora sao identicos.
+    """
+    contexto_audio = (
+        "Use o audio para identificar risadas e conversas que nao aparecem na transcricao."
+        if incluir_audio else
+        "O audio nao esta disponivel nesta revisao; marque risadas ou conversas somente quando houver evidencia na transcricao."
+    )
+    material_disponivel = "o AUDIO e a transcricao com timestamps" if incluir_audio else "a transcricao com timestamps"
+    return """Voce e o revisor principal de uma videoaula em portugues.
+Analise """ + material_disponivel + """. Marque SOMENTE trechos que
 devem sair da pre-edicao: erros declarados, falsas partidas, autocorrecoes
 substituidas, risadas, conversas laterais, problemas tecnicos ou devaneios
 claramente fora do contexto. Mantenha explicacoes, exemplos, repeticoes
-didaticas e qualquer duvida. Use o audio para identificar risadas e conversas
-que nao aparecem na transcricao.
+didaticas e qualquer duvida. """ + contexto_audio + """
 
 FALAS DE BASTIDOR DEVEM SER DESCARTADAS, nao marcadas para revisao: comentarios
 para si/equipe sobre encontrar um gancho, roteiro, edicao, gravacao, proxima
@@ -449,6 +460,57 @@ descarte: coloque-o em "review" para o editor revisar no Premiere.
 Responda APENAS JSON valido: {"discard":[{"i":0,"reason":"erro|falsa_partida|autocorrecao|risada|conversa_lateral|devaneio|problema_tecnico|comentario_bastidor"}],"review":[{"i":0,"reason":"duvida_editorial"}]}.
 Use somente os indices existentes; nunca invente timestamps ou indices.
 Transcricao:\n""" + json.dumps(transcricao, ensure_ascii=False)
+
+
+def _decisao_de_resposta_editorial(
+    resposta_texto: str, segmentos: list[dict], provedor: str,
+) -> EditorialDecision:
+    bruto = json.loads(resposta_texto)
+    _validar_indices_resposta(bruto, set(range(len(segmentos))))
+    motivos: dict[int, str] = {}
+    revisoes: dict[int, str] = {}
+    for item in bruto.get("discard", []):
+        indice, motivo = int(item["i"]), str(item["reason"])
+        if indice in range(len(segmentos)) and motivo in MOTIVOS_CORTE_PERMITIDOS:
+            motivos[indice] = motivo
+    for item in bruto.get("review", []):
+        indice = int(item["i"])
+        if indice in range(len(segmentos)) and indice not in motivos:
+            revisoes[indice] = "duvida_editorial"
+    return EditorialDecision(set(motivos), motivos, set(revisoes), revisoes)
+
+
+def _decidir_cortes_textuais_completos(
+    segmentos: list[dict], provedor: str,
+) -> EditorialDecision:
+    """Aplica o contrato completo quando o provedor so aceita texto."""
+    global ULTIMO_DIAGNOSTICO
+    prompt = _prompt_revisao_editorial(_transcricao_editorial(segmentos), incluir_audio=False)
+    ULTIMO_DIAGNOSTICO = {
+        "mode": f"{provedor}_text", "provider": provedor,
+        "input_segments": len(segmentos), "audio_available": False,
+    }
+    try:
+        decisao = _decisao_de_resposta_editorial(
+            solicitar_json_textual(prompt, provedor), segmentos, provedor,
+        )
+        ULTIMO_DIAGNOSTICO.update({
+            "status": "ok", "model": _modelo_textual_atual(provedor),
+            "discarded": len(decisao.discard_indexes), "review": len(decisao.review_indexes),
+        })
+        return decisao
+    except (GeminiReviewError, NvidiaReviewError, KeyError, TypeError, ValueError, json.JSONDecodeError) as exc:
+        ULTIMO_DIAGNOSTICO.update({"status": "failed", "error": str(exc)[:1000]})
+        logger.error("%s nao concluiu a revisao textual completa: %s", provedor.capitalize(), exc)
+        return EditorialDecision(set(), {})
+
+
+def _decidir_cortes_com_gemini(
+    segmentos: list[dict], audio_path: str
+) -> EditorialDecision:
+    """Usa audio e transcricao para detectar eventos que texto nao revela."""
+    transcricao = _transcricao_editorial(segmentos)
+    prompt = _prompt_revisao_editorial(transcricao, incluir_audio=True)
     global ULTIMO_DIAGNOSTICO
     ULTIMO_DIAGNOSTICO = {
         "mode": "gemini_audio", "input_segments": len(segmentos),
@@ -456,30 +518,15 @@ Transcricao:\n""" + json.dumps(transcricao, ensure_ascii=False)
     }
     try:
         resposta_texto = _gemini_audio_request(prompt, audio_path)
-        bruto = json.loads(resposta_texto)
-        _validar_indices_resposta(bruto, set(range(len(segmentos))))
-        motivos_permitidos = {
-            "erro", "falsa_partida", "autocorrecao", "risada",
-            "conversa_lateral", "devaneio", "problema_tecnico", "comentario_bastidor",
-        }
-        motivos: dict[int, str] = {}
-        revisoes: dict[int, str] = {}
-        for item in bruto.get("discard", []):
-            indice, motivo = int(item["i"]), str(item["reason"])
-            if 0 <= indice < len(segmentos) and motivo in motivos_permitidos:
-                motivos[indice] = motivo
-        for item in bruto.get("review", []):
-            indice = int(item["i"])
-            if 0 <= indice < len(segmentos) and indice not in motivos:
-                revisoes[indice] = "duvida_editorial"
+        decisao = _decisao_de_resposta_editorial(resposta_texto, segmentos, "gemini")
         ULTIMO_DIAGNOSTICO.update({
-            "status": "ok", "gemini_discarded": len(motivos),
-            "gemini_review": len(revisoes),
+            "status": "ok", "gemini_discarded": len(decisao.discard_indexes),
+            "gemini_review": len(decisao.review_indexes),
             "gemini_model_used": ULTIMO_MODELO_GEMINI_USADO or GEMINI_MODEL,
             "gemini_response": resposta_texto,
         })
-        logger.info("Gemini multimodal sugeriu %d corte(s).", len(motivos))
-        return EditorialDecision(set(motivos), motivos, set(revisoes), revisoes)
+        logger.info("Gemini multimodal sugeriu %d corte(s).", len(decisao.discard_indexes))
+        return decisao
     except (GeminiReviewError, KeyError, TypeError, ValueError, json.JSONDecodeError) as exc:
         ULTIMO_DIAGNOSTICO.update({"status": "failed", "error": str(exc)})
         logger.error("Gemini multimodal falhou; nenhum corte semantico foi liberado: %s", exc)
@@ -910,7 +957,7 @@ def _nvidia_request(prompt: str) -> str:
             {"role": "system", "content": "Responda somente ao JSON solicitado, sem texto adicional."},
             {"role": "user", "content": prompt},
         ],
-        "temperature": 1,
+        "temperature": 0,
         "max_tokens": 16384,
         "seed": 0,
         "stream": False,
