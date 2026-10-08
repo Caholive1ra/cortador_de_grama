@@ -7,6 +7,18 @@ __pycache__/
 .pytest-*/
 .mypy_cache/
 .env
+.env.*
+!.env.example
+# Credenciais e certificados locais. Use apenas arquivos de exemplo versionados.
+*.pem
+*.key
+*.pfx
+*.p12
+
+# Arquivos gerados durante o processamento e diagnósticos locais.
+*_diagnostico*.json
+*_lettering_sugerido_*.json
+*_cortado_*.xml
 *.log
 *video/
 backend/learning_data/

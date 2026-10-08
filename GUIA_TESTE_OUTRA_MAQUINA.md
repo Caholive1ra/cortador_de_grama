@@ -89,19 +89,26 @@ ollama pull qwen2.5:3b
 
 Deixe o Ollama em execucao. O backend usa `http://127.0.0.1:11434` e o modelo `qwen2.5:3b` por padrao. Eles podem ser alterados pelas variaveis de ambiente `OLLAMA_URL` e `OLLAMA_MODEL` antes de iniciar o backend.
 
-### 4.2 Configurar o aprovador final Gemini
+### 4.2 Configurar os revisores remotos (Gemini e NVIDIA)
 
-O Gemini revisa o audio e a transcricao. Crie uma chave nova no Google AI Studio
-e configure-a em um arquivo local, sem coloca-la no codigo:
+O Gemini revisa o audio e a transcricao. Quando ele estiver indisponivel, o
+backend pode usar o NVIDIA NIM com Kimi K3 como alternativa textual. Crie as
+chaves necessarias nos respectivos provedores e configure-as em um arquivo
+local, sem coloca-las no codigo:
 
 ```powershell
 Copy-Item .env.example .env
 notepad .env
 ```
 
-No arquivo `.env`, preencha `GEMINI_API_KEY` com a chave nova. O `.gitignore`
-ja impede que esse arquivo seja enviado ao Git. Sem a chave, o backend continua
-funcionando, mas bloqueia cortes semanticos por seguranca.
+No arquivo `.env`, preencha `GEMINI_API_KEY` com a chave nova. Para habilitar
+o fallback NVIDIA, preencha tambem `NVIDIA_API_KEY` somente com o valor da
+chave, sem o prefixo `Bearer `. O `.gitignore` ja impede que esse arquivo seja
+enviado ao Git. Sem chaves remotas, o backend continua funcionando com os
+recursos locais, mas a revisao semantica pode ser mais limitada.
+
+Nunca envie chaves por e-mail, chat, print ou GitHub. Se uma chave aparecer em
+qualquer um desses lugares, revogue-a no provedor e gere uma nova.
 
 ## 5. Iniciar o backend
 
