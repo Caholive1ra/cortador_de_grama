@@ -168,11 +168,20 @@ def _validar_decisao_semantica(
             "Revisor semantico sugeriu remover toda a fala; decisao ignorada por seguranca."
         )
         return EditorialDecision(set(), {})
-    return EditorialDecision(indices_validos, {
+    motivos = {
         indice: motivo
         for indice, motivo in decisao.reasons.items()
         if indice in indices_validos
-    })
+    }
+    revisoes_validas = {
+        indice for indice in getattr(decisao, "review_indexes", set())
+        if 0 <= indice < len(segmentos) and indice not in indices_validos
+    }
+    motivos_revisao = {
+        indice: motivo for indice, motivo in getattr(decisao, "review_reasons", {}).items()
+        if indice in revisoes_validas
+    }
+    return EditorialDecision(indices_validos, motivos, revisoes_validas, motivos_revisao)
 
 
 def _normalizar_texto(texto: str) -> str:

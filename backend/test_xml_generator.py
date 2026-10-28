@@ -190,6 +190,25 @@ def test_adiciona_marcador_para_trecho_com_duvida_da_ia(tmp_path) -> None:
     assert (marcador.findtext("in"), marcador.findtext("out")) == ("0", "90")
 
 
+def test_adiciona_tags_de_corte_agrupadas_por_motivo(tmp_path) -> None:
+    path = tmp_path / "tags_corte.xml"
+    gerar_fcp_xml(
+        [
+            {"start": 0.0, "end": 1.0, "enabled": False, "reason": "falsa_partida", "text": "Primeira tentativa."},
+            {"start": 1.0, "end": 2.0, "enabled": False, "reason": "falsa_partida", "text": "Repetida."},
+            {"start": 2.0, "end": 3.0, "enabled": False, "reason": "tosse", "text": "Cof cof."},
+        ],
+        _fontes()[:1], str(path), 30.0, 3.0,
+    )
+    marcadores = ET.parse(path).getroot().findall("./sequence/marker")
+    assert [marcador.findtext("name") for marcador in marcadores] == [
+        "CORTE: REPETIÇÃO", "CORTE: TOSSE",
+    ]
+    assert [(marcador.findtext("in"), marcador.findtext("out")) for marcador in marcadores] == [
+        ("0", "60"), ("60", "90"),
+    ]
+
+
 def test_adiciona_marcador_de_lettering_sem_alterar_o_video(tmp_path) -> None:
     path = tmp_path / "lettering.xml"
     gerar_fcp_xml(

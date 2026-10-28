@@ -170,6 +170,7 @@ def gerar_fcp_xml(
                         _vincular_clipes(video_clip, video_track, video_index,
                                          clip_audio, indice_audio, len(trilha_audio.findall("clipitem")))
 
+        _adicionar_marcadores_corte(sequencia, segmentos, fps)
         _adicionar_marcadores_revisao(sequencia, segmentos, fps)
         _adicionar_marcadores_lettering(sequencia, lettering_suggestions or [], fps)
 
@@ -185,6 +186,51 @@ def gerar_fcp_xml(
     except Exception:
         logger.error("Falha ao gerar XML em %s.\n%s", output_path, traceback.format_exc())
         raise
+
+
+def gerar_fcp_xml_abertura(trechos: list[dict], fonte: dict, output_path: str, fps: float) -> str:
+    """Gera uma sequencia condensada; os in/out leem a fonte nos tempos originais."""
+    if not trechos:
+        raise ValueError("Nenhuma fala foi selecionada para a abertura.")
+    from opening_highlights import validar_trechos
+    validar_trechos(trechos)
+    if any(float(t["end"]) > float(fonte["duration"]) for t in trechos):
+        raise ValueError("Take ultrapassa a duração da fonte.")
+    raiz = ET.Element("xmeml", version="4")
+    sequencia = ET.SubElement(raiz, "sequence")
+    ET.SubElement(sequencia, "name").text = "Abertura_Videocast_Sugerida"
+    duracao = sum(float(t["end"]) - float(t["start"]) for t in trechos)
+    ET.SubElement(sequencia, "duration").text = str(seconds_to_frames(duracao, fps))
+    _adicionar_rate(sequencia, fps)
+    media = ET.SubElement(sequencia, "media")
+    video = ET.SubElement(media, "video")
+    _adicionar_format_video(video, fps, fonte["width"], fonte["height"])
+    trilha_video = ET.SubElement(video, "track")
+    audio = ET.SubElement(media, "audio")
+    _adicionar_format_audio(audio)
+    trilha_audio = ET.SubElement(audio, "track")
+    cursor, declarado = 0, False
+    for indice, trecho in enumerate(trechos):
+        origem_inicio = seconds_to_frames(float(trecho["start"]), fps)
+        origem_fim = seconds_to_frames(float(trecho["end"]), fps)
+        tamanho = origem_fim - origem_inicio
+        for trilha, tipo, prefixo in ((trilha_video, "video", "video"), (trilha_audio, "audio", "audio")):
+            clip = _adicionar_clipitem(trilha, f"{prefixo}_abertura_{indice}", fonte["name"], cursor, cursor + tamanho,
+                                      tipo, fps, True, source_track_index=1 if tipo == "audio" else None,
+                                      source_start=origem_inicio, source_end=origem_fim)
+            _adicionar_arquivo(clip, "file_abertura", fonte, fps, declarar=not declarado)
+            declarado = True
+        declarado = True
+        marcador = ET.SubElement(sequencia, "marker")
+        ET.SubElement(marcador, "name").text = "ABERTURA: " + str(trecho["text"])[:70]
+        ET.SubElement(marcador, "comment").text = "Fala original em %.1fs" % float(trecho["start"])
+        ET.SubElement(marcador, "in").text = str(cursor)
+        ET.SubElement(marcador, "out").text = str(cursor + tamanho)
+        cursor += tamanho
+    sequencia.find("duration").text = str(cursor)
+    with open(output_path, "w", encoding="utf-8", newline="\n") as arquivo_xml:
+        arquivo_xml.write(_serializar_xmeml(raiz))
+    return os.path.abspath(output_path)
 
 
 def _cobre_segmento(fonte: dict, inicio: int, fim: int, fps: float) -> bool:
@@ -292,6 +338,67 @@ def _adicionar_marcadores_revisao(
         ET.SubElement(marcador, "out").text = str(
             seconds_to_frames(float(segmento["end"]), fps)
         )
+
+
+def _adicionar_marcadores_corte(
+    sequencia: ET.Element, segmentos: list[dict], fps: float,
+) -> None:
+    """Identifica visualmente cada intervalo desabilitado na timeline.
+
+    O XMEML preserva nome, comentario e duracao do marcador. Ao importar pelo
+    painel UXP, esses mesmos nomes recebem uma cor por categoria no Premiere.
+    """
+    grupos: list[dict] = []
+    for segmento in segmentos:
+        habilitado = bool(segmento.get("enabled", segmento.get("track") != "V1"))
+        if habilitado:
+            continue
+        motivo = str(segmento.get("reason") or "corte")
+        if (
+            grupos
+            and grupos[-1]["reason"] == motivo
+            and abs(float(grupos[-1]["end"]) - float(segmento["start"])) < 0.05
+        ):
+            grupos[-1]["end"] = segmento["end"]
+            grupos[-1]["text"] += " " + str(segmento.get("text", ""))
+        else:
+            grupos.append({
+                "start": segmento["start"], "end": segmento["end"],
+                "reason": motivo, "text": str(segmento.get("text", "")),
+            })
+
+    for grupo in grupos:
+        rotulo = _rotulo_motivo_corte(grupo["reason"])
+        marcador = ET.SubElement(sequencia, "marker")
+        ET.SubElement(marcador, "name").text = "CORTE: " + rotulo
+        ET.SubElement(marcador, "comment").text = (
+            "Motivo detectado: " + grupo["reason"].replace("_", " ")
+            + ". Trecho: " + grupo["text"][:500]
+        )
+        ET.SubElement(marcador, "in").text = str(
+            seconds_to_frames(float(grupo["start"]), fps)
+        )
+        ET.SubElement(marcador, "out").text = str(
+            seconds_to_frames(float(grupo["end"]), fps)
+        )
+
+
+def _rotulo_motivo_corte(motivo: str) -> str:
+    """Converte o motivo interno em uma tag curta para o editor."""
+    return {
+        "falsa_partida": "REPETIÇÃO",
+        "autocorrecao": "REPETIÇÃO",
+        "tosse": "TOSSE",
+        "risada": "RISADA",
+        "silencio": "SILÊNCIO",
+        "erro": "ERRO DE FALA",
+        "fala_inadequada": "FALA INADEQUADA",
+        "conversa_lateral": "CONVERSA LATERAL",
+        "devaneio": "DESVIO DE ASSUNTO",
+        "problema_tecnico": "PROBLEMA TÉCNICO",
+        "comentario_bastidor": "BASTIDOR",
+        "comando_de_corte": "COMANDO DE CORTE",
+    }.get(motivo, "CORTE")
 
 
 def _adicionar_marcadores_lettering(

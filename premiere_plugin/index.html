@@ -21,16 +21,30 @@
       input[type="button"], button { color:white; background:#3d8bfd; cursor:pointer; }
       input[type="button"]:hover, button:hover { background:#5aa0ff; }
       #btnLettering { background:#7954d8; }
+      #btnAbertura { background:#d14670; }
+      #btnAuditar { background:#c75b22; }
       .opcao { display:block; margin-top:12px; font-size:13px; }
       .opcao input { width:auto; min-height:auto; margin:0 6px 0 0; vertical-align:middle; }
       .aviso { margin:5px 0 0; color:#c4c4c4; font-size:11px; }
       #btnModoEconomico { display:none; background:#c46b13; }
       #btnModoEconomico.visivel { display:block; }
+      #btnCancelarTarefa { display:none; background:#8a3743; }
+      #btnCancelarTarefa.visivel { display:block; }
       #btnTentarNovamente { display:none; background:#4c4c4c; }
       #btnTentarNovamente.visivel { display:block; }
       #audioFollowsCameraOption { display:none; }
       #audioFollowsCameraOption.visivel { display:block; }
       #statusText { padding:10px; color:#bbb; background:#2a2a2a; border-radius:6px; }
+      .fila-resumo { margin:-3px 0 14px; padding:10px; background:#202020; border:1px solid #3d3d3d; border-radius:8px; }
+      .fila-resumo h2 { margin:0 0 7px; font-size:13px; color:#d7d7d7; }
+      .job-lista { display:grid; gap:8px; }
+      .job-item { padding:10px; background:#202020; border-left:4px solid #666; border-radius:5px; }
+      .job-item.running { border-color:#35bd72; } .job-item.queued { border-color:#ed145b; }
+      .job-item.failed, .job-item.interrupted { border-color:#e18d32; }
+      .job-titulo { display:block; color:#fff; font-size:12px; font-weight:bold; }
+      .job-detalhe { display:block; margin-top:4px; color:#bbb; font-size:11px; line-height:1.35; }
+      .job-acoes { display:flex; gap:6px; margin-top:7px; }
+      .job-acoes button { width:auto; min-height:28px; margin:0; padding:4px 8px; font-size:11px; background:#4c4c4c; }
       .abas { display:flex; gap:6px; margin:0 0 14px; padding:4px; background:#202020; border:1px solid #3d3d3d; border-radius:9px; }
       .aba { flex:1; width:auto; min-height:36px; margin:0; padding:7px 5px; color:#c4c4c4; background:transparent; border:0; border-radius:6px; font-size:12px; }
       .aba:hover { background:#333; }
@@ -40,6 +54,27 @@
       .tutorial strong { display:block; color:#fff; margin-bottom:3px; }
       .tutorial ol { margin:4px 0 0 18px; padding:0; }
       .tab-acao-secundaria { background:#4c4c4c; }
+      .aprendizado-fluxo { display:flex; gap:8px; margin:12px 0; }
+      .aprendizado-passo { flex:1; padding:9px; border-radius:7px; background:#202020; color:#cfcfcf; font-size:11px; line-height:1.35; }
+      .aprendizado-passo b { display:block; margin-bottom:3px; color:#fff; font-size:12px; }
+      .aprendizado-passo span { display:inline-block; width:18px; height:18px; margin-right:4px; border-radius:50%; background:#ed145b; color:#fff; text-align:center; line-height:18px; }
+      .aprendizado-sucesso { margin:10px 0; padding:10px; color:#d9f7e5; background:#173b2a; border-left:3px solid #35bd72; border-radius:5px; font-size:12px; line-height:1.45; }
+      .aprendizado-revisao { margin-top:12px; padding-top:12px; border-top:1px solid #454545; }
+      .aprendizado-pergunta { margin:10px 0; padding:12px; background:#202020; border-radius:7px; white-space:pre-wrap; font-size:13px; line-height:1.5; }
+      .linha-botoes { display:flex; gap:7px; }
+      .linha-botoes button { flex:1; }
+      .botao-perigo { background:#81404a !important; }
+      .botao-neutro { background:#4c4c4c !important; }
+      .aprendizado-avancado { margin-top:12px; color:#bbb; font-size:12px; }
+      .aprendizado-avancado summary { cursor:pointer; }
+      .aprendizado-avancado select, .aprendizado-avancado button { margin-top:8px; }
+      .popup-operacao { position:fixed; z-index:20; inset:0; display:flex; align-items:center; justify-content:center; padding:18px; background:rgba(0,0,0,.68); }
+      .popup-operacao[hidden] { display:none; }
+      .popup-conteudo { width:min(420px,100%); max-height:80vh; overflow:auto; padding:18px; border:1px solid #656565; border-radius:9px; background:#292929; box-shadow:0 12px 38px rgba(0,0,0,.55); }
+      .popup-conteudo h2 { color:#fff; }
+      .popup-conteudo p { margin:8px 0; color:#ddd; }
+      .popup-modelos { padding:10px; border-left:3px solid #ed145b; background:#202020; white-space:pre-wrap; font-size:12px; line-height:1.5; }
+      #btnFecharResumo { background:#ed145b; }
     </style>
   </head>
   <body>
@@ -62,55 +97,108 @@
         <p class="aviso">Se o Gemini estiver configurado, essa opcao envia o audio para um servico externo.</p>
         <label class="opcao"><input id="economicMode" type="checkbox" /> Modo economico de IA</label>
         <label class="opcao" id="audioFollowsCameraOption"><input id="audioFollowsCamera" type="checkbox" /> Áudio acompanha a câmera</label>
-        <p class="aviso">Sem esta opção, vídeos acima de 20 minutos usam o modo econômico automaticamente. Marque para usá-lo sempre.</p>
+        <p class="aviso">Use somente se quiser análise textual mais rápida. Sem esta opção, o sistema sempre analisa o áudio completo.</p>
         <button id="btnProcessar" type="button">Selecionar fontes e processar</button>
         <button id="btnTentarNovamente" type="button" title="Repete o processamento com os mesmos caminhos e opções da última tentativa.">Tentar novamente</button>
       </section>
+      <section class="fila-resumo" id="centralTarefas">
+        <h2>Fila de tarefas</h2>
+        <div id="jobList" class="job-lista">Carregando fila...</div>
+      </section>
+      <section class="bloco">
+        <h2>Abertura de videocast</h2>
+        <p>Cria uma abertura de 30 a 40 segundos com 2 a 4 falas completas, conectadas por um tema e sem repetir takes.</p>
+        <p class="aviso">A transcrição é local. A IA avalia os blocos do episódio e monta a abertura com contexto. A seleção envia texto aos provedores configurados; o Ollama é a alternativa local.</p>
+        <button id="btnAbertura" type="button">Selecionar render e criar abertura</button>
+      </section>
       <section class="bloco">
         <h2>Indicar letterings</h2>
+        <p>Textos de até 4 palavras, selecionados pelo contexto da aula. Siglas recebem indicação a cada menção.</p>
+        <label class="opcao" for="letteringContext">Contexto do curso e glossário (opcional)</label>
+        <textarea id="letteringContext" maxlength="12000" style="width:100%;min-height:90px"
+          placeholder="Tema, público, objetivo da aula, roteiro e significados confirmados das siglas"></textarea>
+        <p class="aviso">Selecione um render completo da sequência final, desde o início e sem alterar os tempos. Você pode continuar editando outras sequências: os marcadores serão inseridos nesta sequência ao final. A análise usa a fala editada; slides e textos já na imagem precisam de conferência visual.</p>
         <p>Indique a sequência revisada pelo humano para encontrar os pontos que precisam de texto.</p>
-        <button id="btnLettering" type="button">Selecionar sequência e indicar letterings</button>
+        <button id="btnLettering" data-task="lettering" type="button">Selecionar sequência e indicar letterings</button>
       </section>
       <section class="bloco">
-        <h2>Aprender com a edição</h2>
-        <p>Compare o XML criado pela IA com o XML exportado da sequência final. Nenhum vídeo ou áudio é copiado.</p>
-        <button id="btnAprender" type="button">Selecionar XMLs e registrar feedback</button>
-        <p class="aviso">As diferenças ficam pendentes até você confirmar o motivo. O histórico ainda não altera os cortes automaticamente.</p>
-        <button id="btnBanco" type="button">Consultar banco e revisar correções</button>
-        <p id="bankSummary" class="aviso"></p>
-        <select id="feedbackRecord" aria-label="Edição registrada"><option value="">Escolha uma edição</option></select>
-        <button id="btnAbrirFeedback" type="button">Abrir edição selecionada</button>
-        <p id="feedbackDetails"></p>
-        <p id="exampleText" style="white-space:pre-wrap"></p>
-        <button id="btnExamplePrev" type="button">Alteração anterior</button>
-        <button id="btnExampleNext" type="button">Próxima alteração</button>
-        <select id="feedbackReason" aria-label="Motivo da sua correção">
-          <option value="">Escolha o motivo</option>
-          <option value="erro_fala">Erro de fala</option>
-          <option value="retake">Tomada substituída por regravação</option>
-          <option value="bastidor">Conversa de bastidor</option>
-          <option value="conteudo_util">Conteúdo útil ou repetição didática</option>
-          <option value="duracao">Redução de duração</option>
-          <option value="preferencia_projeto">Preferência deste projeto</option>
-          <option value="ajuste_limite">Ajuste fino do limite do corte</option>
-          <option value="outro">Outro motivo</option>
-        </select>
-        <textarea id="feedbackNote" maxlength="2000" placeholder="Observação opcional: por que você alterou este trecho?" style="width:100%;min-height:64px;margin-top:10px"></textarea>
-        <button id="btnConfirmExample" type="button">Confirmar motivo desta alteração</button>
-        <button id="btnExcludeExample" type="button">Excluir esta alteração do aprendizado</button>
-        <button id="btnPendingExample" type="button">Voltar esta alteração para pendente</button>
-        <select id="feedbackRole" aria-label="Uso desta edição">
-          <option value="reference">Referência para aprendizado futuro</option>
-          <option value="benchmark">Reservar para avaliação</option>
-          <option value="archived">Arquivar esta versão</option>
-        </select>
-        <button id="btnSaveRole" type="button">Salvar uso desta edição</button>
-        <button id="btnEvaluate" type="button">Comparar novo XML com esta edição final</button>
-        <p id="evaluationResult" style="white-space:pre-wrap"></p>
+        <h2>Ensinar com esta edição</h2>
+        <p>Depois de editar, deixe a sua sequência final aberta. Vamos comparar suas escolhas com a primeira sugestão da IA.</p>
+        <div class="aprendizado-fluxo" aria-label="Como funciona">
+          <div class="aprendizado-passo"><b><span>1</span>Sequência aberta</b>Deixe a versão final ativa.</div>
+          <div class="aprendizado-passo"><b><span>2</span>Escolha o original</b>Selecione o XML da IA.</div>
+          <div class="aprendizado-passo"><b><span>3</span>Confirme</b>Diga por que você mudou.</div>
+        </div>
+        <button id="btnAprender" type="button">Comparar minha edição com a IA</button>
+        <p class="aviso">O painel exporta a sequência ativa automaticamente. Nenhum vídeo ou áudio é copiado.</p>
+        <p id="learningResult" class="aprendizado-sucesso" hidden></p>
+
+        <div class="aprendizado-revisao">
+          <button id="btnBanco" class="tab-acao-secundaria" type="button">Ver correções para confirmar</button>
+          <div id="learningReview" hidden>
+            <p id="bankSummary" class="aviso"></p>
+            <label class="opcao" for="feedbackRecord">Escolha uma edição salva</label>
+            <select id="feedbackRecord" aria-label="Edição registrada"><option value="">Escolha uma edição</option></select>
+            <button id="btnAbrirFeedback" class="tab-acao-secundaria" type="button">Abrir correções desta edição</button>
+          </div>
+        </div>
+
+        <div id="feedbackWorkspace" hidden>
+          <p id="feedbackDetails" class="aviso"></p>
+          <p id="exampleText" class="aprendizado-pergunta"></p>
+          <div class="linha-botoes">
+            <button id="btnExamplePrev" class="botao-neutro" type="button">Anterior</button>
+            <button id="btnExampleNext" class="botao-neutro" type="button">Próxima</button>
+          </div>
+          <label class="opcao" for="feedbackReason">Por que esta mudança foi necessária?</label>
+          <select id="feedbackReason" aria-label="Motivo da sua correção">
+            <option value="">Escolha um motivo</option>
+            <option value="erro_fala">Erro de fala</option>
+            <option value="retake">Tomada substituída por regravação</option>
+            <option value="bastidor">Conversa de bastidor</option>
+            <option value="conteudo_util">Conteúdo útil ou repetição didática</option>
+            <option value="duracao">Redução de duração</option>
+            <option value="preferencia_projeto">Preferência deste projeto</option>
+            <option value="ajuste_limite">Ajuste fino do limite do corte</option>
+            <option value="outro">Outro motivo</option>
+          </select>
+          <button id="btnConfirmExample" type="button">Usar esta correção para ensinar</button>
+          <div class="linha-botoes">
+            <button id="btnExcludeExample" class="botao-perigo" type="button">Não usar esta correção</button>
+            <button id="btnPendingExample" class="botao-neutro" type="button">Decidir depois</button>
+          </div>
+          <details class="aprendizado-avancado">
+            <summary>Mais opções</summary>
+            <textarea id="feedbackNote" maxlength="2000" placeholder="Observação opcional sobre esta correção" style="width:100%;min-height:64px;margin-top:10px"></textarea>
+            <select id="feedbackRole" aria-label="Uso desta edição">
+              <option value="reference">Usar como referência futura</option>
+              <option value="benchmark">Reservar para avaliação</option>
+              <option value="archived">Arquivar esta edição</option>
+            </select>
+            <button id="btnSaveRole" class="tab-acao-secundaria" type="button">Salvar esta opção</button>
+            <button id="btnEvaluate" class="tab-acao-secundaria" type="button">Comparar outro XML com esta edição</button>
+            <p id="evaluationResult" style="white-space:pre-wrap"></p>
+          </details>
+        </div>
+      </section>
+      <section class="bloco">
+        <h2>Auditar edição final</h2>
+        <p>Depois da sua revisão, escolha o render final. A auditoria marca possíveis problemas de áudio, imagem, continuidade, repetição, conteúdo e jump cuts.</p>
+        <button id="btnAuditar" data-task="audit" type="button">Auditar sequência final</button>
+        <p class="aviso">O XML desta sequência é exportado para leitura; você pode continuar editando outra enquanto a auditoria roda. Os marcadores voltarão para esta sequência, sem alterar mídia, corte ou efeito. Jump cuts sem mudança de escala aparecem em vermelho.</p>
       </section>
       <p id="statusText">Aguardando...</p>
+      <button id="btnCancelarTarefa" type="button">Cancelar tarefa atual</button>
       <button id="btnModoEconomico" type="button">Processar esta aula no modo economico</button>
     </main>
+    <div id="operationPopup" class="popup-operacao" role="dialog" aria-modal="true" aria-labelledby="operationPopupTitle" hidden>
+      <div class="popup-conteudo">
+        <h2 id="operationPopupTitle">Operação concluída</h2>
+        <p id="operationPopupMessage"></p>
+        <div id="operationPopupSummary" class="popup-modelos"></div>
+        <button id="btnFecharResumo" type="button">Fechar</button>
+      </div>
+    </div>
     <script src="main.js"></script>
   </body>
 </html>

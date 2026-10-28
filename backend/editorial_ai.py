@@ -14,6 +14,8 @@ import re
 import ssl
 import time
 import unicodedata
+from contextlib import contextmanager
+from contextvars import ContextVar
 from dataclasses import dataclass, field
 from difflib import SequenceMatcher
 from pathlib import Path
@@ -37,32 +39,67 @@ OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "qwen2.5:3b")
 GEMINI_API_KEY = (os.getenv("GEMINI_API_KEY") or "").strip()
 NVIDIA_API_KEY = (os.getenv("NVIDIA_API_KEY") or "").strip()
 NVIDIA_BASE_URL = os.getenv("NVIDIA_BASE_URL", "https://integrate.api.nvidia.com/v1").rstrip("/")
-# Fallback textual Kimi hospedado pela NVIDIA; nao reutiliza a chave Groq.
-NVIDIA_MODEL = os.getenv("NVIDIA_MODEL", "moonshotai/kimi-k3")
-NVIDIA_REASONING_EFFORT = os.getenv("NVIDIA_REASONING_EFFORT", "max")
-# gemini-2.5-flash foi aposentado para novas contas. Comecamos por modelos
-# atuais, deixando uma variante Lite como rota de menor demanda.
-GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.5-flash")
+# Fallback textual hospedado pela NVIDIA; nao reutiliza a chave Groq.
+# GPT-OSS entende instrucao, raciocinio e JSON estruturado; Kimi K3 foi descontinuado
+# no catalogo NVIDIA, portanto nao deve voltar a ser o padrao.
+NVIDIA_MODEL = os.getenv("NVIDIA_MODEL", "openai/gpt-oss-20b")
+# Revisao editorial e uma classificacao estruturada, nao uma tarefa de
+# raciocinio aberto. "low" evita gastar milhares de tokens internos antes de
+# devolver o JSON. Pode ser sobrescrito no .env caso necessario.
+NVIDIA_REASONING_EFFORT = os.getenv("NVIDIA_REASONING_EFFORT", "low")
+# Gemma usa a mesma chave Google, mas apenas a rota textual: a variante A4B
+# nao recebe WAV nesta integracao.
+GEMMA_MODEL = os.getenv("GEMMA_MODEL", "gemma-4-26b-a4b-it")
+# Cadeia curta: os tres Gemini recebem audio; Gemma e NVIDIA entram depois
+# como revisores textuais completos.
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.8-flash")
 GEMINI_FALLBACK_MODELS = tuple(
     modelo.strip()
     for modelo in os.getenv(
-        "GEMINI_FALLBACK_MODELS", "gemini-3.5-flash-lite,gemini-3.6-flash"
+        "GEMINI_FALLBACK_MODELS",
+        "gemini-3.5-flash,gemini-3.6-flash",
     ).split(",")
     if modelo.strip()
 )
 GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models"
 MAX_SEGMENTOS_POR_LOTE = 45
-MAX_TENTATIVAS_JSON_POR_MODELO = 2
+# Duas chamadas no maximo por modelo: a inicial e uma repeticao transitoria.
+# Uma resposta HTTP 200 com JSON invalido libera imediatamente o proximo modelo.
+MAX_TENTATIVAS_JSON_POR_MODELO = 1
+MAX_TENTATIVAS_REMOTAS_POR_MODELO = 2
+# A primeira chamada nao recebe teto reduzido: ela e a analise completa que
+# preserva qualidade. O teto abaixo vale somente para a SEGUNDA tentativa,
+# quando a primeira ja provou que o provedor esta instavel.
+TIMEOUT_SEGUNDA_TENTATIVA_SEGUNDOS = int(os.getenv("TIMEOUT_SEGUNDA_TENTATIVA_SEGUNDOS", "60"))
+# FallBacks sem audio sao divididos por tempo para que Gemma/Kimi nao recebam
+# uma aula inteira (dezenas de milhares de tokens) em um unico pedido.
+SEGUNDOS_POR_LOTE_TEXTUAL_COMPLETO = int(os.getenv("SEGUNDOS_POR_LOTE_TEXTUAL_COMPLETO", "420"))
+COOLDOWN_PROVEDOR_INDISPONIVEL_SEGUNDOS = int(os.getenv("COOLDOWN_PROVEDOR_INDISPONIVEL_SEGUNDOS", "600"))
 MAX_CANDIDATOS_ECONOMICOS = 72
 TAMANHO_LOTE_ECONOMICO = 30
 CONTEXTO_ECONOMICO = 2
+# Cada processamento instala seu proprio contexto. O limite conta chamadas de
+# geracao efetivamente enviadas (inclusive repeticoes transitórias), e nao
+# diagnosticos nem a transcricao local.
+LIMITE_CHAMADAS_REMOTAS_POR_JOB = int(os.getenv("LIMITE_CHAMADAS_REMOTAS_POR_JOB", "10"))
+_CHAMADAS_REMOTAS_PERMITIDAS: ContextVar[bool] = ContextVar(
+    "chamadas_remotas_permitidas", default=True
+)
+_ORCAMENTO_CHAMADAS_REMOTAS: ContextVar[int | None] = ContextVar(
+    "orcamento_chamadas_remotas", default=None
+)
 ULTIMO_DIAGNOSTICO: dict[str, object] = {"mode": "not_started"}
 ULTIMO_MODELO_GEMINI_USADO: str | None = None
 ULTIMO_MODELO_GEMINI_TEXTUAL_USADO: str | None = None
+ULTIMO_MODELO_GEMMA_USADO: str | None = None
 ULTIMO_MODELO_NVIDIA_USADO: str | None = None
+# Estado somente em memoria do backend. Um 503 recente nao deve fazer cada
+# video novo desperdiçar minutos tentando o mesmo modelo congestionado.
+MODELOS_EM_COOLDOWN_ATE: dict[str, float] = {}
 MOTIVOS_CORTE_PERMITIDOS = [
     "erro", "falsa_partida", "autocorrecao", "risada",
-    "conversa_lateral", "devaneio", "problema_tecnico", "comentario_bastidor",
+    "tosse", "fala_inadequada", "conversa_lateral", "devaneio",
+    "problema_tecnico", "comentario_bastidor",
 ]
 
 
@@ -78,8 +115,49 @@ class NvidiaReviewError(RuntimeError):
     """O revisor textual NVIDIA nao pode ser usado de forma confiavel."""
 
 
+class GemmaReviewError(RuntimeError):
+    """O revisor textual Gemma nao pode ser usado de forma confiavel."""
+
+
 class LayaReviewError(RuntimeError):
     """O classificador local Laya nao pode ser usado de forma confiavel."""
+
+
+class RemoteCallLimitError(RuntimeError):
+    """O job atingiu o teto de chamadas remotas configurado."""
+
+
+@contextmanager
+def limitar_chamadas_remotas(permitir_remotas: bool, limite: int | None = None):
+    """Delimita a politica de custo de um unico processamento editorial."""
+    token_permissao = _CHAMADAS_REMOTAS_PERMITIDAS.set(permitir_remotas)
+    token_orcamento = _ORCAMENTO_CHAMADAS_REMOTAS.set(
+        (LIMITE_CHAMADAS_REMOTAS_POR_JOB if limite is None else limite)
+        if permitir_remotas else 0
+    )
+    try:
+        yield
+    finally:
+        _ORCAMENTO_CHAMADAS_REMOTAS.reset(token_orcamento)
+        _CHAMADAS_REMOTAS_PERMITIDAS.reset(token_permissao)
+
+
+def definir_diagnostico_editorial(diagnostico: dict[str, object]) -> None:
+    """Restaura um diagnostico salvo em cache, sem dados sensiveis."""
+    global ULTIMO_DIAGNOSTICO
+    ULTIMO_DIAGNOSTICO = dict(diagnostico)
+
+
+def _consumir_chamada_remota() -> None:
+    if not _CHAMADAS_REMOTAS_PERMITIDAS.get():
+        raise RemoteCallLimitError("Chamadas remotas estao desabilitadas para este material.")
+    restante = _ORCAMENTO_CHAMADAS_REMOTAS.get()
+    if restante is not None:
+        if restante <= 0:
+            raise RemoteCallLimitError(
+                "Limite de chamadas remotas do job atingido; continuando com Ollama local."
+            )
+        _ORCAMENTO_CHAMADAS_REMOTAS.set(restante - 1)
 
 
 def obter_diagnostico_editorial() -> dict[str, object]:
@@ -126,14 +204,25 @@ def decidir_cortes_semanticos(
 ) -> EditorialDecision:
     """Decide cortes com Gemini multimodal ou usa o fluxo local como fallback."""
     global ULTIMO_DIAGNOSTICO
+    # Materiais curtos seguem deliberadamente pela rota 100% local. Alem de
+    # evitar custo, isto impede que a aprovacao de retakes volte a acionar um
+    # provedor remoto depois da decisao inicial do Ollama.
+    if not _CHAMADAS_REMOTAS_PERMITIDAS.get():
+        logger.info("Revisao editorial local: chamadas remotas desabilitadas para este material.")
+        return _decidir_cortes_com_ollama(segmentos, aprovar_remotamente=False)
     if modo_economico:
-        for provedor in ("gemini", "nvidia"):
+        for provedor in ("gemini", "gemma", "nvidia"):
             if _provedor_configurado(provedor):
                 decisao = _decidir_cortes_economicos(segmentos, provedor)
                 if ULTIMO_DIAGNOSTICO.get("status") == "ok":
                     return _aplicar_retakes_explicitos(segmentos, decisao)
     if not modo_economico and GEMINI_API_KEY and audio_path:
         decisao = _decidir_cortes_com_gemini(segmentos, audio_path)
+        if ULTIMO_DIAGNOSTICO.get("status") == "ok":
+            return _aplicar_retakes_explicitos(segmentos, decisao)
+    if GEMINI_API_KEY and not modo_economico:
+        logger.info("Gemini nao concluiu a revisao; iniciando segunda revisao Gemma textual completa.")
+        decisao = _decidir_cortes_textuais_completos(segmentos, "gemma")
         if ULTIMO_DIAGNOSTICO.get("status") == "ok":
             return _aplicar_retakes_explicitos(segmentos, decisao)
     # Sem Gemini, a NVIDIA recebe a mesma transcricao completa e as mesmas
@@ -152,7 +241,18 @@ def decidir_cortes_semanticos(
     except LayaReviewError as exc:
         logger.warning("Laya indisponivel; seguindo para Ollama: %s", exc)
 
-    ULTIMO_DIAGNOSTICO = {"mode": "ollama", "ollama_model": OLLAMA_MODEL}
+    return _decidir_cortes_com_ollama(segmentos, aprovar_remotamente=True)
+
+
+def _decidir_cortes_com_ollama(
+    segmentos: list[dict], aprovar_remotamente: bool,
+) -> EditorialDecision:
+    """Executa a revisao local; a aprovacao remota e opcional por politica."""
+    global ULTIMO_DIAGNOSTICO
+    ULTIMO_DIAGNOSTICO = {
+        "mode": "ollama", "ollama_model": OLLAMA_MODEL,
+        "remote_approval": aprovar_remotamente,
+    }
     verificar_modelo_editorial()
     descartar: set[int] = set()
     motivos: dict[int, str] = {}
@@ -164,10 +264,15 @@ def decidir_cortes_semanticos(
                 descartar.add(inicio + indice)
                 motivos[inicio + indice] = motivo
     proposta = EditorialDecision(descartar, motivos)
-    aprovacao = _aprovar_proposta_com_gemini(segmentos, proposta)
+    aprovacao = (
+        _aprovar_proposta_com_gemini(segmentos, proposta)
+        if aprovar_remotamente else proposta
+    )
     logger.info(
-        "Revisao editorial: Ollama propos %d corte(s); Gemini aprovou %d.",
-        len(proposta.discard_indexes), len(aprovacao.discard_indexes),
+        "Revisao editorial: Ollama propos %d corte(s); %s %d.",
+        len(proposta.discard_indexes),
+        "Gemini aprovou" if aprovar_remotamente else "decisao local manteve",
+        len(aprovacao.discard_indexes),
     )
     return _aplicar_retakes_explicitos(segmentos, aprovacao)
 
@@ -351,7 +456,7 @@ Candidatos com contexto local:\n""" + json.dumps(
                 if indice in ids and indice not in motivos:
                     revisoes[indice] = "duvida_editorial"
             registro.update({"status": "ok", "model": _modelo_textual_atual(provedor)})
-        except (GeminiReviewError, NvidiaReviewError, KeyError, TypeError, ValueError, json.JSONDecodeError) as exc:
+        except (GeminiReviewError, GemmaReviewError, NvidiaReviewError, KeyError, TypeError, ValueError, json.JSONDecodeError) as exc:
             registro.update({"status": "failed", "error": str(exc)[:500]})
             logger.warning("Lote economico %d falhou; nenhum corte dele foi aplicado: %s", numero, exc)
         ULTIMO_DIAGNOSTICO["batches"].append(registro)
@@ -408,13 +513,44 @@ def _decidir_cortes_com_laya(segmentos: list[dict]) -> EditorialDecision:
 def _transcricao_editorial(segmentos: list[dict]) -> list[dict]:
     return [
         {
-            "i": indice,
+            # Lotes textuais preservam o indice original para que a decisao
+            # continue apontando para a timeline completa.
+            "i": int(item.get("editorial_index", indice)),
             "inicio": round(float(item["start"]), 2),
             "fim": round(float(item["end"]), 2),
             "texto": str(item["text"]).strip(),
         }
         for indice, item in enumerate(segmentos)
     ]
+
+
+def _lotes_textuais_completos(segmentos: list[dict]) -> list[list[dict]]:
+    """Divide uma revisao textual completa em janelas temporais contiguas.
+
+    Gemma e Kimi nao recebem audio. Mandar 28 mil tokens de uma aula inteira
+    de uma vez fez o Gemma esgotar a saida antes do JSON. Cada janela carrega
+    os indices originais e portanto pode ser unida sem alterar a timeline.
+    """
+    if not segmentos:
+        return []
+    limite = max(60, SEGUNDOS_POR_LOTE_TEXTUAL_COMPLETO)
+    lotes: list[list[dict]] = []
+    atual: list[dict] = []
+    inicio_lote: float | None = None
+    for indice, segmento in enumerate(segmentos):
+        copia = dict(segmento)
+        copia["editorial_index"] = indice
+        inicio = float(copia.get("start", 0))
+        if atual and inicio_lote is not None and inicio - inicio_lote >= limite:
+            lotes.append(atual)
+            atual = []
+            inicio_lote = None
+        if inicio_lote is None:
+            inicio_lote = inicio
+        atual.append(copia)
+    if atual:
+        lotes.append(atual)
+    return lotes
 
 
 def _prompt_revisao_editorial(transcricao: list[dict], incluir_audio: bool) -> str:
@@ -432,9 +568,15 @@ def _prompt_revisao_editorial(transcricao: list[dict], incluir_audio: bool) -> s
     return """Voce e o revisor principal de uma videoaula em portugues.
 Analise """ + material_disponivel + """. Marque SOMENTE trechos que
 devem sair da pre-edicao: erros declarados, falsas partidas, autocorrecoes
-substituidas, risadas, conversas laterais, problemas tecnicos ou devaneios
-claramente fora do contexto. Mantenha explicacoes, exemplos, repeticoes
-didaticas e qualquer duvida. """ + contexto_audio + """
+substituidas, risadas, tosses/pigarros/espirros/engasgos, conversas laterais,
+falas inadequadas, problemas tecnicos ou devaneios claramente fora do contexto.
+Mantenha explicacoes, exemplos, repeticoes didaticas e qualquer duvida. """ + contexto_audio + """
+
+EVENTOS DE AUDIO: descarte tosse, pigarro, espirro, engasgo, risada isolada
+ou ruido vocal que interrompa a aula, mesmo que o Whisper nao transcreva o som.
+Use "tosse" para tosse/pigarro/espirro/engasgo e "risada" para risadas.
+Quando o som estiver dentro de um trecho falado, descarte o microtrecho que o
+contem; nao corte explicacao didatica vizinha sem necessidade.
 
 FALAS DE BASTIDOR DEVEM SER DESCARTADAS, nao marcadas para revisao: comentarios
 para si/equipe sobre encontrar um gancho, roteiro, edicao, gravacao, proxima
@@ -443,6 +585,11 @@ tomada, reiniciar, checar equipamento ou organizar a fala. Por exemplo,
 "comentario_bastidor". Se uma fala nao ensina nada e parece uma anotacao de
 producao, descarte-a; use "review" somente quando houver duvida real se ela
 faz parte da explicacao pedagogica.
+Tambem descarte broncas, xingamentos, comentarios espontaneos ou pedidos de
+desculpa que interrompam a aula e nao acrescentem conteudo. Exemplos como
+"acabar com essa palhacada", "e verdade, perdao" e "nao esse aqui nao, sua
+maluca" sao fala inadequada/bastidor, nao conteudo didatico; use
+"fala_inadequada" ou "comentario_bastidor".
 
 REGRA DE RETAKE: quando o professor fizer uma tentativa, interromper a fala
 para corrigir/recomecar/comentar que ficou ruim, e em seguida repetir a mesma
@@ -457,7 +604,7 @@ Nao aplique esta regra a repeticao didatica: se nao houver evidencia de
 interrupcao, regravacao ou substituicao, mantenha as duas ocorrencias.
 Se estiver em duvida razoavel entre manter ou descartar um trecho, NAO o
 descarte: coloque-o em "review" para o editor revisar no Premiere.
-Responda APENAS JSON valido: {"discard":[{"i":0,"reason":"erro|falsa_partida|autocorrecao|risada|conversa_lateral|devaneio|problema_tecnico|comentario_bastidor"}],"review":[{"i":0,"reason":"duvida_editorial"}]}.
+Responda APENAS JSON valido: {"discard":[{"i":0,"reason":"erro|falsa_partida|autocorrecao|risada|tosse|fala_inadequada|conversa_lateral|devaneio|problema_tecnico|comentario_bastidor"}],"review":[{"i":0,"reason":"duvida_editorial"}]}.
 Use somente os indices existentes; nunca invente timestamps ou indices.
 Transcricao:\n""" + json.dumps(transcricao, ensure_ascii=False)
 
@@ -466,16 +613,17 @@ def _decisao_de_resposta_editorial(
     resposta_texto: str, segmentos: list[dict], provedor: str,
 ) -> EditorialDecision:
     bruto = json.loads(resposta_texto)
-    _validar_indices_resposta(bruto, set(range(len(segmentos))))
+    permitidos = {int(item.get("editorial_index", indice)) for indice, item in enumerate(segmentos)}
+    _validar_indices_resposta(bruto, permitidos)
     motivos: dict[int, str] = {}
     revisoes: dict[int, str] = {}
     for item in bruto.get("discard", []):
         indice, motivo = int(item["i"]), str(item["reason"])
-        if indice in range(len(segmentos)) and motivo in MOTIVOS_CORTE_PERMITIDOS:
+        if indice in permitidos and motivo in MOTIVOS_CORTE_PERMITIDOS:
             motivos[indice] = motivo
     for item in bruto.get("review", []):
         indice = int(item["i"])
-        if indice in range(len(segmentos)) and indice not in motivos:
+        if indice in permitidos and indice not in motivos:
             revisoes[indice] = "duvida_editorial"
     return EditorialDecision(set(motivos), motivos, set(revisoes), revisoes)
 
@@ -485,21 +633,32 @@ def _decidir_cortes_textuais_completos(
 ) -> EditorialDecision:
     """Aplica o contrato completo quando o provedor so aceita texto."""
     global ULTIMO_DIAGNOSTICO
-    prompt = _prompt_revisao_editorial(_transcricao_editorial(segmentos), incluir_audio=False)
     ULTIMO_DIAGNOSTICO = {
         "mode": f"{provedor}_text", "provider": provedor,
-        "input_segments": len(segmentos), "audio_available": False,
+        "input_segments": len(segmentos), "audio_available": False, "batches": [],
     }
     try:
-        decisao = _decisao_de_resposta_editorial(
-            solicitar_json_textual(prompt, provedor), segmentos, provedor,
-        )
+        motivos: dict[int, str] = {}
+        revisoes: dict[int, str] = {}
+        lotes = _lotes_textuais_completos(segmentos)
+        for numero, lote in enumerate(lotes, start=1):
+            prompt = _prompt_revisao_editorial(_transcricao_editorial(lote), incluir_audio=False)
+            registro = {"batch": numero, "segments": len(lote)}
+            decisao_lote = _decisao_de_resposta_editorial(
+                solicitar_json_textual(prompt, provedor), lote, provedor,
+            )
+            motivos.update(decisao_lote.reasons)
+            revisoes.update({i: r for i, r in decisao_lote.review_reasons.items() if i not in motivos})
+            registro["status"] = "ok"
+            registro["discarded"] = len(decisao_lote.discard_indexes)
+            ULTIMO_DIAGNOSTICO["batches"].append(registro)
+        decisao = EditorialDecision(set(motivos), motivos, set(revisoes), revisoes)
         ULTIMO_DIAGNOSTICO.update({
             "status": "ok", "model": _modelo_textual_atual(provedor),
             "discarded": len(decisao.discard_indexes), "review": len(decisao.review_indexes),
         })
         return decisao
-    except (GeminiReviewError, NvidiaReviewError, KeyError, TypeError, ValueError, json.JSONDecodeError) as exc:
+    except (GeminiReviewError, GemmaReviewError, NvidiaReviewError, KeyError, TypeError, ValueError, json.JSONDecodeError) as exc:
         ULTIMO_DIAGNOSTICO.update({"status": "failed", "error": str(exc)[:1000]})
         logger.error("%s nao concluiu a revisao textual completa: %s", provedor.capitalize(), exc)
         return EditorialDecision(set(), {})
@@ -558,6 +717,10 @@ def _gemini_audio_request(prompt: str, audio_path: str) -> str:
         )
         erros: list[str] = []
         for modelo in _modelos_gemini():
+            if _modelo_em_cooldown(modelo):
+                logger.warning("Gemini %s foi pulado: indisponibilidade 503 detectada recentemente.", modelo)
+                erros.append(f"{modelo}: em cooldown apos 503 recente")
+                continue
             try:
                 resposta = _com_retry_remoto(
                     lambda: _gerar_conteudo(client, prompt, arquivo, modelo), modelo,
@@ -648,6 +811,7 @@ def _gerar_conteudo(client, prompt: str, arquivo, modelo: str):
         },
         "max_output_tokens": 8192,
         "temperature": 0,
+        "thinking_config": {"thinking_level": "low"},
         "automatic_function_calling": {"disable": True},
     }
     return client.models.generate_content(
@@ -700,11 +864,32 @@ def _detalhe_erro_remoto(erro: Exception) -> str:
     return detalhe
 
 
-def _com_retry_remoto(operacao: Callable[[], T], modelo: str) -> T:
-    """Ate tres tentativas para falhas transitorias, nunca para chave invalida."""
-    for tentativa in range(3):
+def _modelo_em_cooldown(modelo: str) -> bool:
+    """Retorna se um 503 recente deve ser pulado neste processo."""
+    ate = MODELOS_EM_COOLDOWN_ATE.get(modelo, 0.0)
+    if ate <= time.monotonic():
+        MODELOS_EM_COOLDOWN_ATE.pop(modelo, None)
+        return False
+    return True
+
+
+def _registrar_indisponibilidade(modelo: str, erro: Exception) -> None:
+    if _gemini_esta_sobrecarregado(erro) or " 503" in _detalhe_erro_remoto(erro):
+        MODELOS_EM_COOLDOWN_ATE[modelo] = time.monotonic() + COOLDOWN_PROVEDOR_INDISPONIVEL_SEGUNDOS
+        logger.warning(
+            "IA %s entrou em cooldown de %ss apos indisponibilidade 503.",
+            modelo, COOLDOWN_PROVEDOR_INDISPONIVEL_SEGUNDOS,
+        )
+
+
+def _com_retry_remoto(
+    operacao: Callable[[], T], modelo: str, operacao_segunda_tentativa: Callable[[], T] | None = None,
+) -> T:
+    """No maximo duas chamadas; somente a segunda pode usar timeout reduzido."""
+    for tentativa in range(MAX_TENTATIVAS_REMOTAS_POR_MODELO):
         try:
-            return operacao()
+            _consumir_chamada_remota()
+            return (operacao_segunda_tentativa if tentativa and operacao_segunda_tentativa else operacao)()
         except Exception as exc:
             codigo = getattr(exc, "code", None) or getattr(exc, "status_code", None)
             detalhe = _detalhe_erro_remoto(exc)
@@ -713,7 +898,8 @@ def _com_retry_remoto(operacao: Callable[[], T], modelo: str) -> T:
                 transitorio = codigo in (429, 500, 502, 503, 504)
             if codigo is None:
                 transitorio = transitorio or bool(re.search(r"\b(429|500|502|503|504)\b", detalhe))
-            if tentativa == 2 or not transitorio or _erro_gemini_fatal(exc):
+            if tentativa == MAX_TENTATIVAS_REMOTAS_POR_MODELO - 1 or not transitorio or _erro_gemini_fatal(exc):
+                _registrar_indisponibilidade(modelo, exc)
                 raise
             if _erro_gemini_quota_diaria(exc):
                 logger.warning("IA %s atingiu uma cota de longa duracao; sem repeticao automatica.", modelo)
@@ -725,7 +911,10 @@ def _com_retry_remoto(operacao: Callable[[], T], modelo: str) -> T:
                     espera = max(espera, min(30, float(headers.get("Retry-After", 0))))
                 except (TypeError, ValueError):
                     pass
-            logger.warning("IA %s temporariamente indisponivel; tentativa %d/3 em %ss.", modelo, tentativa + 2, espera)
+            logger.warning(
+                "IA %s temporariamente indisponivel; tentativa %d/%d em %ss.",
+                modelo, tentativa + 2, MAX_TENTATIVAS_REMOTAS_POR_MODELO, espera,
+            )
             time.sleep(espera)
 
 
@@ -771,12 +960,12 @@ def _erro_nvidia_bloqueio_rede(erro: Exception) -> bool:
 
 
 def _modelos_gemini() -> tuple[str, ...]:
-    """Retorna no maximo tres modelos, sem repetir o modelo principal."""
+    """Retorna a cadeia configurada, sem repetir o modelo principal."""
     modelos: list[str] = []
     for modelo in (GEMINI_MODEL, *GEMINI_FALLBACK_MODELS):
         if modelo not in modelos:
             modelos.append(modelo)
-    return tuple(modelos[:3])
+    return tuple(modelos)
 
 
 def _aprovar_proposta_com_gemini(
@@ -828,20 +1017,28 @@ Candidatos do Ollama:\n""" + json.dumps(candidatos, ensure_ascii=False) + "\nTra
                 aprovados.add(indice)
                 motivos[indice] = motivo
         return EditorialDecision(aprovados, motivos)
-    except (GeminiReviewError, NvidiaReviewError, KeyError, TypeError, ValueError, json.JSONDecodeError) as exc:
+    except (GeminiReviewError, GemmaReviewError, NvidiaReviewError, KeyError, TypeError, ValueError, json.JSONDecodeError) as exc:
         logger.error("Nenhum provedor remoto aprovou cortes; proposta do Ollama foi bloqueada: %s", exc)
         return EditorialDecision(set(), {})
 
 
 def _provedor_configurado(provedor: str) -> bool:
-    return bool(GEMINI_API_KEY) if provedor == "gemini" else bool(NVIDIA_API_KEY)
+    if provedor in {"gemini", "gemma"}:
+        return bool(GEMINI_API_KEY)
+    return bool(NVIDIA_API_KEY)
 
 
 def _solicitar_revisao_retake(prompt):
     """Revisao contextual comum a todas as rotas, inclusive modelos locais."""
+    if not _CHAMADAS_REMOTAS_PERMITIDAS.get():
+        resposta = _request('POST', '/api/generate', {
+            'model': OLLAMA_MODEL, 'prompt': prompt, 'stream': False, 'format': 'json',
+            'options': {'temperature': 0, 'num_ctx': 8192},
+        })
+        return resposta['response']
     try:
         return solicitar_json_textual(prompt)
-    except (GeminiReviewError, NvidiaReviewError):
+    except (GeminiReviewError, GemmaReviewError, NvidiaReviewError):
         resposta = _request('POST', '/api/generate', {
             'model': OLLAMA_MODEL, 'prompt': prompt, 'stream': False, 'format': 'json',
             'options': {'temperature': 0, 'num_ctx': 8192},
@@ -864,28 +1061,61 @@ def _validar_indices_resposta(bruto, permitidos):
 
 
 def _modelo_textual_atual(provedor: str) -> str | None:
-    return ULTIMO_MODELO_GEMINI_TEXTUAL_USADO if provedor == "gemini" else ULTIMO_MODELO_NVIDIA_USADO
+    if provedor == "gemini":
+        return ULTIMO_MODELO_GEMINI_TEXTUAL_USADO
+    if provedor == "gemma":
+        return ULTIMO_MODELO_GEMMA_USADO
+    return ULTIMO_MODELO_NVIDIA_USADO
 
 
 def solicitar_json_textual(prompt: str, provedor: str | None = None) -> str:
-    """Obtém JSON de Gemini e NVIDIA, sem impedir o próximo fallback em falhas.
+    """Obtém JSON de Gemini, Gemma e NVIDIA sem bloquear o fallback.
 
     Quando ``provedor`` e informado, tenta somente ele; isso preserva a ordem
     explícita da cadeia editorial e torna o diagnóstico rastreável.
     """
-    provedores = (provedor,) if provedor else ("gemini", "nvidia")
+    provedores = (provedor,) if provedor else ("gemini", "gemma", "nvidia")
+    solicitacoes = {
+        "gemini": _gemini_request,
+        "gemma": _gemma_request,
+        "nvidia": _nvidia_request,
+    }
     erros: list[str] = []
     for nome in provedores:
         if not _provedor_configurado(nome):
             continue
         try:
-            return _gemini_request(prompt) if nome == "gemini" else _nvidia_request(prompt)
-        except (GeminiReviewError, NvidiaReviewError) as exc:
+            return solicitacoes[nome](prompt)
+        except (GeminiReviewError, GemmaReviewError, NvidiaReviewError) as exc:
             erros.append(f"{nome}: {exc}")
             logger.warning("%s textual falhou; tentando o proximo provedor.", nome.capitalize())
     if provedor == "nvidia":
         raise NvidiaReviewError("NVIDIA nao respondeu com JSON valido: " + " | ".join(erros))
+    if provedor == "gemma":
+        raise GemmaReviewError("Gemma nao respondeu com JSON valido: " + " | ".join(erros))
     raise GeminiReviewError("Nenhum provedor textual respondeu com JSON valido: " + " | ".join(erros))
+
+
+def solicitar_json_textual_com_fallback_ollama(prompt: str) -> tuple[str, str]:
+    """Consulta Gemini, Gemma e GPT-OSS antes de recorrer ao Ollama local."""
+    try:
+        return solicitar_json_textual(prompt), "remote"
+    except (GeminiReviewError, GemmaReviewError, NvidiaReviewError) as exc:
+        logger.warning(
+            "Todos os revisores remotos falharam; iniciando fallback Ollama | %s", exc,
+        )
+    resposta = _request("POST", "/api/generate", {
+        "model": OLLAMA_MODEL,
+        "prompt": prompt,
+        "stream": False,
+        "format": "json",
+        "options": {"temperature": 0, "num_ctx": 8192},
+    })
+    texto = str(resposta.get("response") or "").strip()
+    if not texto:
+        raise EditorialModelError("Ollama respondeu sem JSON para a revisao textual.")
+    json.loads(texto)
+    return texto, "ollama"
 
 
 def _extrair_json_gemini_rest(resposta: dict) -> str:
@@ -921,11 +1151,18 @@ def _gemini_request(prompt: str) -> str:
     erros: list[str] = []
     global ULTIMO_MODELO_GEMINI_TEXTUAL_USADO
     for modelo in _modelos_gemini():
+        if _modelo_em_cooldown(modelo):
+            logger.warning("Gemini textual %s foi pulado: indisponibilidade 503 detectada recentemente.", modelo)
+            erros.append(f"{modelo}: em cooldown apos 503 recente")
+            continue
         try:
             resposta = _com_retry_remoto(lambda: _request_url(
                 "POST", f"{GEMINI_URL}/{modelo}:generateContent", payload,
                 {"x-goog-api-key": GEMINI_API_KEY}, timeout=120,
-            ), modelo)
+            ), modelo, lambda: _request_url(
+                "POST", f"{GEMINI_URL}/{modelo}:generateContent", payload,
+                {"x-goog-api-key": GEMINI_API_KEY}, timeout=TIMEOUT_SEGUNDA_TENTATIVA_SEGUNDOS,
+            ))
             uso = resposta.get("usageMetadata") or {}
             logger.info(
                 "Gemini %s respondeu HTTP 200; resposta=%s; tokens entrada=%s, saida=%s, pensamento=%s, total=%s.",
@@ -947,8 +1184,42 @@ def _gemini_request(prompt: str) -> str:
     raise GeminiReviewError("Nenhum modelo Gemini respondeu com JSON valido: " + " | ".join(erros))
 
 
+def _gemma_request(prompt: str) -> str:
+    """Revisa texto completo com Gemma, usando a mesma chave do Gemini API."""
+    if not GEMINI_API_KEY:
+        raise GemmaReviewError("GEMINI_API_KEY ausente para o Gemma.")
+    payload = {
+        "contents": [{"parts": [{"text": prompt}]}],
+        "generationConfig": {
+            "responseMimeType": "application/json",
+            "maxOutputTokens": 8192,
+        },
+    }
+    try:
+        resposta = _com_retry_remoto(lambda: _request_url(
+            "POST", f"{GEMINI_URL}/{GEMMA_MODEL}:generateContent", payload,
+            {"x-goog-api-key": GEMINI_API_KEY}, timeout=180,
+        ), GEMMA_MODEL, lambda: _request_url(
+            "POST", f"{GEMINI_URL}/{GEMMA_MODEL}:generateContent", payload,
+            {"x-goog-api-key": GEMINI_API_KEY}, timeout=TIMEOUT_SEGUNDA_TENTATIVA_SEGUNDOS,
+        ))
+        uso = resposta.get("usageMetadata") or {}
+        logger.info(
+            "Gemma %s respondeu HTTP 200; tokens entrada=%s, saida=%s, pensamento=%s, total=%s.",
+            GEMMA_MODEL, uso.get("promptTokenCount"), uso.get("candidatesTokenCount"),
+            uso.get("thoughtsTokenCount"), uso.get("totalTokenCount"),
+        )
+        texto = _extrair_json_gemini_rest(resposta)
+        global ULTIMO_MODELO_GEMMA_USADO
+        ULTIMO_MODELO_GEMMA_USADO = GEMMA_MODEL
+        return texto
+    except Exception as exc:
+        detalhe = _detalhe_erro_remoto(exc)
+        raise GemmaReviewError(f"{GEMMA_MODEL}: {type(exc).__name__}: {detalhe}") from exc
+
+
 def _nvidia_request(prompt: str) -> str:
-    """Usa o endpoint Kimi/NVIDIA e valida o JSON antes de liberar qualquer corte."""
+    """Usa GPT-OSS/NVIDIA e valida o JSON antes de liberar qualquer corte."""
     if not NVIDIA_API_KEY:
         raise NvidiaReviewError("NVIDIA_API_KEY ausente.")
     payload = {
@@ -962,12 +1233,17 @@ def _nvidia_request(prompt: str) -> str:
         "seed": 0,
         "stream": False,
         "reasoning_effort": NVIDIA_REASONING_EFFORT,
+        # Evita texto explicativo antes/depois do contrato JSON do aplicativo.
+        "response_format": {"type": "json_object"},
     }
     try:
         resposta = _com_retry_remoto(lambda: _request_url(
             "POST", f"{NVIDIA_BASE_URL}/chat/completions", payload,
             {"Authorization": f"Bearer {NVIDIA_API_KEY}", "Accept": "application/json"}, timeout=180,
-        ), NVIDIA_MODEL)
+        ), NVIDIA_MODEL, lambda: _request_url(
+            "POST", f"{NVIDIA_BASE_URL}/chat/completions", payload,
+            {"Authorization": f"Bearer {NVIDIA_API_KEY}", "Accept": "application/json"}, timeout=TIMEOUT_SEGUNDA_TENTATIVA_SEGUNDOS,
+        ))
         uso = resposta.get("usage") or {}
         logger.info("NVIDIA %s respondeu; tokens entrada=%s, saida=%s, total=%s.",
                     NVIDIA_MODEL, uso.get("prompt_tokens"), uso.get("completion_tokens"), uso.get("total_tokens"))

@@ -1,49 +1,52 @@
 # Assistente de Decupagem
 
-Ferramenta local para acelerar a pré-edição de videoaulas e videocasts no Adobe Premiere Pro. Ela sincroniza fontes, transcreve o áudio, identifica trechos úteis, sugere cortes e gera um FCP XML pronto para importar e revisar no Premiere.
+> Pré-edição local para videoaulas e videocasts no Adobe Premiere Pro, com IA editorial e revisão humana no controle final.
 
-O projeto combina um painel UXP no Premiere com um backend Python executado na própria máquina. Os vídeos e áudios permanecem locais; apenas o texto necessário para a análise editorial pode ser enviado aos provedores de IA configurados.
+O Assistente de Decupagem reduz o tempo gasto para localizar pausas, retakes, erros de fala, repetições e pontos relevantes. Ele não substitui o editor: produz uma primeira linha do tempo e marcadores explicáveis para acelerar uma revisão humana segura.
+
+## Visão geral
 
 ```mermaid
 flowchart LR
-    A[Premiere Pro<br/>painel UXP] --> B[Backend FastAPI local]
-    B --> C[FFmpeg<br/>metadados e áudio]
-    C --> D[Whisper local<br/>transcrição]
-    D --> E[Revisão editorial<br/>Gemini / NVIDIA Kimi / local]
-    E --> F[Direção multicâmera<br/>e geração FCP XML]
-    F --> A
+    P[Premiere Pro\npainel UXP] --> A[Backend FastAPI local]
+    A --> M[FFmpeg e ffprobe]
+    M --> T[faster-whisper\ntranscrição local]
+    T --> E[Revisão editorial\nGemini → NVIDIA → Gemma → Ollama]
+    E --> X[FCP XML ou marcadores]
+    X --> P
 ```
 
-## O que ele faz
+| Recurso | Resultado para o editor |
+| --- | --- |
+| Corte de aula | XML FCP multicâmera para importar e revisar. |
+| Abertura de videocast | XML com 30 a 40 segundos de falas completas e conectadas. |
+| Lettering | Marcadores com texto curto, evidência e justificativa. |
+| Auditoria | Marcadores de possíveis problemas de corte, áudio, imagem e continuidade. |
+| Aprendizado | Comparação entre sugestão inicial e edição humana. |
 
-- Sincroniza as câmeras e áudios externos com base no áudio de referência.
-- Transcreve localmente com `faster-whisper`.
-- Analisa a transcrição para remover pausas, repetições e trechos pouco úteis.
-- Usa Gemini como revisor editorial principal e NVIDIA Kimi K3 como alternativa textual; há fallback local quando os serviços remotos não respondem.
-- Em videocasts, direciona as câmeras pela voz ativa e mantém cada plano por pelo menos 5 segundos para evitar trocas artificiais. Opcionalmente, o áudio pode acompanhar a câmera selecionada.
-- Gera FCP XML multicâmera, com fontes e faixas de áudio organizadas para importação no Premiere.
-- Sugere letterings e registra feedbacks de revisão para aperfeiçoar resultados futuros.
+## Privacidade
+
+Vídeos, áudios, XMLs, logs e dados de aprendizado permanecem locais. Com **Usar revisão por IA** ativado, a transcrição e as instruções editoriais podem ser enviadas aos provedores configurados. A transcrição é feita localmente com `faster-whisper`.
+
+Leia [SECURITY.md](SECURITY.md) antes de configurar qualquer chave.
 
 ## Requisitos
 
-- Windows 10 ou 11
-- Python 3.11 ou superior
-- FFmpeg e `ffprobe` disponíveis no `PATH`
-- Adobe Premiere Pro 25.6 ou superior
-- UXP Developer Tool, para carregar o painel em desenvolvimento
-
-As integrações de IA remota são opcionais. Sem elas, o processamento pode usar os recursos locais, com uma revisão editorial mais limitada.
+- Windows 10 ou 11;
+- Python 3.11 ou superior;
+- FFmpeg e `ffprobe` no `PATH`;
+- Adobe Premiere Pro 25.6 ou superior;
+- UXP Developer Tool;
+- Opcional: chaves Gemini e/ou NVIDIA; Ollama para fallback local.
 
 ## Instalação rápida
-
-No PowerShell, dentro da pasta do projeto:
 
 ```powershell
 Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 .\setup_teste_windows.ps1
 ```
 
-O script cria o ambiente virtual, instala as dependências e executa os testes. Se preferir fazer manualmente:
+Instalação manual:
 
 ```powershell
 py -3.11 -m venv .venv
@@ -53,129 +56,103 @@ pip install -r .\backend\requirements.txt
 pytest .\backend
 ```
 
-## Configuração segura das APIs
-
-Crie seu arquivo local de configuração a partir do modelo:
+## Configurar IA remota
 
 ```powershell
 Copy-Item .env.example .env
 ```
 
-Edite somente o `.env`. Ele já está no `.gitignore` e **nunca deve ser enviado ao GitHub**.
-
-| Variável | Uso |
-| --- | --- |
-| `GEMINI_API_KEY` | Chave do Google AI Studio para a revisão editorial principal. |
-| `GEMINI_MODEL` | Modelo Gemini prioritário. |
-| `GEMINI_FALLBACK_MODELS` | Modelos Gemini alternativos, separados por vírgula. |
-| `NVIDIA_API_KEY` | Chave da NVIDIA para o fallback Kimi K3. Informe apenas o valor da chave, sem `Bearer `. |
-| `NVIDIA_MODEL` | Modelo NVIDIA; o padrão é `moonshotai/kimi-k3`. |
-| `NVIDIA_BASE_URL` | Endpoint base da NVIDIA. |
-| `NVIDIA_REASONING_EFFORT` | Nível de raciocínio solicitado ao modelo NVIDIA. |
-| `FFMPEG_TIMEOUT_SECONDS` | Tempo máximo de operações longas do FFmpeg. |
-
-Exemplo seguro de preenchimento:
-
 ```dotenv
-GEMINI_API_KEY="cole_a_chave_aqui"
-NVIDIA_API_KEY="cole_a_chave_aqui"
+GEMINI_API_KEY="sua_chave"
+NVIDIA_API_KEY="sua_chave"
 ```
 
-Não use chaves reais em documentação, commits, prints, issues ou mensagens. Caso uma chave seja exposta, revogue-a no provedor e gere outra antes de continuar.
+| Variável | Função |
+| --- | --- |
+| `GEMINI_API_KEY`, `GEMINI_MODEL`, `GEMINI_FALLBACK_MODELS` | Revisão editorial Gemini e fallbacks. |
+| `GEMMA_MODEL` | Revisor textual pela integração Google. |
+| `NVIDIA_API_KEY`, `NVIDIA_MODEL`, `NVIDIA_BASE_URL` | Fallback textual NVIDIA. |
+| `LIMITE_CHAMADAS_REMOTAS_POR_JOB` | Teto de chamadas remotas por tarefa. |
+| `EDITORIAL_CACHE_TTL_SECONDS` | Tempo de cache de revisão remota concluída. |
+| `FFMPEG_TIMEOUT_SECONDS` | Limite de operações longas de mídia. |
 
-## Executando o backend
+Nunca publique `.env`, chaves ou logs que as contenham. Não acrescente `Bearer ` à chave NVIDIA.
+
+## Iniciar o backend
 
 ```powershell
 .\.venv\Scripts\python.exe .\backend\main.py
-```
-
-Com o servidor ativo, valide a disponibilidade local:
-
-```powershell
 Invoke-RestMethod http://127.0.0.1:8000/health
 ```
 
-Diagnósticos específicos, sem revelar as chaves, estão disponíveis em:
+Diagnósticos seguros: `http://127.0.0.1:8000/diagnostics/gemini` e `http://127.0.0.1:8000/diagnostics/nvidia`.
 
-```text
-http://127.0.0.1:8000/diagnostics/gemini
-http://127.0.0.1:8000/diagnostics/nvidia
-```
+Logs: `backend/logs/backend.log` e `backend/logs/operacoes.log`.
 
-## Usando no Premiere
+## Usar no Premiere
 
-1. Abra o UXP Developer Tool e carregue `premiere_plugin`.
-2. Abra o painel **Assistente de Decupagem** no Premiere.
-3. Confirme que o backend está em execução na porta `8000`.
-4. Selecione o modo de trabalho e as fontes de vídeo/áudio.
-5. Inicie o processamento e aguarde o XML ser gerado.
-6. Importe o FCP XML no Premiere e faça a revisão final de cortes, sincronia e áudio.
+1. Carregue `premiere_plugin` no UXP Developer Tool e recarregue o painel após atualizações.
+2. Abra **Assistente de Decupagem** no Premiere com o backend em execução.
+3. Escolha a tarefa e os arquivos solicitados.
+4. Use a fila para acompanhar, cancelar ou repetir tarefas.
+5. Ao fim, leia o popup: ele informa quantidades e modelo usado.
 
-Se uma tentativa remota falhar, o painel mantém as escolhas de arquivos e opções; use o botão **Tentar novamente** após ajustar a conexão ou a configuração da API.
+### Corte de aula
 
-## Estratégia de revisão editorial
+1. Selecione o PGM e, se existirem, câmeras, tela e áudios auxiliares.
+2. Marque **Usar revisão por IA** para priorizar provedores remotos.
+3. Importe o XML retornado e revise cortes, sincronia, câmera e mixagem.
 
-| Ordem | Serviço | Papel |
-| --- | --- | --- |
-| 1 | Gemini | Revisão editorial principal. |
-| 2 | NVIDIA NIM / Kimi K3 | Alternativa textual com a transcrição completa e o mesmo contrato editorial do Gemini. Não recebe o WAV. |
-| 3 | Mecanismo local | Continuidade do processamento quando os provedores remotos falham. |
+Com revisão por IA marcada, o corte tenta provedores configurados antes do Ollama, independentemente da duração: **Gemini → NVIDIA/GPT-OSS → Gemma → Ollama**. O popup e o JSON de diagnóstico registram o modelo realmente usado.
 
-Uma resposta `503` de um provedor significa indisponibilidade temporária do serviço, não necessariamente chave inválida. Dependendo do estágio em que a solicitação falha, ela pode consumir tokens de entrada mesmo sem retornar um resultado editorial válido. Os diagnósticos acima ajudam a separar falha de autenticação, modelo indisponível e sobrecarga.
+### Abertura de videocast
 
-## Endpoints locais principais
+Selecione o render completo. A ferramenta cria de 2 a 4 falas completas, cronológicas, com narrativa mínima e duração total entre 30 e 40 segundos. O XML é separado da sequência principal e exige revisão editorial.
 
-| Método | Rota | Finalidade |
-| --- | --- | --- |
-| `GET` | `/health` | Estado do backend. |
-| `GET` | `/diagnostics/gemini` | Diagnóstico seguro da configuração Gemini. |
-| `GET` | `/diagnostics/nvidia` | Diagnóstico seguro da configuração NVIDIA. |
-| `POST` | `/process` | Processamento principal e geração do XML. |
-| `POST` | `/analyze-lettering` | Sugestões de lettering. |
-| `GET/POST` | `/learning/*` | Consulta e registro de feedback editorial. |
+### Lettering e auditoria em paralelo à edição
 
-## Estrutura do repositório
+As duas tarefas ficam vinculadas à sequência ativa no início. Você pode trocar de aba e continuar trabalhando: os marcadores serão inseridos na sequência de origem, nunca na aba que estiver ativa no fim.
 
-```text
-backend/                 API FastAPI, análise editorial, transcrição e XML
-premiere_plugin/         painel UXP para Adobe Premiere Pro
-video/                   materiais de interface do painel
-setup_teste_windows.ps1  instalação e testes em Windows
-.env.example             modelo seguro de configuração
-GUIA_TESTE_OUTRA_MAQUINA.md
-PROJECT_CONTEXT.md       contexto técnico e histórico do projeto
-```
+- **Lettering:** use render da mesma sequência, começando no mesmo zero da timeline. Ele analisa fala editada e não lê visualmente slides.
+- **Auditoria:** use render/proxy da mesma sequência. Ela apenas cria marcadores; não altera cortes, mídia ou efeitos.
 
-## Segurança antes de publicar no GitHub
+## Saídas
 
-O `.gitignore` protege chaves, certificados, logs, diagnósticos, XMLs gerados, cache de testes e dados locais de aprendizado. Antes de cada envio, confira o que será versionado:
+| Operação | Artefatos |
+| --- | --- |
+| Corte | `*_cortado_*.xml` e `*_diagnostico_*.json` próximos ao PGM. |
+| Abertura | XML e diagnóstico próximos ao render selecionado. |
+| Lettering | `*_lettering_sugerido_*.xml` e JSON de sugestões próximos ao render. |
+| Auditoria | JSON de achados próximo ao render/XML analisado. |
+| Jobs | `backend/job_data/jobs.sqlite3`. |
+| Aprendizado | `backend/learning_data/`. |
 
-```powershell
-git status
-git diff --cached --check
-git ls-files .env
-```
+## Solução de problemas rápida
 
-O último comando não deve retornar nada. Também confirme que vídeos, áudios brutos e resultados de edição permanecem fora do repositório. O arquivo `.env.example` deve conter apenas nomes de variáveis e valores de exemplo.
+| Sintoma | Verifique primeiro |
+| --- | --- |
+| Gemini/NVIDIA não foi usado | Marque revisão por IA; consulte popup, diagnósticos e logs. |
+| Corte ruim | Confira modelo, transcrição e segmentos no JSON de diagnóstico; revise o XML. |
+| Marcadores fora de tempo | Confirme render da mesma sequência e mesmo ponto inicial. |
+| Painel parece antigo | Recarregue/reinstale no UXP Developer Tool. |
+| Job parado | Consulte a fila; cancele, corrija a causa e use **Repetir**. |
+| Premiere não importa XML | Confirme caminhos de mídia, versão do Premiere e logs. |
 
 ## Testes
 
 ```powershell
 .\.venv\Scripts\python.exe -m pytest .\backend
-```
-
-Para um teste rápido da integração NVIDIA sem exibir a chave:
-
-```powershell
-.\.venv\Scripts\python.exe .\backend\diagnose_nvidia.py
+node --check .\premiere_plugin\main.js
 ```
 
 ## Documentação complementar
 
+- [Manual completo do projeto](docs/MANUAL_DO_PROJETO.md)
 - [Guia de teste em outra máquina](GUIA_TESTE_OUTRA_MAQUINA.md)
-- [Contexto técnico do projeto](PROJECT_CONTEXT.md)
+- [Segurança](SECURITY.md)
+- [Contexto histórico](PROJECT_CONTEXT.md)
 - [Backlog e sprints](SPRINTS_BACKLOG.md)
 
 ---
 
-O XML gerado é um ponto de partida para a edição: revise sempre sincronia, cortes, troca de câmeras e mixagem antes da entrega final.
+O resultado automatizado é uma primeira decisão editorial. A aprovação de conteúdo, ritmo, direitos, acessibilidade, mixagem e entrega final é sempre humana.

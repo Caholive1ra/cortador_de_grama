@@ -1,7 +1,7 @@
 """Testes da API FastAPI (health-check e validação de caminho)."""
 
 from fastapi.testclient import TestClient
-from contextlib import nullcontext
+from contextlib import contextmanager, nullcontext
 
 import pytest
 
@@ -90,6 +90,7 @@ def test_sync_insegura_interrompe_antes_da_transcricao(monkeypatch) -> None:
 def test_health_check(monkeypatch) -> None:
     monkeypatch.setattr("main.GEMINI_API_KEY", "chave-de-teste")
     monkeypatch.setattr("main.GEMINI_MODEL", "gemini-2.5-flash")
+    monkeypatch.setattr("main.GEMMA_MODEL", "gemma-4-26b-a4b-it")
     monkeypatch.setattr("main.NVIDIA_API_KEY", None)
     monkeypatch.setattr("main.NVIDIA_MODEL", "moonshotai/kimi-k3")
     resposta = client.get("/health")
@@ -99,9 +100,32 @@ def test_health_check(monkeypatch) -> None:
         "revision": "retake-pairs-v21",
         "gemini_model": "gemini-2.5-flash",
         "gemini_configured": "yes",
+        "gemma_model": "gemma-4-26b-a4b-it",
+        "gemma_configured": "yes",
         "nvidia_model": "moonshotai/kimi-k3",
         "nvidia_configured": "no",
     }
+
+
+def test_fila_rejeita_tipo_de_tarefa_desconhecido() -> None:
+    resposta = client.post("/jobs", json={"task": "desconhecida", "payload": {}})
+    assert resposta.status_code == 422
+    assert "Tarefa invalida" in resposta.json()["detail"]
+
+
+def test_diagnostico_gemini_indica_credencial_recusada(monkeypatch) -> None:
+    from urllib.error import HTTPError
+    import io
+
+    monkeypatch.setattr("main.GEMINI_API_KEY", "chave-de-teste")
+    erro = HTTPError("https://example.test", 401, "Unauthorized", {}, io.BytesIO(b"API key not valid"))
+    monkeypatch.setattr("main._request_url", lambda *args, **kwargs: (_ for _ in ()).throw(erro))
+
+    resposta = client.get("/diagnostics/gemini")
+
+    assert resposta.status_code == 200
+    assert resposta.json()["authentication_failed"] is True
+    assert "Gere uma chave nova" in resposta.json()["action"]
 
 
 def test_cors_libera_origem_do_plugin() -> None:
@@ -163,6 +187,34 @@ def test_analyze_lettering_gera_xml_auxiliar(tmp_path, monkeypatch) -> None:
     assert dados["suggestions"][0]["text"] == "Definição"
     assert "_lettering_sugerido_" in dados["xml_path"]
     assert dados["xml_path"].endswith(".xml")
+    assert dados["operation_summary"]["quantities"] == {
+        "transcribed_segments": 1, "suggestions": 1,
+    }
+    assert dados["operation_summary"]["models"]["transcription"] == "faster-whisper/base (local)"
+
+
+def test_auditoria_de_qualidade_retorna_achados(tmp_path, monkeypatch) -> None:
+    monkeypatch.setattr("main.obter_metadados", lambda path: {
+        "path": path, "duration": 12, "fps": 30, "width": 1920,
+        "height": 1080, "video_start": 0,
+    })
+    monkeypatch.setattr("main.extrair_audio_temporario", lambda *args: nullcontext("audio.wav"))
+    monkeypatch.setattr("main.transcrever_audio", lambda _path: [{"start": 0, "end": 1, "text": "Teste"}])
+    monkeypatch.setattr("main.auditar_sequencia", lambda *args: {
+        "findings": [{"category": "jump_cut", "color": "red", "start": 1, "end": 1.2,
+                      "title": "JUMP CUT", "description": "Conferir."}],
+        "summary": {"jump_cut": 1}, "checked": {},
+    })
+    media = tmp_path / "final.mp4"
+    xml = tmp_path / "final.xml"
+    resposta = client.post("/audit-quality", json={
+        "revised_media_path": str(media), "revised_xml_path": str(xml),
+    })
+    assert resposta.status_code == 200, resposta.text
+    assert resposta.json()["findings"][0]["color"] == "red"
+    resumo = resposta.json()["operation_summary"]
+    assert resumo["quantities"] == {"transcribed_segments": 1, "findings": 1}
+    assert resumo["models"]["transcription"] == "faster-whisper/base (local)"
 
 
 def test_aula_longa_com_revisao_completa_exige_modo_economico(monkeypatch) -> None:
@@ -177,7 +229,7 @@ def test_aula_longa_com_revisao_completa_exige_modo_economico(monkeypatch) -> No
     assert resposta.json()["detail"]["code"] == "ECONOMIC_MODE_REQUIRED"
 
 
-def test_modo_auto_prioriza_velocidade_em_aula_longa(monkeypatch) -> None:
+def test_modo_auto_prioriza_audio_em_aula_de_ate_uma_hora(monkeypatch) -> None:
     monkeypatch.setattr("main.obter_metadados", lambda _path: {
         "path": "pgm.mp4", "duration": 1200.1, "fps": 30,
         "width": 1920, "height": 1080, "video_start": 0,
@@ -191,8 +243,33 @@ def test_modo_auto_prioriza_velocidade_em_aula_longa(monkeypatch) -> None:
         "pgm_path": "pgm.mp4", "editorial_review": True, "editorial_mode": "auto",
     })
     assert resposta.status_code == 200
-    assert recebido["modo_economico"] is True
-    assert resposta.json()["editorial_mode_used"] == "economic"
+    assert recebido["modo_economico"] is False
+    assert resposta.json()["editorial_mode_used"] == "full"
+
+
+@pytest.mark.parametrize("duracao", [60.0, 419.9, 420.0])
+def test_revisao_editorial_sempre_tenta_ia_remota(monkeypatch, duracao):
+    monkeypatch.setattr("main.obter_metadados", lambda _path: {
+        "path": "pgm.mp4", "duration": duracao, "fps": 30,
+        "width": 1920, "height": 1080, "video_start": 0,
+    })
+    monkeypatch.setattr("main.extrair_audio_temporario", lambda *args: nullcontext("audio.wav"))
+    monkeypatch.setattr("main.transcrever_audio", lambda _path: [])
+    recebido = {}
+
+    @contextmanager
+    def limite(permitir_remotas, limite):
+        recebido.update({"permitir_remotas": permitir_remotas, "limite": limite})
+        yield
+
+    monkeypatch.setattr("main.limitar_chamadas_remotas", limite)
+    monkeypatch.setattr("main.classificar_segmentos", lambda *args, **kwargs: [])
+    monkeypatch.setattr("main.gerar_fcp_xml", lambda *args, **kwargs: "resultado.xml")
+    resposta = client.post("/process", json={
+        "pgm_path": "pgm.mp4", "editorial_review": True,
+    })
+    assert resposta.status_code == 200
+    assert recebido["permitir_remotas"] is True
 
 
 def test_process_sincroniza_midias_e_gera_xml_com_lacunas(tmp_path, monkeypatch) -> None:

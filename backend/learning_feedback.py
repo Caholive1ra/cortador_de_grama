@@ -193,11 +193,24 @@ def _ler_timeline(path: str, source_offsets: dict[str, float] | None = None) -> 
         raiz = ET.parse(arquivo).getroot()
     except ET.ParseError as exc:
         raise ValueError("XML invalido ou incompleto.") from exc
-    if len(raiz.findall(".//sequence")) != 1:
-        raise ValueError("Exporte uma unica sequencia FCP XML, sem sequencias aninhadas.")
-    sequencia = raiz.find(".//sequence")
+    # O Premiere pode colocar uma sequencia aninhada apenas para organizar o
+    # audio. Ela nao muda os cortes visuais que comparamos aqui e, portanto,
+    # deve ser ignorada. Ainda rejeitamos sequencias aninhadas com video para
+    # nao interpretar uma edicao visual composta como se fosse um corte simples.
+    sequencia = raiz.find("./sequence")
+    if sequencia is None:
+        sequencia = raiz.find(".//sequence")
     if sequencia is None:
         raise ValueError("XML sem sequencia FCP valida.")
+    aninhadas_com_video = [
+        aninhada for aninhada in sequencia.findall(".//sequence")
+        if aninhada.findall("./media/video/track/clipitem")
+    ]
+    if aninhadas_com_video:
+        raise ValueError(
+            "O XML possui uma sequencia aninhada com video. Sequencias aninhadas "
+            "somente de audio sao aceitas; achate o video antes de registrar o aprendizado."
+        )
     timebase = int(sequencia.findtext("rate/timebase") or 30)
     if timebase <= 0:
         raise ValueError("Frame rate invalido.")

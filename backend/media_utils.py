@@ -3,6 +3,7 @@
 import json
 import logging
 import os
+import re
 import subprocess
 import tempfile
 from contextlib import contextmanager
@@ -127,3 +128,44 @@ def extrair_audio_temporario(file_path: str, video_start: float = 0.0) -> Iterat
             os.unlink(audio_path)
         except FileNotFoundError:
             pass
+
+
+def aparar_silencios_das_bordas(audio_path: str, trechos: list[dict]) -> list[dict]:
+    """Remove no máximo 200 ms de silêncio real em cada ponta de um take.
+
+    Os limites vindos do Whisper são usados como guarda para que a detecção de
+    silêncio nunca avance sobre a primeira ou a última palavra reconhecida.
+    """
+    resultado = []
+    for trecho in trechos:
+        inicio, fim = float(trecho["start"]), float(trecho["end"])
+        duracao = fim - inicio
+        comando = [
+            "ffmpeg", "-nostdin", "-hide_banner", "-ss", f"{inicio:.3f}", "-t", f"{duracao:.3f}",
+            "-i", audio_path, "-af", "silencedetect=noise=-38dB:d=0.10", "-f", "null", "-",
+        ]
+        try:
+            execucao = subprocess.run(comando, capture_output=True, text=True, check=False, timeout=30)
+            if execucao.returncode != 0:
+                raise ValueError("Não foi possível conferir o áudio do take.")
+            texto = execucao.stderr
+            inicios_silencio = [float(valor) for valor in re.findall(r"silence_start: ([0-9.]+)", texto)]
+            fins_silencio = [float(valor) for valor in re.findall(r"silence_end: ([0-9.]+)", texto)]
+        except (FileNotFoundError, subprocess.TimeoutExpired) as exc:
+            raise ValueError("Conferência de áudio indisponível; abertura não gerada.") from exc
+        copia = dict(trecho)
+        if inicios_silencio and inicios_silencio[0] <= 0.03 and fins_silencio:
+            proposto = inicio + fins_silencio[0] - 0.10
+            seguro = float(trecho.get("safe_start", proposto))
+            copia["start"] = max(inicio, min(proposto, seguro, inicio + 0.20))
+        fim_silencio = next((marca for marca in reversed(inicios_silencio) if marca >= duracao - 0.5), None)
+        if fim_silencio is not None and (not fins_silencio or fins_silencio[-1] >= duracao - .01):
+            proposto = inicio + fim_silencio + 0.10
+            seguro = float(trecho.get("safe_end", proposto))
+            copia["end"] = min(fim, max(proposto, seguro, fim - 0.20))
+        if float(copia["end"]) - float(copia["start"]) >= 3:
+            copia["duration"] = round(float(copia["end"]) - float(copia["start"]), 2)
+        else:
+            copia = dict(trecho)
+        resultado.append(copia)
+    return resultado

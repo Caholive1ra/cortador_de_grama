@@ -135,11 +135,29 @@ def test_mesmo_material_nao_pode_ser_referencia_e_benchmark(tmp_path):
     assert definir_papel(rid, "benchmark")["dataset_role"] == "benchmark"
 
 
-def test_xml_invalido_e_sequencias_aninhadas(tmp_path):
+def test_xml_invalido_e_sequencias_aninhadas_com_video(tmp_path):
     p = tmp_path / "bad.xml"
     p.write_text("<xmeml>", encoding="utf-8")
     with pytest.raises(ValueError, match="invalido"):
         feedback._ler_timeline(str(p))
-    p.write_text("<xmeml><sequence><sequence/></sequence></xmeml>", encoding="utf-8")
-    with pytest.raises(ValueError, match="unica"):
+    p.write_text(
+        "<xmeml><sequence><media><video><track><clipitem><sequence><media><video><track>"
+        "<clipitem><start>0</start><end>1</end></clipitem>"
+        "</track></video></media></sequence></clipitem></track></video></media></sequence></xmeml>",
+        encoding="utf-8",
+    )
+    with pytest.raises(ValueError, match="aninhada com video"):
         feedback._ler_timeline(str(p))
+
+
+def test_sequencia_aninhada_somente_de_audio_e_aceita(tmp_path):
+    p = tmp_path / "audio_aninhado.xml"
+    p.write_text(
+        "<xmeml><sequence><duration>60</duration><rate><timebase>30</timebase></rate>"
+        "<media><video><track><clipitem><start>0</start><end>60</end><in>0</in><out>60</out>"
+        "</clipitem></track></video><audio><track><clipitem><sequence><media><audio><track>"
+        "<clipitem><start>0</start><end>60</end></clipitem>"
+        "</track></audio></media></sequence></clipitem></track></audio></media></sequence></xmeml>",
+        encoding="utf-8",
+    )
+    assert feedback._ler_timeline(str(p))["kept"] == [[0, 60]]

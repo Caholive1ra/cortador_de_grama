@@ -26,6 +26,13 @@ from editorial_ai import (
 from logic_engine import classificar_segmentos
 
 
+@pytest.fixture(autouse=True)
+def impedir_chamadas_reais_de_provedores(monkeypatch):
+    """Os testes simulam a IA; credenciais locais nao devem acionar a rede."""
+    monkeypatch.setattr("editorial_ai.GEMINI_API_KEY", None)
+    monkeypatch.setattr("editorial_ai.NVIDIA_API_KEY", None)
+
+
 # ==========================================================
 # FUNÇÕES AUXILIARES
 # ==========================================================
@@ -79,6 +86,20 @@ def test_rejeita_ausencia_do_modelo(monkeypatch):
         match="nao esta instalado",
     ):
         verificar_modelo_editorial()
+
+
+def test_politica_local_nao_aciona_provedores_remotos(monkeypatch):
+    import editorial_ai as ai
+    esperado = ai.EditorialDecision({0}, {0: "erro"})
+    chamadas = []
+    monkeypatch.setattr(
+        ai, "_decidir_cortes_com_ollama",
+        lambda segmentos, aprovar_remotamente: chamadas.append(aprovar_remotamente) or esperado,
+    )
+    with ai.limitar_chamadas_remotas(False):
+        resultado = ai.decidir_cortes_semanticos([segmento(0, 1, "Erro.")], "audio.wav")
+    assert resultado == esperado
+    assert chamadas == [False]
 
 
 def test_aplica_somente_indices_e_motivos_permitidos(
@@ -542,6 +563,27 @@ def test_gemini_multimodal_pode_marcar_risada(monkeypatch):
     assert resultado.reasons == {0: "risada"}
 
 
+def test_gemini_multimodal_pode_marcar_tosse_e_prompt_exige_falas_inadequadas(monkeypatch):
+    from editorial_ai import decidir_cortes_semanticos
+
+    prompts = []
+    monkeypatch.setattr("editorial_ai.GEMINI_API_KEY", "chave-de-teste")
+    monkeypatch.setattr(
+        "editorial_ai._gemini_audio_request",
+        lambda prompt, _audio_path: prompts.append(prompt) or json.dumps({
+            "discard": [{"i": 0, "reason": "tosse"}], "review": [],
+        }),
+    )
+    resultado = decidir_cortes_semanticos(
+        [segmento(0, 2, ""), segmento(2, 4, "Conteudo didatico.")],
+        audio_path="aula.wav",
+    )
+    assert resultado.discard_indexes == {0}
+    assert resultado.reasons == {0: "tosse"}
+    assert "EVENTOS DE AUDIO" in prompts[0]
+    assert "acabar com essa palhacada" in prompts[0]
+
+
 def test_gemini_multimodal_marca_duvida_para_revisao(monkeypatch):
     from editorial_ai import decidir_cortes_semanticos
 
@@ -557,6 +599,25 @@ def test_gemini_multimodal_marca_duvida_para_revisao(monkeypatch):
     assert resultado.review_indexes == {0}
 
 
+def test_fallback_textual_e_dividido_sem_perder_indices_originais(monkeypatch):
+    """Uma aula longa nao pode virar um unico prompt gigante no Gemma/Kimi."""
+    import editorial_ai as ai
+
+    monkeypatch.setattr(ai, "SEGUNDOS_POR_LOTE_TEXTUAL_COMPLETO", 420)
+    segmentos = [
+        segmento(0, 1, "Primeiro trecho."),
+        segmento(419, 420, "Ainda no primeiro lote."),
+        segmento(420, 421, "Tosse isolada."),
+    ]
+    lotes = ai._lotes_textuais_completos(segmentos)
+    assert [[item["editorial_index"] for item in lote] for lote in lotes] == [[0, 1], [2]]
+
+    decisao = ai._decisao_de_resposta_editorial(
+        '{"discard":[{"i":2,"reason":"tosse"}],"review":[]}', lotes[1], "gemma",
+    )
+    assert decisao.reasons == {2: "tosse"}
+
+
 def test_identifica_indisponibilidade_temporaria_do_gemini() -> None:
     from editorial_ai import _gemini_esta_sobrecarregado
 
@@ -564,7 +625,7 @@ def test_identifica_indisponibilidade_temporaria_do_gemini() -> None:
     assert not _gemini_esta_sobrecarregado(RuntimeError("429 RESOURCE_EXHAUSTED"))
 
 
-def test_prioriza_tres_modelos_gemini_sem_repeticao(monkeypatch) -> None:
+def test_preserva_cadeia_configurada_de_modelos_gemini_sem_repeticao(monkeypatch) -> None:
     from editorial_ai import _modelos_gemini
 
     monkeypatch.setattr("editorial_ai.GEMINI_MODEL", "gemini-3.5-flash")
@@ -573,7 +634,7 @@ def test_prioriza_tres_modelos_gemini_sem_repeticao(monkeypatch) -> None:
         ("gemini-3.5-flash", "gemini-3.5-flash-lite", "gemini-3.6-flash", "gemini-3.7-flash"),
     )
     assert _modelos_gemini() == (
-        "gemini-3.5-flash", "gemini-3.5-flash-lite", "gemini-3.6-flash",
+        "gemini-3.5-flash", "gemini-3.5-flash-lite", "gemini-3.6-flash", "gemini-3.7-flash",
     )
 
 
@@ -620,13 +681,45 @@ def test_modo_economico_envia_apenas_candidatos_e_contexto_curto(monkeypatch) ->
 
 
 def test_nvidia_e_usado_quando_gemini_textual_falha(monkeypatch) -> None:
-    from editorial_ai import solicitar_json_textual
+    from editorial_ai import GemmaReviewError, solicitar_json_textual
 
     monkeypatch.setattr("editorial_ai.GEMINI_API_KEY", "gemini")
     monkeypatch.setattr("editorial_ai.NVIDIA_API_KEY", "nvidia")
     monkeypatch.setattr("editorial_ai._gemini_request", lambda prompt: (_ for _ in ()).throw(GeminiReviewError("indisponivel")))
+    monkeypatch.setattr("editorial_ai._gemma_request", lambda prompt: (_ for _ in ()).throw(GemmaReviewError("indisponivel")))
     monkeypatch.setattr("editorial_ai._nvidia_request", lambda prompt: '{"approve": []}')
     assert solicitar_json_textual("teste") == '{"approve": []}'
+
+
+def test_gemma_revisa_texto_antes_do_fallback_nvidia(monkeypatch) -> None:
+    import editorial_ai as ai
+
+    prompts = []
+    monkeypatch.setattr(ai, "GEMINI_API_KEY", "gemini")
+    monkeypatch.setattr(ai, "NVIDIA_API_KEY", "nvidia")
+
+    def gemini_indisponivel(*_args):
+        ai.ULTIMO_DIAGNOSTICO = {"status": "failed"}
+        return ai.EditorialDecision(set(), {})
+
+    monkeypatch.setattr(ai, "_decidir_cortes_com_gemini", gemini_indisponivel)
+    monkeypatch.setattr(
+        ai, "_gemma_request",
+        lambda prompt: prompts.append(prompt) or '{"discard": [{"i": 1, "reason": "falsa_partida"}], "review": []}',
+    )
+    monkeypatch.setattr(ai, "_nvidia_request", lambda _prompt: pytest.fail("NVIDIA nao deveria ser chamada"))
+    monkeypatch.setattr(ai, "_aplicar_retakes_explicitos", lambda _segmentos, decisao: decisao)
+
+    resultado = ai.decidir_cortes_semanticos([
+        segmento(0, 2, "Primeira tentativa."),
+        segmento(2, 4, "Vou recomecar porque falei errado."),
+        segmento(4, 6, "Segunda tentativa."),
+    ], audio_path="aula.wav")
+
+    assert resultado.discard_indexes == {1}
+    assert '"i": 0' in prompts[0]
+    assert '"i": 2' in prompts[0]
+    assert ai.obter_diagnostico_editorial()["mode"] == "gemma_text"
 
 
 def test_nvidia_fallback_completo_usa_contrato_editorial_unificado(monkeypatch) -> None:
@@ -656,7 +749,7 @@ def test_nvidia_fallback_completo_usa_contrato_editorial_unificado(monkeypatch) 
     assert obter_diagnostico_editorial()["mode"] == "nvidia_text"
 
 
-def test_nvidia_usa_parametros_kimi_e_endpoint_nvidia(monkeypatch) -> None:
+def test_nvidia_usa_parametros_gpt_oss_e_endpoint_nvidia(monkeypatch) -> None:
     from editorial_ai import _nvidia_request
 
     monkeypatch.setattr("editorial_ai.NVIDIA_API_KEY", "chave-de-teste")
@@ -668,10 +761,29 @@ def test_nvidia_usa_parametros_kimi_e_endpoint_nvidia(monkeypatch) -> None:
     assert _nvidia_request("teste") == '{"discard": []}'
     assert chamadas[0][1] == "https://integrate.api.nvidia.com/v1/chat/completions"
     assert chamadas[0][2]["stream"] is False
-    assert chamadas[0][2]["model"] == "moonshotai/kimi-k3"
+    assert chamadas[0][2]["model"] == "openai/gpt-oss-20b"
     assert chamadas[0][2]["max_tokens"] == 16384
     assert chamadas[0][2]["temperature"] == 0
+    assert chamadas[0][2]["response_format"] == {"type": "json_object"}
     assert chamadas[0][3]["Authorization"] == "Bearer chave-de-teste"
+
+
+def test_revisao_textual_consulta_ollama_so_depois_de_todos_remotos(monkeypatch) -> None:
+    import editorial_ai as ai
+
+    chamadas = []
+    monkeypatch.setattr(ai, "GEMINI_API_KEY", "gemini")
+    monkeypatch.setattr(ai, "NVIDIA_API_KEY", "nvidia")
+    monkeypatch.setattr(ai, "_gemini_request", lambda _prompt: chamadas.append("gemini") or (_ for _ in ()).throw(ai.GeminiReviewError("falhou")))
+    monkeypatch.setattr(ai, "_gemma_request", lambda _prompt: chamadas.append("gemma") or (_ for _ in ()).throw(ai.GemmaReviewError("falhou")))
+    monkeypatch.setattr(ai, "_nvidia_request", lambda _prompt: chamadas.append("nvidia") or (_ for _ in ()).throw(ai.NvidiaReviewError("falhou")))
+    monkeypatch.setattr(ai, "_request", lambda *_args, **_kwargs: chamadas.append("ollama") or {"response": '{"confirmar": []}'})
+
+    resposta, origem = ai.solicitar_json_textual_com_fallback_ollama("teste")
+
+    assert json.loads(resposta) == {"confirmar": []}
+    assert origem == "ollama"
+    assert chamadas == ["gemini", "gemma", "nvidia", "ollama"]
 
 
 def test_json_invalido_do_gemini_e_rejeitado_com_seguranca(monkeypatch):

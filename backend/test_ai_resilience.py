@@ -16,7 +16,7 @@ def http_error(code, body="", headers=None):
 
 def test_retry_recupera_503_com_espera_exponencial(monkeypatch):
     esperas = []
-    respostas = iter([http_error(503), http_error(503), "ok"])
+    respostas = iter([http_error(503), "ok"])
     monkeypatch.setattr(ai.time, "sleep", esperas.append)
 
     def operacao():
@@ -26,7 +26,7 @@ def test_retry_recupera_503_com_espera_exponencial(monkeypatch):
         return resposta
 
     assert ai._com_retry_remoto(operacao, "teste") == "ok"
-    assert esperas == [2, 4]
+    assert esperas == [2]
 
 
 def test_gemini_rest_le_todas_as_partes_sem_pensamento():
@@ -57,8 +57,8 @@ def test_retry_limita_tentativas_e_respeita_retry_after(monkeypatch):
 
     with pytest.raises(HTTPError):
         ai._com_retry_remoto(operacao, "teste")
-    assert len(chamadas) == 3
-    assert esperas == [10, 10]
+    assert len(chamadas) == 2
+    assert esperas == [10]
 
 
 def test_retry_nao_repete_quando_gemini_informa_cota_diaria(monkeypatch):
@@ -73,6 +73,13 @@ def test_retry_nao_repete_quando_gemini_informa_cota_diaria(monkeypatch):
     with pytest.raises(HTTPError):
         ai._com_retry_remoto(operacao, "gemini-2.5-flash")
     assert len(chamadas) == 1
+
+
+def test_orcamento_global_interrompe_chamadas_remotas_excedentes():
+    with ai.limitar_chamadas_remotas(True, limite=1):
+        assert ai._com_retry_remoto(lambda: "ok", "teste") == "ok"
+        with pytest.raises(ai.RemoteCallLimitError):
+            ai._com_retry_remoto(lambda: "nao deve executar", "teste")
 
 
 @pytest.mark.parametrize("code", [400, 401, 403, 404])
@@ -118,7 +125,7 @@ def test_textual_esgota_retry_antes_de_trocar_modelo(monkeypatch):
 
     monkeypatch.setattr(ai, "_request_url", request)
     assert json.loads(ai._gemini_request("teste")) == {"ok": True}
-    assert len(chamadas) == 4
+    assert len(chamadas) == 3
     assert ai.obter_ultimo_modelo_gemini_textual() == "disponivel"
 
 
