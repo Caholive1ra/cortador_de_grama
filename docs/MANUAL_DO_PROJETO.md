@@ -90,7 +90,7 @@ Lettering usa o render da sequência final, para não sugerir textos em falas re
 
 ### Auditoria
 
-Auditoria é não destrutiva: combina XML da sequência e render/proxy correspondente para procurar riscos de áudio, imagem, continuidade, repetição, conteúdo e jump cut. O resultado cria apenas marcadores.
+Auditoria é não destrutiva: combina XML da sequência e render/proxy correspondente para procurar riscos de áudio, imagem, continuidade, repetição, conteúdo e jump cut. No perfil MBA, envia poucos frames selecionados e falas relevantes ao Gemini Vision quando disponível, sugerindo zoom-in sutil, zoom-out, plano estável, destaque de slide ou pausa visual. Sem visão remota, aplica sugestões locais conservadoras. O resultado cria apenas marcadores.
 
 A sequência de destino é identificada por `guid` no início. Portanto, o editor pode trabalhar em outra sequência enquanto o job roda; ao concluir, os marcadores são aplicados na sequência de origem. Se ela tiver sido removida, nada é aplicado.
 

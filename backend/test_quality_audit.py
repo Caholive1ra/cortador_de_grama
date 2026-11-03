@@ -60,3 +60,20 @@ def test_auditoria_aceita_validacao_do_ollama_apos_falhas_remotas(monkeypatch):
 
     assert resultado["status"] == "completed_ollama"
     assert resultado["findings"][0]["title"] == "IA: REPETICAO POSSIVEL"
+
+
+def test_direcao_mba_retorna_marcador_sem_aplicar_efeito(monkeypatch):
+    import mba_direction
+
+    monkeypatch.setattr(mba_direction, "_frame_jpeg", lambda *_args: None)
+    monkeypatch.setattr(mba_direction, "_solicitar_visao_gemini", lambda candidatos, _frames: {
+        "suggestions": [{"id": candidatos[0]["id"], "type": "zoom_in", "strength": 2,
+                         "duration": 2, "reason": "Definição central para a tomada de decisão."}]
+    })
+    resultado = mba_direction.sugerir_direcao_mba("aula.mp4", [{
+        "start": 10, "end": 14, "text": "Este é o conceito mais importante desta disciplina MBA.",
+    }])
+    assert resultado["status"] == "gemini_vision"
+    assert resultado["findings"][0]["category"] == "direcao"
+    assert "ZOOM-IN" in resultado["findings"][0]["title"]
+    assert "Escala sugerida" in resultado["findings"][0]["description"]

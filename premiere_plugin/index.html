@@ -75,6 +75,34 @@
       .popup-conteudo p { margin:8px 0; color:#ddd; }
       .popup-modelos { padding:10px; border-left:3px solid #ed145b; background:#202020; white-space:pre-wrap; font-size:12px; line-height:1.5; }
       #btnFecharResumo { background:#ed145b; }
+      .carregamento { position:fixed; z-index:15; inset:0; display:flex; align-items:center; justify-content:center; padding:18px; background:rgba(9,9,12,.88); backdrop-filter:blur(4px); }
+      .carregamento[hidden] { display:none; }
+      .carregamento-caixa { width:min(390px,100%); padding:25px 22px 20px; border:1px solid #663146; border-radius:14px; text-align:center; background:linear-gradient(145deg,#2b2027,#1d1d22 58%,#241722); box-shadow:0 22px 65px rgba(0,0,0,.65); }
+      .carregamento-selo { display:inline-flex; align-items:center; gap:7px; margin-bottom:16px; color:#ff7ba6; font-size:10px; font-weight:bold; letter-spacing:1.4px; text-transform:uppercase; }
+      .carregamento-selo::before { content:""; width:7px; height:7px; border-radius:50%; background:#ed145b; box-shadow:0 0 0 5px rgba(237,20,91,.14); animation:pulsar 1.7s ease-in-out infinite; }
+      .timeline-animada { position:relative; height:82px; margin:0 3px 18px; overflow:hidden; border:1px solid #493641; border-radius:9px; background:linear-gradient(180deg,#17171b,#232129); }
+      .timeline-grade { position:absolute; inset:0; opacity:.32; background:repeating-linear-gradient(90deg,transparent 0,transparent 39px,rgba(255,255,255,.16) 40px),linear-gradient(180deg,transparent 49%,rgba(255,255,255,.12) 50%,transparent 51%); }
+      .clip { position:absolute; height:16px; border-radius:3px; animation:flutuar 2.8s ease-in-out infinite; }
+      .clip.um { top:15px; left:8%; width:30%; background:#ed145b; }
+      .clip.dois { top:15px; left:42%; width:20%; background:#a273ec; animation-delay:.3s; }
+      .clip.tres { top:15px; left:66%; width:25%; background:#d95b7f; animation-delay:.6s; }
+      .clip.quatro { top:51px; left:14%; width:23%; background:#457ec0; animation-delay:.15s; }
+      .clip.cinco { top:51px; left:41%; width:40%; background:#35a477; animation-delay:.5s; }
+      .playhead { position:absolute; z-index:2; top:7px; bottom:7px; left:8%; width:2px; background:#fff; box-shadow:0 0 12px rgba(255,255,255,.85); animation:percorrer 2.5s ease-in-out infinite; }
+      .playhead::before { content:""; position:absolute; top:-3px; left:-4px; width:10px; height:10px; transform:rotate(45deg); background:#fff; }
+      .ondas { position:absolute; right:12px; bottom:8px; display:flex; align-items:center; gap:3px; height:17px; }
+      .ondas i { display:block; width:3px; height:7px; border-radius:2px; background:#ff83aa; animation:onda .75s ease-in-out infinite alternate; }
+      .ondas i:nth-child(2) { animation-delay:.13s; } .ondas i:nth-child(3) { animation-delay:.28s; } .ondas i:nth-child(4) { animation-delay:.4s; } .ondas i:nth-child(5) { animation-delay:.18s; }
+      .carregamento h2 { margin:0 0 7px; color:#fff; font-size:18px; }
+      .carregamento p { min-height:35px; margin:0; color:#d0c9ce; font-size:13px; line-height:1.45; transition:opacity .2s ease; }
+      .carregamento-progresso { width:100%; height:3px; margin:17px 0 3px; overflow:hidden; border-radius:5px; background:#44333c; }
+      .carregamento-progresso::before { content:""; display:block; width:42%; height:100%; border-radius:inherit; background:linear-gradient(90deg,#ed145b,#b980ff); animation:progresso 1.8s ease-in-out infinite; }
+      #btnCancelarCarregamento { margin-top:16px; color:#ffc5d7; background:#51313d; border-color:#794657; font-size:12px; }
+      @keyframes pulsar { 50% { transform:scale(1.45); opacity:.55; } }
+      @keyframes percorrer { 0%,100% { left:8%; } 50% { left:89%; } }
+      @keyframes flutuar { 50% { transform:translateY(-2px); filter:brightness(1.18); } }
+      @keyframes onda { to { height:17px; } }
+      @keyframes progresso { 0% { transform:translateX(-110%); } 100% { transform:translateX(340%); } }
     </style>
   </head>
   <body>
@@ -184,6 +212,12 @@
       <section class="bloco">
         <h2>Auditar edição final</h2>
         <p>Depois da sua revisão, escolha o render final. A auditoria marca possíveis problemas de áudio, imagem, continuidade, repetição, conteúdo e jump cuts.</p>
+        <label class="opcao" for="auditProfile">Perfil da auditoria</label>
+        <select id="auditProfile" aria-label="Perfil da auditoria">
+          <option value="standard">Padrão — conferir problemas técnicos</option>
+          <option value="mba">MBA — incluir sugestões de direção artística</option>
+        </select>
+        <p class="aviso">No perfil MBA, os marcadores sugerem zoom, respiro, destaque de slide ou plano estável. Nenhum efeito é aplicado automaticamente.</p>
         <button id="btnAuditar" data-task="audit" type="button">Auditar sequência final</button>
         <p class="aviso">O XML desta sequência é exportado para leitura; você pode continuar editando outra enquanto a auditoria roda. Os marcadores voltarão para esta sequência, sem alterar mídia, corte ou efeito. Jump cuts sem mudança de escala aparecem em vermelho.</p>
       </section>
@@ -191,6 +225,19 @@
       <button id="btnCancelarTarefa" type="button">Cancelar tarefa atual</button>
       <button id="btnModoEconomico" type="button">Processar esta aula no modo economico</button>
     </main>
+    <div id="loadingOverlay" class="carregamento" role="status" aria-live="polite" aria-labelledby="loadingTitle" hidden>
+      <div class="carregamento-caixa">
+        <span class="carregamento-selo">Assistente de Decupagem</span>
+        <div class="timeline-animada" aria-hidden="true">
+          <div class="timeline-grade"></div><div class="clip um"></div><div class="clip dois"></div><div class="clip tres"></div><div class="clip quatro"></div><div class="clip cinco"></div><div class="playhead"></div>
+          <div class="ondas"><i></i><i></i><i></i><i></i><i></i></div>
+        </div>
+        <h2 id="loadingTitle">Preparando sua edição</h2>
+        <p id="loadingMessage">Organizando os materiais para começar.</p>
+        <div class="carregamento-progresso" aria-hidden="true"></div>
+        <button id="btnCancelarCarregamento" type="button">Cancelar esta tarefa</button>
+      </div>
+    </div>
     <div id="operationPopup" class="popup-operacao" role="dialog" aria-modal="true" aria-labelledby="operationPopupTitle" hidden>
       <div class="popup-conteudo">
         <h2 id="operationPopupTitle">Operação concluída</h2>

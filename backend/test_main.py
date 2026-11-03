@@ -200,7 +200,7 @@ def test_auditoria_de_qualidade_retorna_achados(tmp_path, monkeypatch) -> None:
     })
     monkeypatch.setattr("main.extrair_audio_temporario", lambda *args: nullcontext("audio.wav"))
     monkeypatch.setattr("main.transcrever_audio", lambda _path: [{"start": 0, "end": 1, "text": "Teste"}])
-    monkeypatch.setattr("main.auditar_sequencia", lambda *args: {
+    monkeypatch.setattr("main.auditar_sequencia", lambda *args, **kwargs: {
         "findings": [{"category": "jump_cut", "color": "red", "start": 1, "end": 1.2,
                       "title": "JUMP CUT", "description": "Conferir."}],
         "summary": {"jump_cut": 1}, "checked": {},
@@ -213,7 +213,7 @@ def test_auditoria_de_qualidade_retorna_achados(tmp_path, monkeypatch) -> None:
     assert resposta.status_code == 200, resposta.text
     assert resposta.json()["findings"][0]["color"] == "red"
     resumo = resposta.json()["operation_summary"]
-    assert resumo["quantities"] == {"transcribed_segments": 1, "findings": 1}
+    assert resumo["quantities"] == {"transcribed_segments": 1, "findings": 1, "mba_direction_suggestions": 0}
     assert resumo["models"]["transcription"] == "faster-whisper/base (local)"
 
 

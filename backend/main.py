@@ -149,6 +149,7 @@ class QualityAuditRequest(BaseModel):
 
     revised_media_path: str
     revised_xml_path: str
+    editorial_profile: str = "standard"
 
 
 class JobRequest(BaseModel):
@@ -775,6 +776,8 @@ def create_videocast_opening(request: OpeningRequest) -> dict:
 def audit_quality(request: QualityAuditRequest) -> dict:
     """Audita a edicao final e devolve marcadores; nunca altera a sequencia."""
     try:
+        if request.editorial_profile not in {"standard", "mba"}:
+            raise ValueError("Perfil editorial inválido. Use standard ou mba.")
         inicio = perf_counter()
         log_operacao("AUDITORIA", "INICIO | aula=%s", os.path.basename(request.revised_media_path))
         logger.info("Auditoria: inicio | render=%s | xml=%s", request.revised_media_path, request.revised_xml_path)
@@ -789,6 +792,7 @@ def audit_quality(request: QualityAuditRequest) -> dict:
         logger.info("Auditoria: transcricao concluida | segmentos=%s | tempo=%.1fs", len(segmentos), perf_counter() - inicio)
         resultado = auditar_sequencia(
             request.revised_xml_path, request.revised_media_path, segmentos,
+            editorial_profile=request.editorial_profile,
         )
         logger.info("Auditoria: analise concluida | achados=%s | categorias=%s | ia_texto=%s | tempo=%.1fs",
                     len(resultado["findings"]), resultado["summary"],
@@ -811,6 +815,10 @@ def audit_quality(request: QualityAuditRequest) -> dict:
             "Ollama/" + OLLAMA_MODEL if status_revisao.startswith("completed_ollama") else
             "regras locais (sem revisão textual)"
         )
+        if resultado.get("checked", {}).get("mba_direction") == "gemini_vision":
+            modelo_auditoria += " | direção: Gemini Vision"
+        elif request.editorial_profile == "mba":
+            modelo_auditoria += " | direção: regras locais"
         return {
             "status": "success", **resultado,
             "diagnostic_path": os.path.abspath(diagnostico_path),
@@ -818,7 +826,8 @@ def audit_quality(request: QualityAuditRequest) -> dict:
             "operation_summary": {
                 "operation": "auditoria",
                 "models": {"transcription": MODELO_TRANSCRICAO_LOCAL, "audit": modelo_auditoria},
-                "quantities": {"transcribed_segments": len(segmentos), "findings": len(resultado["findings"])},
+                "quantities": {"transcribed_segments": len(segmentos), "findings": len(resultado["findings"]),
+                               "mba_direction_suggestions": len([f for f in resultado["findings"] if f["category"] == "direcao"])},
             },
         }
     except ModelUnavailableError as exc:

@@ -14,6 +14,7 @@ let indiceExemplo = 0;
 let bancoOcupado = false;
 let atualizacaoFilaEmAndamento = false;
 let tarefaCancelavelId = null;
+let intervaloMensagensCarregamento = null;
 const BANK_URL = "http://127.0.0.1:8000/learning/records";
 
 const { localFileSystem } = require("uxp").storage;
@@ -220,6 +221,68 @@ async function processarAula(fontesSalvas = null) {
   }
 }
 
+const MENSAGENS_CARREGAMENTO = {
+  process: [
+    "Lendo a mídia e organizando as fontes.",
+    "Escutando o áudio para localizar pausas e retakes.",
+    "Avaliando contexto, ritmo e trechos úteis.",
+    "Preparando a primeira timeline para sua revisão."
+  ],
+  opening: [
+    "Escutando o episódio em busca de falas marcantes.",
+    "Conectando ideias para criar uma abertura com sentido.",
+    "Conferindo duração, falas completas e repetições.",
+    "Montando uma abertura pronta para você lapidar."
+  ],
+  lettering: [
+    "Transcrevendo a fala da edição final.",
+    "Mapeando conceitos e termos que ajudam o aluno.",
+    "Conferindo evidências para não inventar textos.",
+    "Preparando os marcadores de lettering."
+  ],
+  audit: [
+    "Lendo a estrutura da sua sequência.",
+    "Conferindo cortes, áudio, imagem e continuidade.",
+    "Procurando pontos que merecem seu olhar.",
+    "Organizando marcadores para a revisão final."
+  ],
+  learning: [
+    "Comparando a sugestão inicial com sua edição.",
+    "Identificando decisões editoriais para registrar.",
+    "Preparando o material para sua confirmação."
+  ]
+};
+
+function mostrarCarregamento(task, titulo) {
+  const overlay = document.getElementById("loadingOverlay");
+  const heading = document.getElementById("loadingTitle");
+  const mensagem = document.getElementById("loadingMessage");
+  const cancelar = document.getElementById("btnCancelarCarregamento");
+  if (!overlay || !heading || !mensagem) return;
+  if (intervaloMensagensCarregamento) clearInterval(intervaloMensagensCarregamento);
+  const mensagens = MENSAGENS_CARREGAMENTO[task] || ["Organizando sua tarefa com cuidado."];
+  let indice = 0;
+  heading.textContent = titulo || "Preparando sua edição";
+  mensagem.textContent = mensagens[indice];
+  if (cancelar) cancelar.disabled = false;
+  overlay.hidden = false;
+  intervaloMensagensCarregamento = setInterval(() => {
+    indice = (indice + 1) % mensagens.length;
+    mensagem.style.opacity = "0";
+    setTimeout(() => {
+      mensagem.textContent = mensagens[indice];
+      mensagem.style.opacity = "1";
+    }, 160);
+  }, 3200);
+}
+
+function esconderCarregamento() {
+  if (intervaloMensagensCarregamento) clearInterval(intervaloMensagensCarregamento);
+  intervaloMensagensCarregamento = null;
+  const overlay = document.getElementById("loadingOverlay");
+  if (overlay) overlay.hidden = true;
+}
+
 function resumoOperacao(dados) {
   const resumo = dados.operation_summary || {};
   const modelos = Object.entries(resumo.models || {})
@@ -256,6 +319,23 @@ function atualizarBotaoCancelar() {
   if (!botao) return;
   botao.classList.toggle("visivel", Boolean(tarefaCancelavelId));
   botao.disabled = !tarefaCancelavelId;
+}
+
+async function cancelarTarefaAtual() {
+  if (!tarefaCancelavelId) return;
+  const botoes = [
+    document.getElementById("btnCancelarTarefa"),
+    document.getElementById("btnCancelarCarregamento")
+  ].filter(Boolean);
+  botoes.forEach((botao) => { botao.disabled = true; });
+  try {
+    await acaoJob(tarefaCancelavelId, "cancel");
+    definirStatus("Cancelamento solicitado. A tarefa será interrompida ao concluir a etapa segura atual.");
+  } catch (erro) {
+    definirStatus("Não foi possível cancelar: " + (erro.message || String(erro)));
+    atualizarBotaoCancelar();
+    botoes.forEach((botao) => { botao.disabled = false; });
+  }
 }
 
 function textoEstadoJob(job) {
@@ -344,6 +424,7 @@ async function enfileirarTarefa(task, payload) {
 async function aguardarTarefa(job, nome) {
   tarefaCancelavelId = job.id;
   atualizarBotaoCancelar();
+  mostrarCarregamento(job.task, nome);
   try {
     while (true) {
       const resposta = await fetch(JOBS_URL + "/" + encodeURIComponent(job.id));
@@ -379,6 +460,7 @@ async function aguardarTarefa(job, nome) {
     }
     }
   } finally {
+    esconderCarregamento();
     if (tarefaCancelavelId === job.id) {
       tarefaCancelavelId = null;
       atualizarBotaoCancelar();
@@ -952,8 +1034,10 @@ async function auditarSequenciaFinal() {
     );
     if (!mediaPath) return;
     definirStatus("Auditando áudio, imagem, cortes e continuidade... Aguarde.");
+    const perfilAuditoria = document.getElementById("auditProfile");
     const resposta = await filaComoResposta("audit", {
       revised_media_path: mediaPath, revised_xml_path: xmlPath,
+      editorial_profile: perfilAuditoria ? perfilAuditoria.value : "standard",
     }, "Auditoria da edição final"); /*
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ revised_media_path: mediaPath, revised_xml_path: xmlPath }),
@@ -1001,7 +1085,7 @@ async function adicionarMarcadoresDeAuditoria(projeto, sequencia, premiere, find
   const porCategoria = {
     jump_cut: cores.RED, continuidade: cores.ORANGE, repeticao: cores.YELLOW,
     audio: cores.CYAN, imagem: cores.BLUE, conteudo: cores.MAGENTA || cores.MAGNETA,
-    revisao: cores.GREEN,
+    revisao: cores.GREEN, direcao: cores.VIOLET || cores.PURPLE || cores.MAGENTA || cores.MAGNETA,
   };
   const colecaoCriados = await premiere.Markers.getMarkers(sequencia);
   const criados = await colecaoCriados.getMarkers();
@@ -1081,17 +1165,9 @@ function iniciarPainel() {
     };
   }
   const botaoCancelarTarefa = document.getElementById("btnCancelarTarefa");
-  if (botaoCancelarTarefa) botaoCancelarTarefa.onclick = async () => {
-    if (!tarefaCancelavelId) return;
-    botaoCancelarTarefa.disabled = true;
-    try {
-      await acaoJob(tarefaCancelavelId, "cancel");
-      definirStatus("Cancelamento solicitado. A tarefa será interrompida ao concluir a etapa segura atual.");
-    } catch (erro) {
-      definirStatus("Não foi possível cancelar: " + (erro.message || String(erro)));
-      atualizarBotaoCancelar();
-    }
-  };
+  if (botaoCancelarTarefa) botaoCancelarTarefa.onclick = cancelarTarefaAtual;
+  const botaoCancelarCarregamento = document.getElementById("btnCancelarCarregamento");
+  if (botaoCancelarCarregamento) botaoCancelarCarregamento.onclick = cancelarTarefaAtual;
   atualizarBotaoCancelar();
   const botaoFecharResumo = document.getElementById("btnFecharResumo");
   if (botaoFecharResumo) botaoFecharResumo.onclick = fecharResumoOperacao;

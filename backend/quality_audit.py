@@ -32,6 +32,7 @@ CORES = {
     "imagem": "blue",
     "conteudo": "magenta",
     "revisao": "green",
+    "direcao": "purple",
 }
 
 _PALAVRAS_COMUNS = {
@@ -44,7 +45,7 @@ _SINAIS_REFAZ = re.compile(
 )
 
 
-def auditar_sequencia(xml_path: str, media_path: str, segmentos: list[dict]) -> dict:
+def auditar_sequencia(xml_path: str, media_path: str, segmentos: list[dict], editorial_profile: str = "standard") -> dict:
     """Audita a montagem final e devolve achados ordenados por tempo.
 
     ``media_path`` deve ser um render/proxy da sequencia final: ele permite
@@ -71,6 +72,13 @@ def auditar_sequencia(xml_path: str, media_path: str, segmentos: list[dict]) -> 
     logger.info("Auditoria tecnica: audio concluido | achados=%s", len(achados))
     achados.extend(_auditar_imagem(str(media), timeline["cuts"], timeline["fps"]))
     logger.info("Auditoria tecnica: imagem concluida | achados=%s", len(achados))
+    direcao_mba = {"status": "not_requested", "findings": []}
+    if editorial_profile == "mba":
+        from mba_direction import sugerir_direcao_mba
+        direcao_mba = sugerir_direcao_mba(str(media), segmentos)
+        achados.extend(direcao_mba["findings"])
+        logger.info("Auditoria MBA: direcao visual | status=%s | sugestoes=%s",
+                    direcao_mba["status"], len(direcao_mba["findings"]))
     achados.sort(key=lambda item: (item["start"], item["category"], item["title"]))
     return {
         "findings": achados,
@@ -79,6 +87,8 @@ def auditar_sequencia(xml_path: str, media_path: str, segmentos: list[dict]) -> 
             "cuts": len(timeline["cuts"]), "transcript_segments": len(segmentos),
             "media": str(media.resolve()), "xml": str(xml.resolve()),
             "text_ai_review": revisao_ia["status"],
+            "editorial_profile": editorial_profile,
+            "mba_direction": direcao_mba["status"],
         },
     }
 

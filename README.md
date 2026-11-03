@@ -114,7 +114,7 @@ Selecione o render completo. A ferramenta cria de 2 a 4 falas completas, cronol�
 As duas tarefas ficam vinculadas à sequência ativa no início. Você pode trocar de aba e continuar trabalhando: os marcadores serão inseridos na sequência de origem, nunca na aba que estiver ativa no fim.
 
 - **Lettering:** use render da mesma sequência, começando no mesmo zero da timeline. Ele analisa fala editada e não lê visualmente slides.
-- **Auditoria:** use render/proxy da mesma sequência. Ela apenas cria marcadores; não altera cortes, mídia ou efeitos.
+- **Auditoria:** use render/proxy da mesma sequência. No perfil **MBA**, ela analisa frames e transcrição para sugerir zoom-in sutil, zoom-out, plano estável, destaque de slide ou pausa visual. Ela apenas cria marcadores; não altera cortes, mídia ou efeitos.
 
 ## Saídas
 
