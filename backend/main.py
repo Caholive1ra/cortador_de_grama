@@ -214,7 +214,7 @@ def health_check() -> dict[str, str]:
 
 @app.get("/diagnostics/gemini")
 def diagnostics_gemini() -> dict:
-    """Lista modelos visiveis para a chave, sem retornar a chave secreta."""
+    """Confere acesso real aos modelos Gemini, sem retornar a chave secreta."""
     if not GEMINI_API_KEY:
         return {"configured": False, "configured_models": list(_modelos_gemini())}
     try:
@@ -227,9 +227,24 @@ def diagnostics_gemini() -> dict:
             for item in resposta.get("models", [])
             if "generateContent" in item.get("supportedGenerationMethods", [])
         ]
-        log_operacao("CORTE", "CONCLUIDO | aula=%s | segmentos=%s | total=%.1fs | xml=%s",
-                     os.path.basename(request.pgm_path), len(segmentos_classificados),
-                     perf_counter() - inicio_processamento, os.path.basename(xml_gerado))
+        sondas = {}
+        for modelo in dict.fromkeys((*_modelos_gemini(), GEMMA_MODEL)):
+            if modelo not in disponiveis:
+                sondas[modelo] = {"reachable": False, "reason": "modelo nao listado para esta chave"}
+                continue
+            try:
+                retorno = _request_url(
+                    "POST", f"https://generativelanguage.googleapis.com/v1beta/models/{modelo}:generateContent",
+                    {"contents": [{"parts": [{"text": "Responda somente OK."}]}],
+                     "generationConfig": {"maxOutputTokens": 8, "temperature": 0}},
+                    {"x-goog-api-key": GEMINI_API_KEY}, timeout=30,
+                )
+                sondas[modelo] = {"reachable": bool(retorno.get("candidates"))}
+            except Exception as probe_exc:
+                sondas[modelo] = {
+                    "reachable": False, "error_type": type(probe_exc).__name__,
+                    "error": _detalhe_erro_remoto(probe_exc)[:500],
+                }
         return {
             "configured": True,
             "configured_models": list(_modelos_gemini()),
@@ -239,6 +254,7 @@ def diagnostics_gemini() -> dict:
             },
             "gemma_model": GEMMA_MODEL,
             "gemma_model_available": GEMMA_MODEL in disponiveis,
+            "model_probes": sondas,
         }
     except Exception as exc:
         logger.error("Diagnostico Gemini falhou: %s", exc, exc_info=True)

@@ -14,19 +14,18 @@ def http_error(code, body="", headers=None):
     return HTTPError("https://example.test", code, "test", headers or {}, io.BytesIO(body.encode()))
 
 
-def test_retry_recupera_503_com_espera_exponencial(monkeypatch):
+def test_503_entra_em_cooldown_sem_repetir_a_mesma_chamada(monkeypatch):
     esperas = []
-    respostas = iter([http_error(503), "ok"])
     monkeypatch.setattr(ai.time, "sleep", esperas.append)
+    ai.MODELOS_EM_COOLDOWN_ATE.clear()
 
     def operacao():
-        resposta = next(respostas)
-        if isinstance(resposta, Exception):
-            raise resposta
-        return resposta
+        raise http_error(503)
 
-    assert ai._com_retry_remoto(operacao, "teste") == "ok"
-    assert esperas == [2]
+    with pytest.raises(HTTPError):
+        ai._com_retry_remoto(operacao, "teste")
+    assert esperas == []
+    assert ai._modelo_em_cooldown("teste")
 
 
 def test_gemini_rest_le_todas_as_partes_sem_pensamento():
@@ -111,10 +110,11 @@ def test_nvidia_erro_de_limite_nao_e_reportado_como_chave_invalida(monkeypatch):
     assert not ai._erro_nvidia_autenticacao(erro)
 
 
-def test_textual_esgota_retry_antes_de_trocar_modelo(monkeypatch):
+def test_textual_troca_de_modelo_apos_503_sem_repetir(monkeypatch):
     monkeypatch.setattr(ai, "GEMINI_API_KEY", "teste")
     monkeypatch.setattr(ai, "_modelos_gemini", lambda: ("ocupado", "disponivel"))
     monkeypatch.setattr(ai.time, "sleep", lambda _: None)
+    ai.MODELOS_EM_COOLDOWN_ATE.clear()
     chamadas = []
 
     def request(method, url, *args, **kwargs):
@@ -125,11 +125,11 @@ def test_textual_esgota_retry_antes_de_trocar_modelo(monkeypatch):
 
     monkeypatch.setattr(ai, "_request_url", request)
     assert json.loads(ai._gemini_request("teste")) == {"ok": True}
-    assert len(chamadas) == 3
+    assert len(chamadas) == 2
     assert ai.obter_ultimo_modelo_gemini_textual() == "disponivel"
 
 
-def test_audio_repete_sem_reenviar_arquivo_e_remove_no_final(monkeypatch):
+def test_audio_503_nao_reenvia_arquivo_e_remove_no_final(monkeypatch):
     from google import genai
 
     uploads, deletes, chamadas = [], [], []
@@ -137,6 +137,7 @@ def test_audio_repete_sem_reenviar_arquivo_e_remove_no_final(monkeypatch):
     monkeypatch.setattr(ai, "GEMINI_API_KEY", "teste")
     monkeypatch.setattr(ai, "_modelos_gemini", lambda: ("modelo",))
     monkeypatch.setattr(ai.time, "sleep", lambda _: None)
+    ai.MODELOS_EM_COOLDOWN_ATE.clear()
 
     def generate(**kwargs):
         chamadas.append(kwargs)
@@ -152,8 +153,9 @@ def test_audio_repete_sem_reenviar_arquivo_e_remove_no_final(monkeypatch):
         models=SimpleNamespace(generate_content=generate),
     )
     monkeypatch.setattr(genai, "Client", lambda **kw: client)
-    assert json.loads(ai._gemini_audio_request("teste", "audio.wav"))["discard"] == []
+    with pytest.raises(ai.GeminiReviewError):
+        ai._gemini_audio_request("teste", "audio.wav")
     assert len(uploads) == 1
-    assert len(chamadas) == 2
+    assert len(chamadas) == 1
     assert deletes == [{"name": "files/teste"}]
     assert chamadas[0]["config"]["automatic_function_calling"] == {"disable": True}
