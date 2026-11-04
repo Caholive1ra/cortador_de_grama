@@ -222,7 +222,9 @@ def decidir_cortes_semanticos(
             return _aplicar_retakes_explicitos(segmentos, decisao)
     if GEMINI_API_KEY and not modo_economico:
         logger.info("Gemini nao concluiu a revisao; iniciando segunda revisao Gemma textual completa.")
-        decisao = _decidir_cortes_textuais_completos(segmentos, "gemma")
+        # Se somente um lote do Gemma falhar, a NVIDIA recebe apenas aquele
+        # lote. Os lotes bons nao devem ser refeitos do zero.
+        decisao = _decidir_cortes_textuais_completos(segmentos, "gemma", fallback_provider="nvidia")
         if ULTIMO_DIAGNOSTICO.get("status") == "ok":
             return _aplicar_retakes_explicitos(segmentos, decisao)
     # Sem Gemini, a NVIDIA recebe a mesma transcricao completa e as mesmas
@@ -629,9 +631,13 @@ def _decisao_de_resposta_editorial(
 
 
 def _decidir_cortes_textuais_completos(
-    segmentos: list[dict], provedor: str,
+    segmentos: list[dict], provedor: str, fallback_provider: str | None = None,
 ) -> EditorialDecision:
-    """Aplica o contrato completo quando o provedor so aceita texto."""
+    """Aplica o contrato completo quando o provedor so aceita texto.
+
+    Um fallback opcional atua por lote. Isso evita descartar minutos de
+    revisao ja concluida quando apenas uma janela remota fica indisponivel.
+    """
     global ULTIMO_DIAGNOSTICO
     ULTIMO_DIAGNOSTICO = {
         "mode": f"{provedor}_text", "provider": provedor,
@@ -643,10 +649,20 @@ def _decidir_cortes_textuais_completos(
         lotes = _lotes_textuais_completos(segmentos)
         for numero, lote in enumerate(lotes, start=1):
             prompt = _prompt_revisao_editorial(_transcricao_editorial(lote), incluir_audio=False)
-            registro = {"batch": numero, "segments": len(lote)}
-            decisao_lote = _decisao_de_resposta_editorial(
-                solicitar_json_textual(prompt, provedor), lote, provedor,
-            )
+            registro = {"batch": numero, "segments": len(lote), "provider": provedor}
+            try:
+                resposta = solicitar_json_textual(prompt, provedor)
+                decisao_lote = _decisao_de_resposta_editorial(resposta, lote, provedor)
+            except (GeminiReviewError, GemmaReviewError, NvidiaReviewError) as exc:
+                if not fallback_provider or not _provedor_configurado(fallback_provider):
+                    raise
+                logger.warning(
+                    "Lote completo %d do %s falhou; tentando %s apenas neste lote: %s",
+                    numero, provedor, fallback_provider, exc,
+                )
+                resposta = solicitar_json_textual(prompt, fallback_provider)
+                decisao_lote = _decisao_de_resposta_editorial(resposta, lote, fallback_provider)
+                registro.update({"provider": fallback_provider, "fallback_from": provedor})
             motivos.update(decisao_lote.reasons)
             revisoes.update({i: r for i, r in decisao_lote.review_reasons.items() if i not in motivos})
             registro["status"] = "ok"
@@ -891,6 +907,13 @@ def _com_retry_remoto(
             _consumir_chamada_remota()
             return (operacao_segunda_tentativa if tentativa and operacao_segunda_tentativa else operacao)()
         except Exception as exc:
+            # Um 503 indica sobrecarga do provedor, nao uma falha transitoria
+            # deste pedido. Repetir a mesma chamada costuma gastar mais um
+            # timeout inteiro sem melhorar a resposta; registra cooldown e
+            # libera o proximo modelo imediatamente.
+            if _gemini_esta_sobrecarregado(exc) or " 503" in _detalhe_erro_remoto(exc):
+                _registrar_indisponibilidade(modelo, exc)
+                raise
             codigo = getattr(exc, "code", None) or getattr(exc, "status_code", None)
             detalhe = _detalhe_erro_remoto(exc)
             transitorio = codigo in (429, 500, 502, 503, 504) or isinstance(exc, (TimeoutError, URLError))

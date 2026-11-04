@@ -153,6 +153,7 @@ async function processarAula(fontesSalvas = null) {
 
     ultimaSolicitacaoDeProcessamento = fontes;
     definirStatus("Corte enviado para a fila com prioridade alta.");
+    mostrarCarregamento("process", "Preparando corte da aula");
     const job = await enfileirarTarefa("process", fontes);
     const dadosDaFila = await aguardarTarefa(job, "Corte da aula");
     console.log("[Decupagem] Resposta da fila:", dadosDaFila);
@@ -217,8 +218,25 @@ async function processarAula(fontesSalvas = null) {
       "Erro: " + (erro && erro.message ? erro.message : String(erro))
     );
   } finally {
+    esconderCarregamento();
     definirCorteEmAndamento(false);
   }
+}
+
+async function selecionarFontes(nomeFonte, obrigatoria, tipos = ["xml"]) {
+  const caminhos = [];
+  while (true) {
+    const arquivo = await selecionarFonte(
+      caminhos.length
+        ? "o próximo XML original da IA (Cancelar para concluir)"
+        : nomeFonte,
+      caminhos.length === 0 && obrigatoria,
+      tipos,
+    );
+    if (!arquivo) break;
+    caminhos.push(arquivo);
+  }
+  return caminhos;
 }
 
 const MENSAGENS_CARREGAMENTO = {
@@ -265,7 +283,14 @@ function mostrarCarregamento(task, titulo) {
   heading.textContent = titulo || "Preparando sua edição";
   mensagem.textContent = mensagens[indice];
   if (cancelar) cancelar.disabled = false;
-  overlay.hidden = false;
+  // Não use somente `element.hidden`: algumas versões do UXP/Premiere não
+  // redesenham um elemento que nasceu com [hidden]. Forçamos os dois estados.
+  overlay.removeAttribute("hidden");
+  overlay.classList.add("ativo");
+  overlay.style.display = "flex";
+  overlay.style.visibility = "visible";
+  overlay.setAttribute("aria-hidden", "false");
+  console.log("[Decupagem] Tela de carregamento aberta para:", task);
   intervaloMensagensCarregamento = setInterval(() => {
     indice = (indice + 1) % mensagens.length;
     mensagem.style.opacity = "0";
@@ -280,7 +305,24 @@ function esconderCarregamento() {
   if (intervaloMensagensCarregamento) clearInterval(intervaloMensagensCarregamento);
   intervaloMensagensCarregamento = null;
   const overlay = document.getElementById("loadingOverlay");
-  if (overlay) overlay.hidden = true;
+  if (overlay) {
+    overlay.classList.remove("ativo");
+    overlay.style.display = "none";
+    overlay.style.visibility = "hidden";
+    overlay.setAttribute("hidden", "");
+    overlay.setAttribute("aria-hidden", "true");
+  }
+  console.log("[Decupagem] Tela de carregamento fechada.");
+}
+
+function alternarCarregamentoMinimizado() {
+  const caixa = document.querySelector("#loadingOverlay .carregamento-caixa");
+  const botao = document.getElementById("btnMinimizarCarregamento");
+  if (!caixa || !botao) return;
+  const minimizado = caixa.classList.toggle("minimizado");
+  botao.textContent = minimizado ? "+" : "−";
+  botao.title = minimizado ? "Expandir atividade" : "Minimizar atividade";
+  botao.setAttribute("aria-label", botao.title);
 }
 
 function resumoOperacao(dados) {
@@ -402,6 +444,7 @@ async function atualizarCentralDeTarefas() {
 /** Envia uma tarefa pesada e recebe seu identificador persistente na fila. */
 async function enfileirarTarefa(task, payload) {
   let resposta;
+  mostrarCarregamento(task, "Enviando " + (NOME_TAREFA[task] || "tarefa"));
   try {
     resposta = await fetch(JOBS_URL, {
       method: "POST",
@@ -409,10 +452,12 @@ async function enfileirarTarefa(task, payload) {
       body: JSON.stringify({ task, payload }),
     });
   } catch (erro) {
+    esconderCarregamento();
     throw new Error("Backend inacessível: " + (erro.message || String(erro)));
   }
   if (!resposta.ok) {
     const detalhe = await resposta.text();
+    esconderCarregamento();
     throw new Error("Não foi possível entrar na fila (HTTP " + resposta.status + "): " + detalhe);
   }
   const job = await resposta.json();
@@ -455,6 +500,8 @@ async function aguardarTarefa(job, nome) {
       const cancelada = new Error("Tarefa cancelada pelo operador.");
       cancelada.cancelled = true;
       throw cancelada;
+    } else if (atual.status === "interrupted") {
+      throw new Error("A tarefa foi interrompida antes de concluir. Use Repetir na fila.");
     } else {
       throw new Error("Estado desconhecido da tarefa: " + atual.status);
     }
@@ -535,7 +582,20 @@ function criarTutorial(texto) {
 
 function atualizarOpcoesVideocast() {
   const opcao = document.getElementById("audioFollowsCameraOption");
-  if (opcao) opcao.classList.toggle("visivel", document.getElementById("projectType").value === "videocast");
+  const tipo = document.getElementById("projectType").value;
+  if (opcao) opcao.classList.toggle("visivel", tipo === "videocast");
+  const tipoAprendizado = document.getElementById("learningProjectType");
+  if (tipoAprendizado) tipoAprendizado.value = tipo;
+  atualizarContextoAprendizado();
+}
+
+function atualizarContextoAprendizado() {
+  const tipo = document.getElementById("learningProjectType");
+  const dica = document.getElementById("learningContextHint");
+  if (!tipo || !dica) return;
+  dica.textContent = tipo.value === "videocast"
+    ? "Este registro fica isolado para videocast: cortes de fala, ritmo de conversa e direção de câmeras."
+    : "Este registro fica isolado para videoaula: cortes, ritmo, clareza didática, tela e recursos de aula. Não será usado para escolhas de câmera de videocast.";
 }
 
 function configurarAbas() {
@@ -754,28 +814,21 @@ async function registrarAprendizado() {
   if (botao && botao.disabled) return;
   if (botao) botao.disabled = true;
   try {
-    let revisado;
-    try {
-      definirStatus("Exportando automaticamente a sequência final ativa...");
-      revisado = await exportarSequenciaAtivaParaAprendizado();
-    } catch (erroExportacao) {
-      if (String(erroExportacao.message || erroExportacao) !== "EXPORTACAO_XML_INDISPONIVEL") {
-        console.warn("[Decupagem] Exportação automática do XML final falhou:", erroExportacao);
-      }
-      revisado = await selecionarFonte(
-        "o XML exportado da sequência final", true, ["xml"]
-      );
-      if (!revisado) return;
-    }
-    const sugerido = await selecionarFonte("o XML original gerado pela IA para esta edição", true, ["xml"]);
-    if (!sugerido) return;
+    const sugeridos = await selecionarFontes(
+      "o primeiro XML original gerado pela IA dentro da pasta PGM", true, ["xml"]
+    );
+    if (!sugeridos.length) return;
+    const revisado = await selecionarFonte(
+      "o XML atual/exportado da sua sequência final", true, ["xml"]
+    );
+    if (!revisado) return;
     definirStatus("Comparando a sugestão com sua edição final...");
     const resposta = await fetch(LEARNING_URL, {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        suggested_xml_path: sugerido, revised_xml_path: revisado,
-        project_type: document.getElementById("projectType").value,
-        diagnostic_path: sugerido === ultimoXmlGeradoPath ? ultimoDiagnosticoPath : null,
+        suggested_xml_paths: sugeridos, revised_xml_path: revisado,
+        project_type: document.getElementById("learningProjectType").value,
+        diagnostic_path: sugeridos.length === 1 && sugeridos[0] === ultimoXmlGeradoPath ? ultimoDiagnosticoPath : null,
       }),
     });
     const dados = await resposta.json();
@@ -1111,6 +1164,8 @@ function iniciarPainel() {
   configurarAbas();
   document.getElementById("projectType").onchange = atualizarOpcoesVideocast;
   atualizarOpcoesVideocast();
+  const tipoAprendizado = document.getElementById("learningProjectType");
+  if (tipoAprendizado) tipoAprendizado.onchange = atualizarContextoAprendizado;
   const acoesBanco = {
     btnBanco: alternarRevisaoAprendizado, btnAbrirFeedback: abrirFeedback,
     btnExamplePrev: () => { if (feedbackAberto && indiceExemplo > 0) { indiceExemplo--; mostrarExemplo(); } },
@@ -1168,6 +1223,8 @@ function iniciarPainel() {
   if (botaoCancelarTarefa) botaoCancelarTarefa.onclick = cancelarTarefaAtual;
   const botaoCancelarCarregamento = document.getElementById("btnCancelarCarregamento");
   if (botaoCancelarCarregamento) botaoCancelarCarregamento.onclick = cancelarTarefaAtual;
+  const botaoMinimizarCarregamento = document.getElementById("btnMinimizarCarregamento");
+  if (botaoMinimizarCarregamento) botaoMinimizarCarregamento.onclick = alternarCarregamentoMinimizado;
   atualizarBotaoCancelar();
   const botaoFecharResumo = document.getElementById("btnFecharResumo");
   if (botaoFecharResumo) botaoFecharResumo.onclick = fecharResumoOperacao;

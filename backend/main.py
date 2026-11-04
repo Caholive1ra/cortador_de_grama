@@ -162,7 +162,8 @@ class JobRequest(BaseModel):
 class LearningFeedbackRequest(BaseModel):
     """XML original da IA e XML da sequencia final exportada pelo editor."""
 
-    suggested_xml_path: str
+    suggested_xml_path: str | None = None
+    suggested_xml_paths: list[str] | None = None
     revised_xml_path: str
     project_type: str | None = None
     diagnostic_path: str | None = None
@@ -938,9 +939,19 @@ def get_job(job_id: str) -> dict:
 def compare_learning_xml(request: LearningFeedbackRequest) -> dict:
     """Registra a diferenca entre sugestao e revisao humana, localmente."""
     try:
-        comparison = comparar_xmls(request.suggested_xml_path, request.revised_xml_path)
+        xmls_sugeridos = request.suggested_xml_paths or ([request.suggested_xml_path] if request.suggested_xml_path else [])
+        invalidos = [caminho for caminho in xmls_sugeridos if "_cortado_" not in os.path.basename(caminho).lower()]
+        if invalidos:
+            raise ValueError(
+                "Selecione o XML original gerado pela IA dentro da pasta PGM "
+                "(arquivo com '_cortado_' no nome), e nao o XML consolidado do Premiere."
+            )
+        comparison = comparar_xmls(
+            xmls_sugeridos, request.revised_xml_path,
+            project_type=request.project_type,
+        )
         feedback_path, summary = salvar_feedback(
-            comparison, request.suggested_xml_path, request.revised_xml_path,
+            comparison, xmls_sugeridos, request.revised_xml_path,
             request.project_type, request.diagnostic_path,
         )
         return {

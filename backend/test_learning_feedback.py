@@ -1,7 +1,7 @@
 import json
 import pytest
 
-from learning_feedback import comparar_xmls, salvar_feedback
+from learning_feedback import comparar_xmls, salvar_feedback, _normalizar_xmls
 
 
 @pytest.fixture(autouse=True)
@@ -45,3 +45,31 @@ def test_feedback_salva_apenas_segmentos_que_divergem(tmp_path, monkeypatch):
     _, resumo = salvar_feedback(resultado, str(sugerido), str(revisado), diagnostic_path=str(diagnostico))
     assert resumo["diagnostic_found"] is True
     assert resumo["examples_saved"] == 1
+
+
+def test_compara_dois_xmls_originais_unidos_na_mesma_aula(tmp_path):
+    def com_fonte(path, nome, inicio, fim, duracao=100):
+        path.write_text(
+            f'''<xmeml><sequence><duration>{duracao}</duration><rate><timebase>30</timebase></rate><media><video><track>
+            <clipitem><start>{inicio}</start><end>{fim}</end><in>0</in><out>{fim - inicio}</out><enabled>TRUE</enabled>
+            <file id="f"><name>{nome}.mp4</name><pathurl>file:///C:/{nome}.mp4</pathurl><rate><timebase>30</timebase></rate></file></clipitem>
+            </track></video></media></sequence></xmeml>''', encoding="utf-8"
+        )
+
+    primeiro, segundo, final = tmp_path / "01.xml", tmp_path / "1.1.xml", tmp_path / "final.xml"
+    com_fonte(primeiro, "parte01", 0, 100)
+    com_fonte(segundo, "parte11", 0, 100)
+    final.write_text('''<xmeml><sequence><duration>200</duration><rate><timebase>30</timebase></rate><media><video><track>
+        <clipitem><start>0</start><end>100</end><in>0</in><out>100</out><enabled>TRUE</enabled><file id="a"><name>parte01.mp4</name><pathurl>file:///C:/parte01.mp4</pathurl><rate><timebase>30</timebase></rate></file></clipitem>
+        <clipitem><start>100</start><end>150</end><in>0</in><out>50</out><enabled>TRUE</enabled><file id="b"><name>parte11.mp4</name><pathurl>file:///C:/parte11.mp4</pathurl><rate><timebase>30</timebase></rate></file></clipitem>
+        </track></video></media></sequence></xmeml>''', encoding="utf-8")
+
+    resultado = comparar_xmls([str(primeiro), str(segundo)], str(final), project_type="videoaula")
+    assert resultado["ai_kept_editor_cut"] == [[150, 200]]
+    assert resultado["source_xmls"] == [str(primeiro), str(segundo)]
+
+
+def test_ordena_partes_pgm_fragmentadas_pela_numeracao(tmp_path):
+    primeiro = tmp_path / "aula_PGM_01_cortado_ab12.xml"
+    segundo = tmp_path / "aula_PGM_1.1_cortado_cd34.xml"
+    assert _normalizar_xmls([str(segundo), str(primeiro)]) == [str(primeiro), str(segundo)]

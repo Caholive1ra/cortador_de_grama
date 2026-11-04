@@ -33,7 +33,7 @@ def ler_registro(record_id: str) -> dict:
     with LOCK:
         registro = json.loads(_path(record_id).read_text(encoding="utf-8"))
     registro["test_record"] = _teste(registro)
-    registro["needs_reimport"] = registro.get("schema_version") != 3
+    registro["needs_reimport"] = registro.get("schema_version") != 4
     return registro
 
 
@@ -54,12 +54,13 @@ def listar_banco() -> dict:
             registros.append({
                 "id": registro["id"], "created_at": registro.get("created_at"),
                 "project_type": registro.get("project_type"), "source_group": grupo,
+                "learning_profile": registro.get("learning_profile"),
                 "suggested_xml": registro.get("suggested_xml"), "revised_xml": registro.get("revised_xml"),
                 "examples": len(exemplos),
                 "approved": sum(e.get("status") == "approved" for e in exemplos),
                 "pending": sum(e.get("status", "pending") == "pending" for e in exemplos),
                 "dataset_role": registro.get("dataset_role", "reference"),
-                "needs_reimport": registro.get("schema_version") != 3,
+                "needs_reimport": registro.get("schema_version") != 4,
                 "eligible": bool(registro.get("eligible")),
             })
         except (OSError, ValueError, KeyError, TypeError):
@@ -124,11 +125,13 @@ def avaliar(record_id: str, candidate_xml: str) -> dict:
     registro = ler_registro(record_id)
     if registro.get("dataset_role") != "benchmark" or not registro.get("eligible"):
         raise ValueError("Escolha um registro validado e reservado para avaliacao.")
-    original, final = registro["suggested_xml"], registro["revised_xml"]
-    base = feedback.comparar_xmls(original, final)
+    original = registro.get("suggested_xmls") or [registro["suggested_xml"]]
+    final = registro["revised_xml"]
+    project_type = registro.get("project_type")
+    base = feedback.comparar_xmls(original, final, project_type=project_type)
     if base != registro["comparison"]:
         raise ValueError("Os XMLs de referencia mudaram desde o registro. Reimporte a comparacao antes de avaliar.")
-    novo = feedback.comparar_xmls(candidate_xml, final, xml_origem=original)
+    novo = feedback.comparar_xmls(candidate_xml, final, xml_origem=original, project_type=project_type)
     if not novo["validated_sources"]:
         raise ValueError("O candidato nao tem fontes identificadas.")
     campos = ("useful_removed_seconds", "unwanted_kept_seconds")
