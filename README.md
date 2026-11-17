@@ -144,7 +144,12 @@ As duas tarefas ficam vinculadas à sequência ativa no início. Você pode troc
 ```powershell
 .\.venv\Scripts\python.exe -m pytest .\backend
 node --check .\premiere_plugin\main.js
+node .\premiere_plugin\test_markers.cjs
 ```
+
+## Critérios de qualidade editorial
+
+Antes de alterar regras ou provedores, registre uma edição humana no banco de aprendizado e reserve-a como **benchmark**. Compare o XML candidato pelo painel: `useful_removed_seconds` e `unwanted_kept_seconds` precisam reduzir ou permanecer estáveis. Um resultado só é aceitável após revisão humana de exemplos de conteúdo útil removido, retakes e pausas. Essas métricas medem divergência da edição humana; não substituem avaliação editorial.
 
 ## Documentação complementar
 

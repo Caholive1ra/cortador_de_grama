@@ -47,6 +47,10 @@ Write-Host "Instalando dependencias Python do backend..."
 Write-Host "Validando testes automatizados..."
 & $venvPython -m pytest backend
 
+Write-Host "Validando o painel UXP..."
+node --check .\premiere_plugin\main.js
+node .\premiere_plugin\test_markers.cjs
+
 Write-Host ""
 Write-Host "Setup concluido."
 Write-Host "Para iniciar o backend:"
