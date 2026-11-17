@@ -310,7 +310,7 @@ def diagnostics_nvidia() -> dict:
 
 
 @app.post("/process")
-def process_media(request: MediaRequest) -> dict:
+def process_media(request: MediaRequest, report_progress=None, is_cancelled=None) -> dict:
     """Transcreve o PGM e prepara as fontes para o XML multicâmera."""
     try:
         inicio_processamento = perf_counter()
@@ -321,6 +321,14 @@ def process_media(request: MediaRequest) -> dict:
             logger.info("Desempenho: %s concluido em %.3fs.", nome, desempenho[nome])
             log_operacao("CORTE", "ETAPA CONCLUIDA | aula=%s | etapa=%s | tempo=%.1fs",
                          os.path.basename(request.pgm_path), nome, desempenho[nome])
+
+        def checkpoint(etapa: str, percentual: int) -> None:
+            if report_progress:
+                report_progress(etapa, percentual)
+            if is_cancelled and is_cancelled():
+                raise JobExecutionError(499, "Cancelada pelo operador antes da próxima etapa.")
+
+        checkpoint("Lendo fontes", 5)
 
         if request.editorial_mode not in {"auto", "full", "economic"}:
             raise ValueError("Modo editorial invalido. Use auto, full ou economic.")
@@ -358,6 +366,7 @@ def process_media(request: MediaRequest) -> dict:
             dados["name"] = os.path.basename(caminho)
             metadados.append(dados)
         marcar_etapa("metadata")
+        checkpoint("Sincronizando fontes", 15)
 
         pgm = metadados[0]
         modo_editorial_efetivo = request.editorial_mode
@@ -441,8 +450,10 @@ def process_media(request: MediaRequest) -> dict:
                 })
                 audios_externos.append(fonte_audio)
             marcar_etapa("audio_sync")
+            checkpoint("Transcrevendo áudio", 30)
             segmentos = transcrever_audio(audio_path)
             marcar_etapa("transcription")
+            checkpoint("Analisando decisões editoriais", 55)
             # Revisão editorial é uma escolha explícita do editor. Não use a
             # duração para pular Gemini/GPT-OSS/Gemma: isso fazia aulas curtas
             # caírem diretamente no Ollama, contrariando a ordem de provedores
@@ -490,6 +501,7 @@ def process_media(request: MediaRequest) -> dict:
                 ):
                     salvar_cache_editorial(chave_cache, segmentos_classificados, diagnostico_atual)
             marcar_etapa("editorial_analysis")
+            checkpoint("Definindo câmeras", 72)
             camera_por_segmento = None
             if request.project_type == "videocast":
                 with ExitStack() as arquivos_temporarios:
@@ -536,6 +548,7 @@ def process_media(request: MediaRequest) -> dict:
             audio_follows_camera=request.project_type == "videocast" and request.audio_follows_camera,
         )
         marcar_etapa("xml_generation")
+        checkpoint("Gravando diagnóstico", 92)
         diagnostico_path = f"{raiz_arquivo}_diagnostico_{job_id}.json"
         with open(diagnostico_path, "w", encoding="utf-8") as diagnostico:
             json.dump(
@@ -616,10 +629,12 @@ def process_media(request: MediaRequest) -> dict:
 
 
 @app.post("/analyze-lettering")
-def analyze_lettering(request: LetteringRequest) -> dict:
+def analyze_lettering(request: LetteringRequest, report_progress=None, is_cancelled=None) -> dict:
     """Analisa a versao revisada e gera XML auxiliar com marcadores de texto."""
     try:
         inicio = perf_counter()
+        if report_progress:
+            report_progress("Lendo render", 10)
         log_operacao("LETTERING", "INICIO | aula=%s | modo=%s", os.path.basename(request.revised_media_path),
                      "economico" if request.economic_mode else "completo")
         logger.info("Lettering: inicio | arquivo=%s | economico=%s | contexto=%s caracteres",
@@ -630,11 +645,17 @@ def analyze_lettering(request: LetteringRequest) -> dict:
             request.revised_media_path, midia.get("video_start", 0.0)
         ) as audio_path:
             segmentos = transcrever_audio(audio_path)
+        if report_progress:
+            report_progress("Selecionando letterings", 55)
+        if is_cancelled and is_cancelled():
+            raise JobExecutionError(499, "Cancelada pelo operador antes da análise.")
         log_operacao("LETTERING", "TRANSCRICAO CONCLUIDA | aula=%s | segmentos=%s | tempo=%.1fs",
                      os.path.basename(request.revised_media_path), len(segmentos), perf_counter() - inicio)
         logger.info("Lettering: transcricao concluida | segmentos=%s | tempo=%.1fs", len(segmentos), perf_counter() - inicio)
         sugestoes = sugerir_letterings(segmentos, modo_economico=request.economic_mode,
                                        contexto_curso=request.course_context)
+        if report_progress:
+            report_progress("Gerando marcadores e diagnóstico", 85)
         log_operacao("LETTERING", "ANALISE CONCLUIDA | aula=%s | sugestoes=%s | modelo=%s",
                      os.path.basename(request.revised_media_path), len(sugestoes),
                      obter_ultimo_modelo_textual() or GEMINI_MODEL)
@@ -732,10 +753,12 @@ def analyze_lettering_segments(request: LetteringSegmentsRequest) -> dict:
 
 
 @app.post("/create-videocast-opening")
-def create_videocast_opening(request: OpeningRequest) -> dict:
+def create_videocast_opening(request: OpeningRequest, report_progress=None, is_cancelled=None) -> dict:
     """Monta uma abertura curta com a melhor IA configurada para curadoria."""
     try:
         inicio = perf_counter()
+        if report_progress:
+            report_progress("Lendo render", 10)
         midia = obter_metadados(request.revised_media_path)
         modelo_abertura = ""
 
@@ -750,6 +773,10 @@ def create_videocast_opening(request: OpeningRequest) -> dict:
 
         with extrair_audio_temporario(request.revised_media_path, midia.get("video_start", 0.0)) as audio_path:
             segmentos = transcrever_audio(audio_path)
+            if report_progress:
+                report_progress("Selecionando falas", 55)
+            if is_cancelled and is_cancelled():
+                raise JobExecutionError(499, "Cancelada pelo operador antes da curadoria.")
             trechos = selecionar_abertura(segmentos, curar_abertura)
             trechos = aparar_silencios_das_bordas(audio_path, trechos)
             validar_trechos(trechos)
@@ -764,6 +791,8 @@ def create_videocast_opening(request: OpeningRequest) -> dict:
         diagnostico_path = f"{raiz_arquivo}_abertura_videocast_{job_id}.json"
         gerar_fcp_xml_abertura(trechos, dict(midia, name=os.path.basename(request.revised_media_path), label="Videocast"),
                                xml_path, float(midia["fps"]))
+        if report_progress:
+            report_progress("Gravando abertura", 90)
         with open(diagnostico_path, "w", encoding="utf-8") as diagnostico:
             json.dump({"source": request.revised_media_path, "highlights": trechos,
                        "transcript_segments": len(segmentos), "transcript": segmentos,
@@ -790,12 +819,14 @@ def create_videocast_opening(request: OpeningRequest) -> dict:
 
 
 @app.post("/audit-quality")
-def audit_quality(request: QualityAuditRequest) -> dict:
+def audit_quality(request: QualityAuditRequest, report_progress=None, is_cancelled=None) -> dict:
     """Audita a edicao final e devolve marcadores; nunca altera a sequencia."""
     try:
         if request.editorial_profile not in {"standard", "mba"}:
             raise ValueError("Perfil editorial inválido. Use standard ou mba.")
         inicio = perf_counter()
+        if report_progress:
+            report_progress("Lendo render e XML", 10)
         log_operacao("AUDITORIA", "INICIO | aula=%s", os.path.basename(request.revised_media_path))
         logger.info("Auditoria: inicio | render=%s | xml=%s", request.revised_media_path, request.revised_xml_path)
         midia = obter_metadados(request.revised_media_path)
@@ -804,6 +835,10 @@ def audit_quality(request: QualityAuditRequest) -> dict:
             request.revised_media_path, midia.get("video_start", 0.0)
         ) as audio_path:
             segmentos = transcrever_audio(audio_path)
+        if report_progress:
+            report_progress("Auditando montagem", 50)
+        if is_cancelled and is_cancelled():
+            raise JobExecutionError(499, "Cancelada pelo operador antes da auditoria.")
         log_operacao("AUDITORIA", "TRANSCRICAO CONCLUIDA | aula=%s | segmentos=%s | tempo=%.1fs",
                      os.path.basename(request.revised_media_path), len(segmentos), perf_counter() - inicio)
         logger.info("Auditoria: transcricao concluida | segmentos=%s | tempo=%.1fs", len(segmentos), perf_counter() - inicio)
@@ -811,6 +846,8 @@ def audit_quality(request: QualityAuditRequest) -> dict:
             request.revised_xml_path, request.revised_media_path, segmentos,
             editorial_profile=request.editorial_profile,
         )
+        if report_progress:
+            report_progress("Gravando relatório", 85)
         logger.info("Auditoria: analise concluida | achados=%s | categorias=%s | ia_texto=%s | tempo=%.1fs",
                     len(resultado["findings"]), resultado["summary"],
                     resultado["checked"].get("text_ai_review"), perf_counter() - inicio)
@@ -869,16 +906,16 @@ JOB_PRIORITIES = {"process": 0, "opening": 10, "audit": 20, "lettering": 30}
 JOB_QUEUE = PriorityJobQueue(Path(__file__).resolve().parent / "job_data" / "jobs.sqlite3")
 
 
-def _execute_queued_job(task: str, payload: dict) -> dict:
+def _execute_queued_job(task: str, payload: dict, report_progress=None, is_cancelled=None) -> dict:
     try:
         if task == "process":
-            return process_media(MediaRequest(**payload))
+            return process_media(MediaRequest(**payload), report_progress, is_cancelled)
         if task == "audit":
-            return audit_quality(QualityAuditRequest(**payload))
+            return audit_quality(QualityAuditRequest(**payload), report_progress, is_cancelled)
         if task == "lettering":
-            return analyze_lettering(LetteringRequest(**payload))
+            return analyze_lettering(LetteringRequest(**payload), report_progress, is_cancelled)
         if task == "opening":
-            return create_videocast_opening(OpeningRequest(**payload))
+            return create_videocast_opening(OpeningRequest(**payload), report_progress, is_cancelled)
         raise ValueError(f"Tipo de tarefa nao suportado: {task}")
     except HTTPException as exc:
         raise JobExecutionError(exc.status_code, exc.detail) from exc

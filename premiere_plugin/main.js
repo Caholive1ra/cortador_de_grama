@@ -387,6 +387,11 @@ function textoEstadoJob(job) {
   if (job.status === "running") texto = "EXECUTANDO AGORA";
   if (job.status === "queued") texto = "AGUARDANDO" + (job.queue_position === 1 ? " | PROXIMA" : " | depois de " + (job.queue_position - 1) + " tarefa(s)");
   if (job.cancel_requested) texto += " | cancelamento solicitado";
+  if (job.status === "running" && job.progress) {
+    const etapa = job.progress.stage || "Processando";
+    const percentual = Number.isFinite(job.progress.percent) ? " " + job.progress.percent + "%" : "";
+    texto += " | " + etapa + percentual;
+  }
   if (job.attempts) texto += " | tentativa " + job.attempts;
   if (job.error && job.error.detail) texto += " | " + job.error.detail;
   return texto;

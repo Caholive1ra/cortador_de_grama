@@ -75,3 +75,19 @@ def test_cancelamento_em_andamento_descarta_resultado_com_seguranca(tmp_path) ->
     finished = queue.get(job["id"])
     assert finished["status"] == "cancelled"
     assert "etapa segura" in finished["error"]["detail"]
+
+
+def test_executor_publica_etapa_para_o_painel(tmp_path) -> None:
+    queue = PriorityJobQueue(tmp_path / "jobs.sqlite3")
+    job = queue.enqueue("process", {}, priority=0)
+
+    def executar(task, payload, checkpoint, is_cancelled):
+        checkpoint("Transcrevendo áudio", 30)
+        assert not is_cancelled()
+        return {"ok": True}
+
+    queue.start(executar)
+    finalizado = _wait_for(queue, job["id"])
+    assert finalizado["result"] == {"ok": True}
+    assert finalizado["progress"]["stage"] == "Transcrevendo áudio"
+    assert finalizado["progress"]["percent"] == 30
