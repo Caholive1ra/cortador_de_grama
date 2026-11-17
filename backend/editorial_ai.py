@@ -211,7 +211,7 @@ def decidir_cortes_semanticos(
         logger.info("Revisao editorial local: chamadas remotas desabilitadas para este material.")
         return _decidir_cortes_com_ollama(segmentos, aprovar_remotamente=False)
     if modo_economico:
-        for provedor in ("gemini", "gemma", "nvidia"):
+        for provedor in ("gemini", "nvidia", "gemma"):
             if _provedor_configurado(provedor):
                 decisao = _decidir_cortes_economicos(segmentos, provedor)
                 if ULTIMO_DIAGNOSTICO.get("status") == "ok":
@@ -220,19 +220,14 @@ def decidir_cortes_semanticos(
         decisao = _decidir_cortes_com_gemini(segmentos, audio_path)
         if ULTIMO_DIAGNOSTICO.get("status") == "ok":
             return _aplicar_retakes_explicitos(segmentos, decisao)
-    if GEMINI_API_KEY and not modo_economico:
-        logger.info("Gemini nao concluiu a revisao; iniciando segunda revisao Gemma textual completa.")
-        # Se somente um lote do Gemma falhar, a NVIDIA recebe apenas aquele
-        # lote. Os lotes bons nao devem ser refeitos do zero.
-        decisao = _decidir_cortes_textuais_completos(segmentos, "gemma", fallback_provider="nvidia")
+    if NVIDIA_API_KEY and not modo_economico:
+        logger.info("Gemini nao concluiu a revisao; iniciando fallback NVIDIA textual por qualidade.")
+        decisao = _decidir_cortes_textuais_completos(segmentos, "nvidia")
         if ULTIMO_DIAGNOSTICO.get("status") == "ok":
             return _aplicar_retakes_explicitos(segmentos, decisao)
-    # Sem Gemini, a NVIDIA recebe a mesma transcricao completa e as mesmas
-    # regras editoriais. Ela nao recebe o WAV, portanto nao pode inferir sons
-    # que nao estejam transcritos, mas nao fica limitada a poucos candidatos.
-    if NVIDIA_API_KEY and not modo_economico:
-        logger.info("Gemini nao concluiu a revisao; iniciando fallback NVIDIA textual completo.")
-        decisao = _decidir_cortes_textuais_completos(segmentos, "nvidia")
+    if GEMINI_API_KEY and not modo_economico:
+        logger.info("NVIDIA nao concluiu a revisao; iniciando fallback Gemma textual completo.")
+        decisao = _decidir_cortes_textuais_completos(segmentos, "gemma")
         if ULTIMO_DIAGNOSTICO.get("status") == "ok":
             return _aplicar_retakes_explicitos(segmentos, decisao)
     try:
@@ -1097,7 +1092,7 @@ def solicitar_json_textual(prompt: str, provedor: str | None = None) -> str:
     Quando ``provedor`` e informado, tenta somente ele; isso preserva a ordem
     explícita da cadeia editorial e torna o diagnóstico rastreável.
     """
-    provedores = (provedor,) if provedor else ("gemini", "gemma", "nvidia")
+    provedores = (provedor,) if provedor else ("gemini", "nvidia", "gemma")
     solicitacoes = {
         "gemini": _gemini_request,
         "gemma": _gemma_request,
