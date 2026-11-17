@@ -128,6 +128,12 @@
         </div>
       </header>
       <section class="bloco">
+        <h2>Conexão local</h2>
+        <label class="opcao" for="localApiToken">Token do backend (se configurado)</label>
+        <input id="localApiToken" type="password" autocomplete="off" placeholder="Deixe vazio se LOCAL_API_TOKEN não estiver definido" />
+        <p class="aviso">O token fica somente nesta sessão do painel. Não o envie nem o adicione ao projeto.</p>
+      </section>
+      <section class="bloco">
         <h2>Cortar aula</h2>
         <p>Selecione as fontes e gere a primeira sequência de cortes.</p>
         <select id="projectType" aria-label="Tipo de projeto">
@@ -135,7 +141,7 @@
           <option value="videocast">Videocast</option>
         </select>
         <label class="opcao"><input id="editorialReview" type="checkbox" /> Usar revisao por IA</label>
-        <p class="aviso">Se o Gemini estiver configurado, essa opcao envia o audio para um servico externo.</p>
+        <p class="aviso">Com revisão por IA, o corte pode enviar áudio temporário e transcrição aos provedores configurados. Sem essa opção, o processamento permanece local.</p>
         <label class="opcao"><input id="economicMode" type="checkbox" /> Modo economico de IA</label>
         <label class="opcao" id="audioFollowsCameraOption"><input id="audioFollowsCamera" type="checkbox" /> Áudio acompanha a câmera</label>
         <p class="aviso">Use somente se quiser análise textual mais rápida. Sem esta opção, o sistema sempre analisa o áudio completo.</p>
@@ -236,7 +242,7 @@
           <option value="standard">Padrão — conferir problemas técnicos</option>
           <option value="mba">MBA — incluir sugestões de direção artística</option>
         </select>
-        <p class="aviso">No perfil MBA, os marcadores sugerem zoom, respiro, destaque de slide ou plano estável. Nenhum efeito é aplicado automaticamente.</p>
+        <p class="aviso">No perfil MBA, frames do render e trechos de transcrição podem ser enviados ao Gemini para sugerir zoom, respiro, destaque de slide ou plano estável. Nenhum efeito é aplicado automaticamente.</p>
         <button id="btnAuditar" data-task="audit" type="button">Auditar sequência final</button>
         <p class="aviso">O XML desta sequência é exportado para leitura; você pode continuar editando outra enquanto a auditoria roda. Os marcadores voltarão para esta sequência, sem alterar mídia, corte ou efeito. Jump cuts sem mudança de escala aparecem em vermelho.</p>
       </section>

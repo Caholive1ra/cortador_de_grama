@@ -26,7 +26,7 @@ flowchart LR
 
 ## Privacidade
 
-Vídeos, áudios, XMLs, logs e dados de aprendizado permanecem locais. Com **Usar revisão por IA** ativado, a transcrição e as instruções editoriais podem ser enviadas aos provedores configurados. A transcrição é feita localmente com `faster-whisper`.
+Vídeos, áudios, XMLs, logs e dados de aprendizado permanecem locais por padrão. A transcrição é feita localmente com `faster-whisper`. Com **Usar revisão por IA** ativado no corte, o WAV temporário e a transcrição podem ser enviados aos provedores configurados. A abertura e o lettering enviam somente texto quando usam provedores remotos. Na auditoria MBA, frames JPEG do render e trechos de transcrição podem ser enviados ao Gemini. O backend tenta apagar o arquivo temporário remoto ao concluir a revisão de áudio.
 
 Leia [SECURITY.md](SECURITY.md) antes de configurar qualquer chave.
 
@@ -75,6 +75,7 @@ NVIDIA_API_KEY="sua_chave"
 | `LIMITE_CHAMADAS_REMOTAS_POR_JOB` | Teto de chamadas remotas por tarefa. |
 | `EDITORIAL_CACHE_TTL_SECONDS` | Tempo de cache de revisão remota concluída. |
 | `FFMPEG_TIMEOUT_SECONDS` | Limite de operações longas de mídia. |
+| `LOCAL_API_TOKEN` | Segredo opcional exigido pelo backend local; informe o mesmo token no painel a cada sessão. |
 
 Nunca publique `.env`, chaves ou logs que as contenham. Não acrescente `Bearer ` à chave NVIDIA.
 

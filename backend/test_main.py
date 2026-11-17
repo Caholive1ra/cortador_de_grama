@@ -107,6 +107,12 @@ def test_health_check(monkeypatch) -> None:
     }
 
 
+def test_token_local_e_exigido_quando_configurado(monkeypatch) -> None:
+    monkeypatch.setattr("main.LOCAL_API_TOKEN", "segredo-de-teste")
+    assert client.get("/health").status_code == 401
+    assert client.get("/health", headers={"X-Assistente-Token": "segredo-de-teste"}).status_code == 200
+
+
 def test_fila_rejeita_tipo_de_tarefa_desconhecido() -> None:
     resposta = client.post("/jobs", json={"task": "desconhecida", "payload": {}})
     assert resposta.status_code == 422
@@ -137,7 +143,7 @@ def test_cors_libera_origem_do_plugin() -> None:
         },
     )
     assert resposta.status_code in (200, 204)
-    assert resposta.headers.get("access-control-allow-origin") == "*"
+    assert resposta.headers.get("access-control-allow-origin") == "http://127.0.0.1:8000"
 
 
 def test_process_audio_file_not_found() -> None:

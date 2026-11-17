@@ -19,6 +19,15 @@ const BANK_URL = "http://127.0.0.1:8000/learning/records";
 
 const { localFileSystem } = require("uxp").storage;
 
+/** Envia somente ao backend local, incluindo o token de sessão quando existe. */
+function apiFetch(url, options = {}) {
+  const input = document.getElementById("localApiToken");
+  const token = input ? input.value.trim() : "";
+  const headers = Object.assign({}, options.headers || {});
+  if (token) headers["X-Assistente-Token"] = token;
+  return fetch(url, Object.assign({}, options, { headers }));
+}
+
 /**
  * Atualiza o texto de status visível no painel.
  * @param {string} mensagem
@@ -163,7 +172,7 @@ async function processarAula(fontesSalvas = null) {
     /* Implementacao direta mantida abaixo apenas como referencia temporaria.
     let resposta;
     try {
-      resposta = await fetch(BACKEND_URL, {
+      resposta = await apiFetch(BACKEND_URL, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -398,7 +407,7 @@ function textoEstadoJob(job) {
 }
 
 async function acaoJob(id, acao) {
-  const resposta = await fetch(JOBS_URL + "/" + encodeURIComponent(id) + "/" + acao, { method: "POST" });
+  const resposta = await apiFetch(JOBS_URL + "/" + encodeURIComponent(id) + "/" + acao, { method: "POST" });
   if (!resposta.ok) throw new Error(await resposta.text());
   await atualizarCentralDeTarefas();
 }
@@ -408,7 +417,7 @@ async function atualizarCentralDeTarefas() {
   if (!lista || atualizacaoFilaEmAndamento) return;
   atualizacaoFilaEmAndamento = true;
   try {
-    const resposta = await fetch(JOBS_URL + "?active_only=true");
+    const resposta = await apiFetch(JOBS_URL + "?active_only=true");
     if (!resposta.ok) throw new Error("HTTP " + resposta.status);
     const dados = await resposta.json();
     while (lista.firstChild) lista.removeChild(lista.firstChild);
@@ -451,7 +460,7 @@ async function enfileirarTarefa(task, payload) {
   let resposta;
   mostrarCarregamento(task, "Enviando " + (NOME_TAREFA[task] || "tarefa"));
   try {
-    resposta = await fetch(JOBS_URL, {
+    resposta = await apiFetch(JOBS_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ task, payload }),
@@ -477,7 +486,7 @@ async function aguardarTarefa(job, nome) {
   mostrarCarregamento(job.task, nome);
   try {
     while (true) {
-      const resposta = await fetch(JOBS_URL + "/" + encodeURIComponent(job.id));
+      const resposta = await apiFetch(JOBS_URL + "/" + encodeURIComponent(job.id));
       if (!resposta.ok) throw new Error("Não foi possível consultar a tarefa (HTTP " + resposta.status + ").");
       const atual = await resposta.json();
       if (atual.status === "queued") {
@@ -828,7 +837,7 @@ async function registrarAprendizado() {
     );
     if (!revisado) return;
     definirStatus("Comparando a sugestão com sua edição final...");
-    const resposta = await fetch(LEARNING_URL, {
+    const resposta = await apiFetch(LEARNING_URL, {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         suggested_xml_paths: sugeridos, revised_xml_path: revisado,
@@ -866,7 +875,7 @@ async function registrarAprendizado() {
 }
 
 async function bancoRequest(url, body) {
-  const resposta = await fetch(url, body === undefined ? {} : {
+  const resposta = await apiFetch(url, body === undefined ? {} : {
     method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
   });
   const dados = await resposta.json();
