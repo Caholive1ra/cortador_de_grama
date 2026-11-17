@@ -6,6 +6,7 @@ const vm = require("node:vm");
 
 const html = fs.readFileSync(__dirname + "/index.html", "utf8");
 const source = fs.readFileSync(__dirname + "/main.js", "utf8");
+const manifest = JSON.parse(fs.readFileSync(__dirname + "/manifest.json", "utf8"));
 
 test("cada aba aponta para seu fluxo correto, independente da posição no HTML", () => {
   const expected = [
@@ -29,6 +30,8 @@ test("cada aba aponta para seu fluxo correto, independente da posição no HTML"
 test("painel conecta ao backend local sem token nem acesso a valor nulo", async () => {
   assert.doesNotMatch(html, /localApiToken|Token do backend|LOCAL_API_TOKEN/);
   assert.doesNotMatch(source, /apiFetch|localApiToken|X-Assistente-Token/);
+  assert.match(source, /const BACKEND_BASE_URL = "http:\/\/localhost:8000"/);
+  assert.deepEqual(manifest.requiredPermissions.network.domains, ["http://localhost:8000"]);
 
   const calls = [];
   const context = vm.createContext({
@@ -39,6 +42,6 @@ test("painel conecta ao backend local sem token nem acesso a valor nulo", async 
   });
   vm.runInContext(source, context);
   const options = { method: "POST", headers: { "Content-Type": "application/json" } };
-  await context.backendFetch("http://127.0.0.1:8000/health", options);
-  assert.deepEqual(calls, [{ url: "http://127.0.0.1:8000/health", options }]);
+  await context.backendFetch("http://localhost:8000/health", options);
+  assert.deepEqual(calls, [{ url: "http://localhost:8000/health", options }]);
 });

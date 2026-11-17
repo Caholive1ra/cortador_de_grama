@@ -2,9 +2,10 @@
  * Painel UXP: coleta as fontes multicâmera e dispara o backend local.
  */
 
-const JOBS_URL = "http://127.0.0.1:8000/jobs";
-const LEARNING_URL = "http://127.0.0.1:8000/learning/compare-xml";
-const HEALTH_URL = "http://127.0.0.1:8000/health";
+const BACKEND_BASE_URL = "http://localhost:8000";
+const JOBS_URL = BACKEND_BASE_URL + "/jobs";
+const LEARNING_URL = BACKEND_BASE_URL + "/learning/compare-xml";
+const HEALTH_URL = BACKEND_BASE_URL + "/health";
 const NOME_TAREFA = { process: "Corte", opening: "Abertura", audit: "Auditoria", lettering: "Lettering" };
 let ultimaSolicitacaoDeProcessamento = null;
 let corteEmAndamento = false;
@@ -16,11 +17,11 @@ let bancoOcupado = false;
 let atualizacaoFilaEmAndamento = false;
 let tarefaCancelavelId = null;
 let intervaloMensagensCarregamento = null;
-const BANK_URL = "http://127.0.0.1:8000/learning/records";
+const BANK_URL = BACKEND_BASE_URL + "/learning/records";
 
 const { localFileSystem } = require("uxp").storage;
 
-/** Envia requisições diretamente ao backend local iniciado em 127.0.0.1. */
+/** Envia requisições diretamente ao backend local iniciado em localhost. */
 function backendFetch(url, options = {}) {
   return fetch(url, options);
 }
