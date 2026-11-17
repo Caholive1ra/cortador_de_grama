@@ -196,8 +196,12 @@ def _normalizar_texto(texto: str) -> str:
 
 def _contem_gatilho(texto_normalizado: str) -> bool:
     """Indica se o texto contém algum comando explícito de erro/corte."""
+    # A comparação por substring transformava "opa" em gatilho dentro de
+    # "dopamina", "propaganda" e "Copa".  O texto já foi normalizado e só
+    # contém letras, números e espaços, então os limites abaixo reconhecem
+    # expressões completas sem depender de pontuação ou acentos.
     return any(
-        _normalizar_texto(gatilho) in texto_normalizado
+        re.search(rf"(?<!\w){re.escape(_normalizar_texto(gatilho))}(?!\w)", texto_normalizado)
         for gatilho in GATILHOS_ERRO
     )
 
