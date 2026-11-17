@@ -34,6 +34,7 @@ from media_utils import aparar_silencios_das_bordas, extrair_audio_temporario, o
 from quality_audit import auditar_sequencia
 from job_queue import JobExecutionError, PriorityJobQueue
 from transcriber import ModelUnavailableError, transcrever_audio
+from transcription_cache import get_or_transcribe
 from xml_generator import gerar_fcp_xml, gerar_fcp_xml_abertura
 
 logging.basicConfig(
@@ -451,7 +452,9 @@ def process_media(request: MediaRequest, report_progress=None, is_cancelled=None
                 audios_externos.append(fonte_audio)
             marcar_etapa("audio_sync")
             checkpoint("Transcrevendo áudio", 30)
-            segmentos = transcrever_audio(audio_path)
+            segmentos, transcription_cache_hit = get_or_transcribe(
+                request.pgm_path, pgm, audio_path, transcrever_audio,
+            )
             marcar_etapa("transcription")
             checkpoint("Analisando decisões editoriais", 55)
             # Revisão editorial é uma escolha explícita do editor. Não use a
@@ -644,7 +647,9 @@ def analyze_lettering(request: LetteringRequest, report_progress=None, is_cancel
         with extrair_audio_temporario(
             request.revised_media_path, midia.get("video_start", 0.0)
         ) as audio_path:
-            segmentos = transcrever_audio(audio_path)
+            segmentos, transcription_cache_hit = get_or_transcribe(
+                request.revised_media_path, midia, audio_path, transcrever_audio,
+            )
         if report_progress:
             report_progress("Selecionando letterings", 55)
         if is_cancelled and is_cancelled():
@@ -772,7 +777,9 @@ def create_videocast_opening(request: OpeningRequest, report_progress=None, is_c
             return resposta
 
         with extrair_audio_temporario(request.revised_media_path, midia.get("video_start", 0.0)) as audio_path:
-            segmentos = transcrever_audio(audio_path)
+            segmentos, transcription_cache_hit = get_or_transcribe(
+                request.revised_media_path, midia, audio_path, transcrever_audio,
+            )
             if report_progress:
                 report_progress("Selecionando falas", 55)
             if is_cancelled and is_cancelled():
@@ -834,7 +841,9 @@ def audit_quality(request: QualityAuditRequest, report_progress=None, is_cancell
         with extrair_audio_temporario(
             request.revised_media_path, midia.get("video_start", 0.0)
         ) as audio_path:
-            segmentos = transcrever_audio(audio_path)
+            segmentos, transcription_cache_hit = get_or_transcribe(
+                request.revised_media_path, midia, audio_path, transcrever_audio,
+            )
         if report_progress:
             report_progress("Auditando montagem", 50)
         if is_cancelled and is_cancelled():

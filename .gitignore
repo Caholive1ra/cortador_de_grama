@@ -23,4 +23,5 @@ __pycache__/
 *video/
 backend/learning_data/
 backend/ai_cache/
+backend/transcription_cache/
 backend/job_data/
