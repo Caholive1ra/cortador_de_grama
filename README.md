@@ -117,6 +117,10 @@ As duas tarefas ficam vinculadas à sequência ativa no início. Você pode troc
 - **Lettering:** use render da mesma sequência, começando no mesmo zero da timeline. Ele analisa fala editada e não lê visualmente slides.
 - **Auditoria:** use render/proxy da mesma sequência. No perfil **MBA**, ela analisa frames e transcrição para sugerir zoom-in sutil, zoom-out, plano estável, destaque de slide ou pausa visual. Ela apenas cria marcadores; não altera cortes, mídia ou efeitos.
 
+A auditoria compara janelas de até três segmentos, com busca próxima de até dois minutos e busca de frases muito semelhantes ao longo de toda a transcrição. Os alertas de repetição mostram os tempos das duas ocorrências; a revisão por IA trabalha em lotes, respeita o orçamento remoto e distingue repetição acidental de reforço didático. Candidatos incertos ou não revisados permanecem sinalizados. A busca depende da transcrição e da semelhança textual: não garante detectar toda paráfrase.
+
+O render também recebe uma varredura integral de tela quase preta (a partir de 150 ms), silêncio abaixo de -45 dB (2 s) e imagem estática (3 s), além da análise de possível saturação do áudio e das emendas. Slides, pausas e transições intencionais podem gerar alertas. Essa passagem adicional aumenta o tempo de análise. O diagnóstico informa se a varredura terminou e quantas repetições ficaram pendentes; revisão incompleta não significa ausência de erros. Verificação factual continua dependendo do material oficial do curso.
+
 ## Saídas
 
 | Operação | Artefatos |

@@ -888,8 +888,8 @@ def audit_quality(request: QualityAuditRequest, report_progress=None, is_cancell
         status_revisao = str(resultado.get("checked", {}).get("text_ai_review", "not_needed"))
         modelo_auditoria = (
             obter_ultimo_modelo_textual() or "API textual configurada"
-            if status_revisao.startswith("completed_remote") else
-            "Ollama/" + OLLAMA_MODEL if status_revisao.startswith("completed_ollama") else
+            if "remote" in status_revisao else
+            "Ollama/" + OLLAMA_MODEL if "ollama" in status_revisao else
             "regras locais (sem revisão textual)"
         )
         if resultado.get("checked", {}).get("mba_direction") == "gemini_vision":
