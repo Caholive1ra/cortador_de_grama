@@ -127,13 +127,7 @@
           <span class="versao-painel">PAINEL v0.2.13</span>
         </div>
       </header>
-      <section class="bloco">
-        <h2>Conexão local</h2>
-        <label class="opcao" for="localApiToken">Token do backend (se configurado)</label>
-        <input id="localApiToken" type="password" autocomplete="off" placeholder="Deixe vazio se LOCAL_API_TOKEN não estiver definido" />
-        <p class="aviso">O token fica somente nesta sessão do painel. Não o envie nem o adicione ao projeto.</p>
-      </section>
-      <section class="bloco">
+      <section class="bloco" data-workflow="cortar">
         <h2>Cortar aula</h2>
         <p>Selecione as fontes e gere a primeira sequência de cortes.</p>
         <select id="projectType" aria-label="Tipo de projeto">
@@ -152,13 +146,13 @@
         <h2>Fila de tarefas</h2>
         <div id="jobList" class="job-lista">Carregando fila...</div>
       </section>
-      <section class="bloco">
+      <section class="bloco" data-workflow="abertura">
         <h2>Abertura de videocast</h2>
         <p>Cria uma abertura de 30 a 40 segundos com 2 a 4 falas completas, conectadas por um tema e sem repetir takes.</p>
         <p class="aviso">A transcrição é local. A IA avalia os blocos do episódio e monta a abertura com contexto. A seleção envia texto aos provedores configurados; o Ollama é a alternativa local.</p>
         <button id="btnAbertura" type="button">Selecionar render e criar abertura</button>
       </section>
-      <section class="bloco">
+      <section class="bloco" data-workflow="letterings">
         <h2>Indicar letterings</h2>
         <p>Textos de até 4 palavras, selecionados pelo contexto da aula. Siglas recebem indicação a cada menção.</p>
         <label class="opcao" for="letteringContext">Contexto do curso e glossário (opcional)</label>
@@ -168,7 +162,7 @@
         <p>Indique a sequência revisada pelo humano para encontrar os pontos que precisam de texto.</p>
         <button id="btnLettering" data-task="lettering" type="button">Selecionar sequência e indicar letterings</button>
       </section>
-      <section class="bloco">
+      <section class="bloco" data-workflow="aprender">
         <h2>Ensinar com esta edição</h2>
         <p>Depois de editar, deixe a sua sequência final aberta. Vamos comparar suas escolhas com a primeira sugestão da IA.</p>
         <label class="opcao" for="learningProjectType">Tipo deste aprendizado</label>
@@ -234,7 +228,7 @@
           </details>
         </div>
       </section>
-      <section class="bloco">
+      <section class="bloco" data-workflow="auditar">
         <h2>Auditar edição final</h2>
         <p>Depois da sua revisão, escolha o render final. A auditoria marca possíveis problemas de áudio, imagem, continuidade, repetição, conteúdo e jump cuts.</p>
         <label class="opcao" for="auditProfile">Perfil da auditoria</label>

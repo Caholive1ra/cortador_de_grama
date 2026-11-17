@@ -8,7 +8,6 @@ Este repositório não aceita chaves de API, tokens, senhas ou certificados.
 - Comece sempre por `.env.example`, que contém apenas valores de preenchimento.
 - Não inclua o prefixo `Bearer ` em `NVIDIA_API_KEY`; o backend monta o cabeçalho de autenticação.
 - Nunca cole uma chave em issue, pull request, mensagem, captura de tela ou documentação.
-- Se definir `LOCAL_API_TOKEN` no `.env`, informe o mesmo valor no painel a cada sessão. Ele protege a API local contra clientes não autorizados na máquina.
 
 Os arquivos `.env`, `.env.*` (exceto `.env.example`), certificados e os principais artefatos gerados estão listados no `.gitignore`.
 

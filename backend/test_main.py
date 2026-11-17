@@ -107,10 +107,10 @@ def test_health_check(monkeypatch) -> None:
     }
 
 
-def test_token_local_e_exigido_quando_configurado(monkeypatch) -> None:
-    monkeypatch.setattr("main.LOCAL_API_TOKEN", "segredo-de-teste")
-    assert client.get("/health").status_code == 401
-    assert client.get("/health", headers={"X-Assistente-Token": "segredo-de-teste"}).status_code == 200
+def test_backend_local_responde_sem_token() -> None:
+    """O painel UXP deve se conectar sem credencial ou configuração manual."""
+    resposta = client.get("/health")
+    assert resposta.status_code == 200
 
 
 def test_fila_rejeita_tipo_de_tarefa_desconhecido() -> None:

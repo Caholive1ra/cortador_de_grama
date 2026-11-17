@@ -5,15 +5,13 @@ import os
 import json
 import sys
 import traceback
-import secrets
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
 from time import perf_counter
 from uuid import uuid4
 from contextlib import ExitStack
 
-from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import JSONResponse
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
@@ -76,7 +74,6 @@ logger = logging.getLogger(__name__)
 BACKEND_REVISION = "retake-pairs-v21"
 MODELO_TRANSCRICAO_LOCAL = "faster-whisper/base (local)"
 LIMITE_AULA_MODO_COMPLETO_SEGUNDOS = 3600.0
-LOCAL_API_TOKEN = (os.getenv("LOCAL_API_TOKEN") or "").strip()
 # O modo automatico nunca reduz a analise para texto. O economico so e usado
 # por escolha explicita, pois nao identifica eventos audiveis como tosse e
 # risada. Midias acima de uma hora pedem essa escolha ao operador.
@@ -95,16 +92,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 logger.info("CORS restrito ao painel UXP local.")
-
-
-@app.middleware("http")
-async def proteger_backend_local(request: Request, call_next):
-    """Exige segredo compartilhado quando LOCAL_API_TOKEN estiver configurado."""
-    if LOCAL_API_TOKEN and not secrets.compare_digest(
-        request.headers.get("X-Assistente-Token", ""), LOCAL_API_TOKEN
-    ):
-        return JSONResponse(status_code=401, content={"detail": "Token local ausente ou inválido."})
-    return await call_next(request)
 
 
 def log_operacao(etapa: str, mensagem: str, *args) -> None:

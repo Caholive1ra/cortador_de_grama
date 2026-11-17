@@ -4,6 +4,7 @@
 
 const JOBS_URL = "http://127.0.0.1:8000/jobs";
 const LEARNING_URL = "http://127.0.0.1:8000/learning/compare-xml";
+const HEALTH_URL = "http://127.0.0.1:8000/health";
 const NOME_TAREFA = { process: "Corte", opening: "Abertura", audit: "Auditoria", lettering: "Lettering" };
 let ultimaSolicitacaoDeProcessamento = null;
 let corteEmAndamento = false;
@@ -19,13 +20,23 @@ const BANK_URL = "http://127.0.0.1:8000/learning/records";
 
 const { localFileSystem } = require("uxp").storage;
 
-/** Envia somente ao backend local, incluindo o token de sessão quando existe. */
-function apiFetch(url, options = {}) {
-  const input = document.getElementById("localApiToken");
-  const token = input ? input.value.trim() : "";
-  const headers = Object.assign({}, options.headers || {});
-  if (token) headers["X-Assistente-Token"] = token;
-  return fetch(url, Object.assign({}, options, { headers }));
+/** Envia requisições diretamente ao backend local iniciado em 127.0.0.1. */
+function backendFetch(url, options = {}) {
+  return fetch(url, options);
+}
+
+/** Confirma automaticamente que o serviço local está disponível ao abrir o painel. */
+async function verificarBackendLocal() {
+  try {
+    const resposta = await backendFetch(HEALTH_URL);
+    if (!resposta.ok) throw new Error("HTTP " + resposta.status);
+    definirStatus("Backend local conectado. Escolha uma ação para iniciar.");
+  } catch (erro) {
+    definirStatus(
+      "Backend local indisponível. Inicie o backend e tente novamente. " +
+      (erro.message || String(erro))
+    );
+  }
 }
 
 /**
@@ -172,7 +183,7 @@ async function processarAula(fontesSalvas = null) {
     /* Implementacao direta mantida abaixo apenas como referencia temporaria.
     let resposta;
     try {
-      resposta = await apiFetch(BACKEND_URL, {
+      resposta = await backendFetch(BACKEND_URL, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -407,7 +418,7 @@ function textoEstadoJob(job) {
 }
 
 async function acaoJob(id, acao) {
-  const resposta = await apiFetch(JOBS_URL + "/" + encodeURIComponent(id) + "/" + acao, { method: "POST" });
+  const resposta = await backendFetch(JOBS_URL + "/" + encodeURIComponent(id) + "/" + acao, { method: "POST" });
   if (!resposta.ok) throw new Error(await resposta.text());
   await atualizarCentralDeTarefas();
 }
@@ -417,7 +428,7 @@ async function atualizarCentralDeTarefas() {
   if (!lista || atualizacaoFilaEmAndamento) return;
   atualizacaoFilaEmAndamento = true;
   try {
-    const resposta = await apiFetch(JOBS_URL + "?active_only=true");
+    const resposta = await backendFetch(JOBS_URL + "?active_only=true");
     if (!resposta.ok) throw new Error("HTTP " + resposta.status);
     const dados = await resposta.json();
     while (lista.firstChild) lista.removeChild(lista.firstChild);
@@ -460,7 +471,7 @@ async function enfileirarTarefa(task, payload) {
   let resposta;
   mostrarCarregamento(task, "Enviando " + (NOME_TAREFA[task] || "tarefa"));
   try {
-    resposta = await apiFetch(JOBS_URL, {
+    resposta = await backendFetch(JOBS_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ task, payload }),
@@ -486,7 +497,7 @@ async function aguardarTarefa(job, nome) {
   mostrarCarregamento(job.task, nome);
   try {
     while (true) {
-      const resposta = await apiFetch(JOBS_URL + "/" + encodeURIComponent(job.id));
+      const resposta = await backendFetch(JOBS_URL + "/" + encodeURIComponent(job.id));
       if (!resposta.ok) throw new Error("Não foi possível consultar a tarefa (HTTP " + resposta.status + ").");
       const atual = await resposta.json();
       if (atual.status === "queued") {
@@ -613,8 +624,7 @@ function atualizarContextoAprendizado() {
 }
 
 function configurarAbas() {
-  const secoes = Array.from(document.querySelectorAll("main.painel > section.bloco"));
-  if (secoes.length < 3 || document.querySelector(".abas")) return;
+  if (document.querySelector(".abas")) return;
   const definicoes = [
     { id: "cortar", titulo: "1. Cortar", tutorial: "<strong>Como usar</strong><ol><li>Escolha se é vídeo-aula ou videocast.</li><li>Ative a revisão por IA para avaliar erros, retakes e bastidores.</li><li>Selecione as fontes ao processar. O resultado abre em uma nova sequência no Premiere.</li></ol>" },
     { id: "abertura", titulo: "2. Abertura", tutorial: "<strong>Como usar</strong><ol><li>Com o videocast finalizado, escolha seu render completo.</li><li>A ferramenta encontra falas fortes em partes distintas da conversa.</li><li>Importe a sequência curta e ajuste as escolhas editoriais finais.</li></ol>" },
@@ -634,7 +644,11 @@ function configurarAbas() {
     }
   };
   definicoes.forEach((definicao, indice) => {
-    const painel = secoes[indice];
+    const painel = document.querySelector('main.painel > section.bloco[data-workflow="' + definicao.id + '"]');
+    if (!painel) {
+      console.error("Painel ausente para o fluxo: " + definicao.id);
+      return;
+    }
     painel.classList.add("tab-panel");
     painel.dataset.tab = definicao.id;
     painel.hidden = indice !== 0;
@@ -837,7 +851,7 @@ async function registrarAprendizado() {
     );
     if (!revisado) return;
     definirStatus("Comparando a sugestão com sua edição final...");
-    const resposta = await apiFetch(LEARNING_URL, {
+    const resposta = await backendFetch(LEARNING_URL, {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         suggested_xml_paths: sugeridos, revised_xml_path: revisado,
@@ -875,7 +889,7 @@ async function registrarAprendizado() {
 }
 
 async function bancoRequest(url, body) {
-  const resposta = await apiFetch(url, body === undefined ? {} : {
+  const resposta = await backendFetch(url, body === undefined ? {} : {
     method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
   });
   const dados = await resposta.json();
@@ -1247,6 +1261,7 @@ function iniciarPainel() {
     if (evento.target === popupResumo) fecharResumoOperacao();
   };
   definirStatus("Painel pronto. Escolha uma ação para iniciar.");
+  verificarBackendLocal();
   atualizarCentralDeTarefas();
   setInterval(atualizarCentralDeTarefas, 2000);
 }

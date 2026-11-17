@@ -75,7 +75,6 @@ NVIDIA_API_KEY="sua_chave"
 | `LIMITE_CHAMADAS_REMOTAS_POR_JOB` | Teto de chamadas remotas por tarefa. |
 | `EDITORIAL_CACHE_TTL_SECONDS` | Tempo de cache de revisão remota concluída. |
 | `FFMPEG_TIMEOUT_SECONDS` | Limite de operações longas de mídia. |
-| `LOCAL_API_TOKEN` | Segredo opcional exigido pelo backend local; informe o mesmo token no painel a cada sessão. |
 
 Nunca publique `.env`, chaves ou logs que as contenham. Não acrescente `Bearer ` à chave NVIDIA.
 
