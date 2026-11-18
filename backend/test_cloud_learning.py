@@ -78,6 +78,8 @@ def test_agente_usa_function_calling_para_schema(monkeypatch):
     ask_nemotron("teste", request=request)
     assert captured["json"]["tool_choice"]["function"]["name"] == PROPOSAL_TOOL_NAME
     assert captured["json"]["tools"][0]["function"]["name"] == PROPOSAL_TOOL_NAME
+    assert captured["json"]["chat_template_kwargs"]["force_nonempty_content"] is True
+    assert "extra_body" not in captured["json"]
 
 
 def test_agente_le_argumentos_da_function_call(monkeypatch):

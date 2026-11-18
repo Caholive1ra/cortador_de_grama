@@ -101,8 +101,9 @@ def ask_nemotron(prompt: str, request: Callable[..., httpx.Response] = httpx.pos
             "tools": [PROPOSAL_TOOL],
             "tool_choice": {"type": "function", "function": {"name": PROPOSAL_TOOL_NAME}},
             "parallel_tool_calls": False,
-            # A documentacao do Nemotron exige estas opcoes ao usar ferramentas.
-            "extra_body": {"chat_template_kwargs": {"enable_thinking": True, "force_nonempty_content": True}},
+            # `extra_body` e um recurso do SDK OpenAI. Como esta chamada usa
+            # HTTP direto, a extensao NVIDIA precisa estar no corpo raiz.
+            "chat_template_kwargs": {"enable_thinking": True, "force_nonempty_content": True},
         }, timeout=float(os.getenv("NVIDIA_LEARNING_TIMEOUT_SECONDS", "90")))
     if response.is_error:
         # A API pode explicar, por exemplo, modelo/configuracao invalida. O
