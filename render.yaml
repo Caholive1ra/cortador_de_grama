@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: cortador-cloud-api
+    runtime: python
+    plan: free
+    rootDir: backend
+    buildCommand: pip install -r requirements-cloud.txt
+    startCommand: uvicorn cloud_worker:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: CLOUD_LEARNING_INSTALLATION_TOKEN
+        sync: false
