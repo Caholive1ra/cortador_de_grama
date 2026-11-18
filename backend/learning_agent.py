@@ -56,8 +56,15 @@ def ask_nemotron(prompt: str, request: Callable[..., httpx.Response] = httpx.pos
             "model": os.getenv("NVIDIA_LEARNING_MODEL", NEMOTRON_MODEL),
             "messages": [{"role": "system", "content": "Responda somente JSON valido."}, {"role": "user", "content": prompt}],
             "temperature": 0, "max_tokens": int(os.getenv("NVIDIA_LEARNING_MAX_TOKENS", "1600")), "stream": False,
-            "extra_body": {"chat_template_kwargs": {"enable_thinking": False}},
+            # Campo oficial do endpoint Integrate para evitar tokens de raciocinio
+            # em uma resposta que precisa ser JSON estrito.
+            "reasoning_effort": "none",
         }, timeout=float(os.getenv("NVIDIA_LEARNING_TIMEOUT_SECONDS", "90")))
+    if response.is_error:
+        # A API pode explicar, por exemplo, modelo/configuracao invalida. O
+        # corpo e truncado para o log e nunca inclui a chave de autorizacao.
+        detail = response.text[:500].replace(key, "[redacted]")
+        raise RuntimeError(f"NVIDIA HTTP {response.status_code}: {detail}")
     response.raise_for_status()
     data = response.json()
     raw = data["choices"][0]["message"]["content"]

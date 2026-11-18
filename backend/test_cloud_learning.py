@@ -4,7 +4,7 @@ import httpx
 import pytest
 
 import cloud_learning as cloud
-from learning_agent import promotion_allowed, validate_proposal
+from learning_agent import ask_nemotron, promotion_allowed, validate_proposal
 
 
 @pytest.fixture(autouse=True)
@@ -59,3 +59,22 @@ def test_schema_do_agente_e_promocao_exigem_reexecucao():
         validate_proposal({"rules": ["x"], "parameters": {}, "reason": "x", "evidence": {}}, "p")
     assert not promotion_allowed({"reexecution_complete": False, "benchmark_samples": 99})
     assert promotion_allowed({"reexecution_complete": True, "benchmark_samples": 5, "useful_removed_delta": 0, "unwanted_kept_delta": -1, "agreement_delta": .01})
+
+
+def test_agente_usa_reasoning_effort_oficial_da_nvidia(monkeypatch):
+    monkeypatch.setenv("NVIDIA_LEARNING_API_KEY", "chave-de-teste")
+    captured = {}
+
+    class Response:
+        is_error = False
+        def raise_for_status(self): pass
+        def json(self):
+            return {"model": "nvidia/nemotron-3-ultra-550b-a55b", "choices": [{"message": {"content": "{}"}}], "usage": {}}
+
+    def request(*args, **kwargs):
+        captured.update(kwargs)
+        return Response()
+
+    ask_nemotron("teste", request=request)
+    assert captured["json"]["reasoning_effort"] == "none"
+    assert "extra_body" not in captured["json"]
