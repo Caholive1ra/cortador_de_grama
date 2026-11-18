@@ -131,8 +131,18 @@ def run_once() -> dict[str, int]:
             for category in item.get("categories", []): counts[category] = counts.get(category, 0) + 1
         current_rows = _supabase("GET", "deployment_versions", params={"profile_id": "eq." + job["profile_id"], "status": "eq.approved", "limit": "1"})
         current = current_rows[0]["configuration"] if current_rows else {"rules": [], "parameters": {}}
-        payload, telemetry = ask_nemotron(build_prompt(job["profile_id"], counts, current))
-        proposal = validate_proposal(payload, job["profile_id"])
+        prompt = build_prompt(job["profile_id"], counts, current)
+        payload, telemetry = ask_nemotron(prompt)
+        try:
+            proposal = validate_proposal(payload, job["profile_id"])
+        except ValueError as invalid_proposal:
+            # Uma correcao limitada melhora a aderencia ao schema sem aceitar
+            # valores fora da lista permitida nem executar codigo da resposta.
+            repair_prompt = prompt + "\nA resposta anterior foi rejeitada por schema invalido (" + str(invalid_proposal) + "). " \
+                "Responda novamente, somente com o JSON valido solicitado."
+            payload, retry_telemetry = ask_nemotron(repair_prompt)
+            proposal = validate_proposal(payload, job["profile_id"])
+            telemetry["schema_repair"] = retry_telemetry
         candidate = {"profile_id": proposal.profile_id, "rules": proposal.rules, "parameters": proposal.parameters,
                      "status": "evaluation_pending", "previous_version_id": current_rows[0]["id"] if current_rows else None}
         _supabase("POST", "prompt_versions", payload={"profile_id": proposal.profile_id, "configuration": candidate,

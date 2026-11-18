@@ -78,3 +78,10 @@ def test_agente_usa_reasoning_effort_oficial_da_nvidia(monkeypatch):
     ask_nemotron("teste", request=request)
     assert captured["json"]["reasoning_effort"] == "none"
     assert "extra_body" not in captured["json"]
+
+
+def test_agente_recusa_similarity_fora_da_faixa():
+    invalid = {"rules": ["Preserve exemplos didaticos em explicacoes importantes."],
+               "parameters": {"repetition_similarity": 2}, "reason": "Teste", "evidence": {}}
+    with pytest.raises(ValueError, match="Parametros invalidos"):
+        validate_proposal(invalid, "videoaula_editorial_v1")
