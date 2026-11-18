@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import inspect
 import logging
 import sqlite3
 import threading
@@ -21,6 +22,10 @@ class JobExecutionError(Exception):
         super().__init__(str(detail))
         self.status_code = status_code
         self.detail = detail
+
+
+class JobCancelledError(Exception):
+    """Interrompe uma tarefa entre etapas seguras."""
 
 
 class PriorityJobQueue:
@@ -56,6 +61,7 @@ class PriorityJobQueue:
                     finished_at REAL,
                     result TEXT,
                     error TEXT
+                    ,progress TEXT
                 )
             """)
             columns = {row[1] for row in connection.execute("PRAGMA table_info(jobs)")}
@@ -65,6 +71,8 @@ class PriorityJobQueue:
                 connection.execute("ALTER TABLE jobs ADD COLUMN attempts INTEGER NOT NULL DEFAULT 0")
             if "cancel_requested" not in columns:
                 connection.execute("ALTER TABLE jobs ADD COLUMN cancel_requested INTEGER NOT NULL DEFAULT 0")
+            if "progress" not in columns:
+                connection.execute("ALTER TABLE jobs ADD COLUMN progress TEXT")
             # Nunca repete silenciosamente um trabalho interrompido pelo desligamento.
             connection.execute(
                 "UPDATE jobs SET status = 'interrupted', finished_at = ?, "
@@ -143,6 +151,14 @@ class PriorityJobQueue:
             operacoes_logger.info("FILA | CANCELAMENTO SOLICITADO | id=%s", job_id)
         return self.get(job_id) if updated else None
 
+    def update_progress(self, job_id: str, stage: str, percent: int) -> None:
+        """Persiste a última etapa para o painel e para retomada informada."""
+        progress = json.dumps({"stage": stage, "percent": max(0, min(100, int(percent))),
+                               "updated_at": time.time()}, ensure_ascii=False)
+        with self._connect() as connection:
+            connection.execute("UPDATE jobs SET progress = ? WHERE id = ? AND status = 'running'",
+                               (progress, job_id))
+
     def retry(self, job_id: str) -> dict | None:
         with self._connect() as connection:
             updated = connection.execute(
@@ -168,6 +184,8 @@ class PriorityJobQueue:
             job["result"] = json.loads(row["result"])
         if row["error"]:
             job["error"] = json.loads(row["error"])
+        if row["progress"]:
+            job["progress"] = json.loads(row["progress"])
         return job
 
     def start(self, executor) -> None:
@@ -231,7 +249,23 @@ class PriorityJobQueue:
                 if self.get(job["id"])["cancel_requested"]:
                     self._finish(job["id"])
                     continue
-                self._finish(job["id"], result=executor(job["task"], job["payload"]))
+                def checkpoint(stage: str, percent: int) -> None:
+                    self.update_progress(job["id"], stage, percent)
+                    atual = self.get(job["id"])
+                    if atual and atual["cancel_requested"]:
+                        raise JobCancelledError()
+
+                checkpoint("Preparando tarefa", 1)
+                parametros = inspect.signature(executor).parameters
+                if len(parametros) >= 4:
+                    result = executor(job["task"], job["payload"], checkpoint, lambda: bool(
+                        (self.get(job["id"]) or {}).get("cancel_requested")
+                    ))
+                else:
+                    result = executor(job["task"], job["payload"])
+                self._finish(job["id"], result=result)
+            except JobCancelledError:
+                self._finish(job["id"])
             except JobExecutionError as exc:
                 logger.warning("Fila: tarefa falhou | id=%s | http=%s | detalhe=%s", job["id"], exc.status_code, exc.detail)
                 self._finish(job["id"], error={"status_code": exc.status_code, "detail": exc.detail})

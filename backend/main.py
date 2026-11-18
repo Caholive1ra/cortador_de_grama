@@ -5,6 +5,7 @@ import os
 import json
 import sys
 import traceback
+import threading
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
 from time import perf_counter
@@ -29,11 +30,13 @@ from lettering_ai import LetteringModelError, sugerir_letterings
 from opening_highlights import selecionar_abertura, validar_trechos
 from learning_feedback import comparar_xmls, salvar_feedback
 from learning_bank import listar_banco, ler_registro, anotar, definir_papel, avaliar
+from cloud_learning import cloud_status, enqueue_feedback, flush_outbox, pending_outbox, refresh_configuration
 from logic_engine import classificar_segmentos
 from media_utils import aparar_silencios_das_bordas, extrair_audio_temporario, obter_metadados, obter_metadados_audio
 from quality_audit import auditar_sequencia
 from job_queue import JobExecutionError, PriorityJobQueue
 from transcriber import ModelUnavailableError, transcrever_audio
+from transcription_cache import get_or_transcribe
 from xml_generator import gerar_fcp_xml, gerar_fcp_xml_abertura
 
 logging.basicConfig(
@@ -84,12 +87,13 @@ app = FastAPI(
 )
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["null", "http://127.0.0.1", "http://localhost",
+                   "http://127.0.0.1:8000", "http://localhost:8000"],
     allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
-logger.info("CORS liberado para o painel UXP em localhost.")
+logger.info("CORS restrito ao painel UXP local.")
 
 
 def log_operacao(etapa: str, mensagem: str, *args) -> None:
@@ -167,6 +171,8 @@ class LearningFeedbackRequest(BaseModel):
     revised_xml_path: str
     project_type: str | None = None
     diagnostic_path: str | None = None
+    general_feedback: list[str] = []
+    general_note: str = ""
 
 
 class LearningAnnotationRequest(BaseModel):
@@ -310,7 +316,17 @@ def diagnostics_nvidia() -> dict:
 
 
 @app.post("/process")
-def process_media(request: MediaRequest) -> dict:
+def process_media(request: MediaRequest, report_progress=None, is_cancelled=None) -> dict:
+    profile_id = {
+        "videoaula": "videoaula_editorial_v1",
+        "videocast": "videocast_editorial_camera_v1",
+        "videocast_graduacao": "videocast_graduacao_editorial_v1",
+        "videocast_mba": "videocast_mba_editorial_v1",
+    }.get(request.project_type, "videoaula_editorial_v1")
+    # A rede e assíncrona: esta aula usa somente o cache atual; a próxima pode
+    # usar a versão baixada, sem trocar regra durante o processamento.
+    threading.Thread(target=refresh_configuration, args=(profile_id,), daemon=True,
+                     name="editorial-config-refresh").start()
     """Transcreve o PGM e prepara as fontes para o XML multicâmera."""
     try:
         inicio_processamento = perf_counter()
@@ -321,6 +337,14 @@ def process_media(request: MediaRequest) -> dict:
             logger.info("Desempenho: %s concluido em %.3fs.", nome, desempenho[nome])
             log_operacao("CORTE", "ETAPA CONCLUIDA | aula=%s | etapa=%s | tempo=%.1fs",
                          os.path.basename(request.pgm_path), nome, desempenho[nome])
+
+        def checkpoint(etapa: str, percentual: int) -> None:
+            if report_progress:
+                report_progress(etapa, percentual)
+            if is_cancelled and is_cancelled():
+                raise JobExecutionError(499, "Cancelada pelo operador antes da próxima etapa.")
+
+        checkpoint("Lendo fontes", 5)
 
         if request.editorial_mode not in {"auto", "full", "economic"}:
             raise ValueError("Modo editorial invalido. Use auto, full ou economic.")
@@ -358,6 +382,7 @@ def process_media(request: MediaRequest) -> dict:
             dados["name"] = os.path.basename(caminho)
             metadados.append(dados)
         marcar_etapa("metadata")
+        checkpoint("Sincronizando fontes", 15)
 
         pgm = metadados[0]
         modo_editorial_efetivo = request.editorial_mode
@@ -441,8 +466,12 @@ def process_media(request: MediaRequest) -> dict:
                 })
                 audios_externos.append(fonte_audio)
             marcar_etapa("audio_sync")
-            segmentos = transcrever_audio(audio_path)
+            checkpoint("Transcrevendo áudio", 30)
+            segmentos, transcription_cache_hit = get_or_transcribe(
+                request.pgm_path, pgm, audio_path, transcrever_audio,
+            )
             marcar_etapa("transcription")
+            checkpoint("Analisando decisões editoriais", 55)
             # Revisão editorial é uma escolha explícita do editor. Não use a
             # duração para pular Gemini/GPT-OSS/Gemma: isso fazia aulas curtas
             # caírem diretamente no Ollama, contrariando a ordem de provedores
@@ -481,6 +510,7 @@ def process_media(request: MediaRequest) -> dict:
                         revisao_semantica=request.editorial_review,
                         audio_path=audio_path,
                         modo_economico=modo_editorial_efetivo == "economic",
+                        project_type=request.project_type,
                     )
                 diagnostico_atual = obter_diagnostico_editorial()
                 if (
@@ -490,6 +520,7 @@ def process_media(request: MediaRequest) -> dict:
                 ):
                     salvar_cache_editorial(chave_cache, segmentos_classificados, diagnostico_atual)
             marcar_etapa("editorial_analysis")
+            checkpoint("Definindo câmeras", 72)
             camera_por_segmento = None
             if request.project_type == "videocast":
                 with ExitStack() as arquivos_temporarios:
@@ -536,6 +567,7 @@ def process_media(request: MediaRequest) -> dict:
             audio_follows_camera=request.project_type == "videocast" and request.audio_follows_camera,
         )
         marcar_etapa("xml_generation")
+        checkpoint("Gravando diagnóstico", 92)
         diagnostico_path = f"{raiz_arquivo}_diagnostico_{job_id}.json"
         with open(diagnostico_path, "w", encoding="utf-8") as diagnostico:
             json.dump(
@@ -616,10 +648,12 @@ def process_media(request: MediaRequest) -> dict:
 
 
 @app.post("/analyze-lettering")
-def analyze_lettering(request: LetteringRequest) -> dict:
+def analyze_lettering(request: LetteringRequest, report_progress=None, is_cancelled=None) -> dict:
     """Analisa a versao revisada e gera XML auxiliar com marcadores de texto."""
     try:
         inicio = perf_counter()
+        if report_progress:
+            report_progress("Lendo render", 10)
         log_operacao("LETTERING", "INICIO | aula=%s | modo=%s", os.path.basename(request.revised_media_path),
                      "economico" if request.economic_mode else "completo")
         logger.info("Lettering: inicio | arquivo=%s | economico=%s | contexto=%s caracteres",
@@ -629,12 +663,20 @@ def analyze_lettering(request: LetteringRequest) -> dict:
         with extrair_audio_temporario(
             request.revised_media_path, midia.get("video_start", 0.0)
         ) as audio_path:
-            segmentos = transcrever_audio(audio_path)
+            segmentos, transcription_cache_hit = get_or_transcribe(
+                request.revised_media_path, midia, audio_path, transcrever_audio,
+            )
+        if report_progress:
+            report_progress("Selecionando letterings", 55)
+        if is_cancelled and is_cancelled():
+            raise JobExecutionError(499, "Cancelada pelo operador antes da análise.")
         log_operacao("LETTERING", "TRANSCRICAO CONCLUIDA | aula=%s | segmentos=%s | tempo=%.1fs",
                      os.path.basename(request.revised_media_path), len(segmentos), perf_counter() - inicio)
         logger.info("Lettering: transcricao concluida | segmentos=%s | tempo=%.1fs", len(segmentos), perf_counter() - inicio)
         sugestoes = sugerir_letterings(segmentos, modo_economico=request.economic_mode,
                                        contexto_curso=request.course_context)
+        if report_progress:
+            report_progress("Gerando marcadores e diagnóstico", 85)
         log_operacao("LETTERING", "ANALISE CONCLUIDA | aula=%s | sugestoes=%s | modelo=%s",
                      os.path.basename(request.revised_media_path), len(sugestoes),
                      obter_ultimo_modelo_textual() or GEMINI_MODEL)
@@ -732,10 +774,12 @@ def analyze_lettering_segments(request: LetteringSegmentsRequest) -> dict:
 
 
 @app.post("/create-videocast-opening")
-def create_videocast_opening(request: OpeningRequest) -> dict:
+def create_videocast_opening(request: OpeningRequest, report_progress=None, is_cancelled=None) -> dict:
     """Monta uma abertura curta com a melhor IA configurada para curadoria."""
     try:
         inicio = perf_counter()
+        if report_progress:
+            report_progress("Lendo render", 10)
         midia = obter_metadados(request.revised_media_path)
         modelo_abertura = ""
 
@@ -749,7 +793,13 @@ def create_videocast_opening(request: OpeningRequest) -> dict:
             return resposta
 
         with extrair_audio_temporario(request.revised_media_path, midia.get("video_start", 0.0)) as audio_path:
-            segmentos = transcrever_audio(audio_path)
+            segmentos, transcription_cache_hit = get_or_transcribe(
+                request.revised_media_path, midia, audio_path, transcrever_audio,
+            )
+            if report_progress:
+                report_progress("Selecionando falas", 55)
+            if is_cancelled and is_cancelled():
+                raise JobExecutionError(499, "Cancelada pelo operador antes da curadoria.")
             trechos = selecionar_abertura(segmentos, curar_abertura)
             trechos = aparar_silencios_das_bordas(audio_path, trechos)
             validar_trechos(trechos)
@@ -764,6 +814,8 @@ def create_videocast_opening(request: OpeningRequest) -> dict:
         diagnostico_path = f"{raiz_arquivo}_abertura_videocast_{job_id}.json"
         gerar_fcp_xml_abertura(trechos, dict(midia, name=os.path.basename(request.revised_media_path), label="Videocast"),
                                xml_path, float(midia["fps"]))
+        if report_progress:
+            report_progress("Gravando abertura", 90)
         with open(diagnostico_path, "w", encoding="utf-8") as diagnostico:
             json.dump({"source": request.revised_media_path, "highlights": trechos,
                        "transcript_segments": len(segmentos), "transcript": segmentos,
@@ -790,12 +842,14 @@ def create_videocast_opening(request: OpeningRequest) -> dict:
 
 
 @app.post("/audit-quality")
-def audit_quality(request: QualityAuditRequest) -> dict:
+def audit_quality(request: QualityAuditRequest, report_progress=None, is_cancelled=None) -> dict:
     """Audita a edicao final e devolve marcadores; nunca altera a sequencia."""
     try:
         if request.editorial_profile not in {"standard", "mba"}:
             raise ValueError("Perfil editorial inválido. Use standard ou mba.")
         inicio = perf_counter()
+        if report_progress:
+            report_progress("Lendo render e XML", 10)
         log_operacao("AUDITORIA", "INICIO | aula=%s", os.path.basename(request.revised_media_path))
         logger.info("Auditoria: inicio | render=%s | xml=%s", request.revised_media_path, request.revised_xml_path)
         midia = obter_metadados(request.revised_media_path)
@@ -803,7 +857,13 @@ def audit_quality(request: QualityAuditRequest) -> dict:
         with extrair_audio_temporario(
             request.revised_media_path, midia.get("video_start", 0.0)
         ) as audio_path:
-            segmentos = transcrever_audio(audio_path)
+            segmentos, transcription_cache_hit = get_or_transcribe(
+                request.revised_media_path, midia, audio_path, transcrever_audio,
+            )
+        if report_progress:
+            report_progress("Auditando montagem", 50)
+        if is_cancelled and is_cancelled():
+            raise JobExecutionError(499, "Cancelada pelo operador antes da auditoria.")
         log_operacao("AUDITORIA", "TRANSCRICAO CONCLUIDA | aula=%s | segmentos=%s | tempo=%.1fs",
                      os.path.basename(request.revised_media_path), len(segmentos), perf_counter() - inicio)
         logger.info("Auditoria: transcricao concluida | segmentos=%s | tempo=%.1fs", len(segmentos), perf_counter() - inicio)
@@ -811,6 +871,8 @@ def audit_quality(request: QualityAuditRequest) -> dict:
             request.revised_xml_path, request.revised_media_path, segmentos,
             editorial_profile=request.editorial_profile,
         )
+        if report_progress:
+            report_progress("Gravando relatório", 85)
         logger.info("Auditoria: analise concluida | achados=%s | categorias=%s | ia_texto=%s | tempo=%.1fs",
                     len(resultado["findings"]), resultado["summary"],
                     resultado["checked"].get("text_ai_review"), perf_counter() - inicio)
@@ -828,8 +890,8 @@ def audit_quality(request: QualityAuditRequest) -> dict:
         status_revisao = str(resultado.get("checked", {}).get("text_ai_review", "not_needed"))
         modelo_auditoria = (
             obter_ultimo_modelo_textual() or "API textual configurada"
-            if status_revisao.startswith("completed_remote") else
-            "Ollama/" + OLLAMA_MODEL if status_revisao.startswith("completed_ollama") else
+            if "remote" in status_revisao else
+            "Ollama/" + OLLAMA_MODEL if "ollama" in status_revisao else
             "regras locais (sem revisão textual)"
         )
         if resultado.get("checked", {}).get("mba_direction") == "gemini_vision":
@@ -869,16 +931,16 @@ JOB_PRIORITIES = {"process": 0, "opening": 10, "audit": 20, "lettering": 30}
 JOB_QUEUE = PriorityJobQueue(Path(__file__).resolve().parent / "job_data" / "jobs.sqlite3")
 
 
-def _execute_queued_job(task: str, payload: dict) -> dict:
+def _execute_queued_job(task: str, payload: dict, report_progress=None, is_cancelled=None) -> dict:
     try:
         if task == "process":
-            return process_media(MediaRequest(**payload))
+            return process_media(MediaRequest(**payload), report_progress, is_cancelled)
         if task == "audit":
-            return audit_quality(QualityAuditRequest(**payload))
+            return audit_quality(QualityAuditRequest(**payload), report_progress, is_cancelled)
         if task == "lettering":
-            return analyze_lettering(LetteringRequest(**payload))
+            return analyze_lettering(LetteringRequest(**payload), report_progress, is_cancelled)
         if task == "opening":
-            return create_videocast_opening(OpeningRequest(**payload))
+            return create_videocast_opening(OpeningRequest(**payload), report_progress, is_cancelled)
         raise ValueError(f"Tipo de tarefa nao suportado: {task}")
     except HTTPException as exc:
         raise JobExecutionError(exc.status_code, exc.detail) from exc
@@ -953,7 +1015,7 @@ def get_job(job_id: str) -> dict:
 
 @app.post("/learning/compare-xml")
 def compare_learning_xml(request: LearningFeedbackRequest) -> dict:
-    """Registra a diferenca entre sugestao e revisao humana, localmente."""
+    """Registra localmente e coloca a versao agregada na outbox cloud."""
     try:
         xmls_sugeridos = request.suggested_xml_paths or ([request.suggested_xml_path] if request.suggested_xml_path else [])
         invalidos = [caminho for caminho in xmls_sugeridos if "_cortado_" not in os.path.basename(caminho).lower()]
@@ -970,9 +1032,14 @@ def compare_learning_xml(request: LearningFeedbackRequest) -> dict:
             comparison, xmls_sugeridos, request.revised_xml_path,
             request.project_type, request.diagnostic_path,
         )
+        record = ler_registro(summary["feedback_id"])
+        cloud = enqueue_feedback(record, request.general_feedback, request.general_note)
+        # O envio nunca e requisito para concluir o feedback no Premiere.
+        threading.Thread(target=flush_outbox, name="cloud-learning-sync", daemon=True).start()
         return {
             "status": "success", "comparison": comparison,
             "feedback_path": feedback_path, "learning_summary": summary,
+            "cloud_sync": {**cloud, "pending": pending_outbox(), "status": cloud_status()},
             "operation_summary": {
                 "operation": "aprendizado",
                 "models": {"comparison": "regras locais (comparação XML)"},
@@ -983,6 +1050,19 @@ def compare_learning_xml(request: LearningFeedbackRequest) -> dict:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
+@app.get("/learning/cloud-status")
+def learning_cloud_status() -> dict:
+    """Estado sem segredos, usado pelo painel para explicar modo offline."""
+    return {**cloud_status(), "pending": pending_outbox()}
+
+
+@app.post("/learning/configurations/{profile_id}/refresh")
+def refresh_learning_configuration(profile_id: str) -> dict:
+    if profile_id not in {"videoaula_editorial_v1", "videocast_editorial_camera_v1", "videocast_graduacao_editorial_v1", "videocast_mba_editorial_v1"}:
+        raise HTTPException(status_code=422, detail="Perfil editorial invalido.")
+    return refresh_configuration(profile_id)
 
 
 def _learning_call(func, *args) -> dict:

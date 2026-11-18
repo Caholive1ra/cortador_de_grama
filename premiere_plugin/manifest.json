@@ -36,7 +36,7 @@
   "requiredPermissions": {
     "localFileSystem": "request",
     "network": {
-      "domains": "all"
+      "domains": ["http://localhost:8000"]
     }
   }
 }

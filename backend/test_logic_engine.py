@@ -96,6 +96,24 @@ def test_gatilho_com_acento_e_normalizado() -> None:
     )
 
     assert resultado[0]["track"] == "V1"
+
+
+def test_gatilho_curto_nao_corta_parte_de_outra_palavra() -> None:
+    resultado = _classificar([
+        {"start": 0, "end": 3, "text": "A dopamina participa desse processo."},
+        {"start": 3, "end": 6, "text": "Vamos analisar a propaganda."},
+        {"start": 6, "end": 9, "text": "A Copa do Mundo movimenta a economia."},
+    ])
+
+    assert [item["track"] for item in resultado] == ["V2", "V2", "V2"]
+
+
+def test_gatilho_curto_como_palavra_isolada_continua_cortando() -> None:
+    resultado = _classificar([
+        {"start": 0, "end": 2, "text": "Opa, vamos gravar de novo."},
+    ])
+
+    assert resultado[0]["track"] == "V1"
     assert resultado[0]["reason"] == "comando_de_corte"
 
 

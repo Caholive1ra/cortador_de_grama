@@ -127,7 +127,7 @@
           <span class="versao-painel">PAINEL v0.2.13</span>
         </div>
       </header>
-      <section class="bloco">
+      <section class="bloco" data-workflow="cortar">
         <h2>Cortar aula</h2>
         <p>Selecione as fontes e gere a primeira sequência de cortes.</p>
         <select id="projectType" aria-label="Tipo de projeto">
@@ -135,7 +135,7 @@
           <option value="videocast">Videocast</option>
         </select>
         <label class="opcao"><input id="editorialReview" type="checkbox" /> Usar revisao por IA</label>
-        <p class="aviso">Se o Gemini estiver configurado, essa opcao envia o audio para um servico externo.</p>
+        <p class="aviso">Com revisão por IA, o corte pode enviar áudio temporário e transcrição aos provedores configurados. Sem essa opção, o processamento permanece local.</p>
         <label class="opcao"><input id="economicMode" type="checkbox" /> Modo economico de IA</label>
         <label class="opcao" id="audioFollowsCameraOption"><input id="audioFollowsCamera" type="checkbox" /> Áudio acompanha a câmera</label>
         <p class="aviso">Use somente se quiser análise textual mais rápida. Sem esta opção, o sistema sempre analisa o áudio completo.</p>
@@ -146,13 +146,13 @@
         <h2>Fila de tarefas</h2>
         <div id="jobList" class="job-lista">Carregando fila...</div>
       </section>
-      <section class="bloco">
+      <section class="bloco" data-workflow="abertura">
         <h2>Abertura de videocast</h2>
         <p>Cria uma abertura de 30 a 40 segundos com 2 a 4 falas completas, conectadas por um tema e sem repetir takes.</p>
         <p class="aviso">A transcrição é local. A IA avalia os blocos do episódio e monta a abertura com contexto. A seleção envia texto aos provedores configurados; o Ollama é a alternativa local.</p>
         <button id="btnAbertura" type="button">Selecionar render e criar abertura</button>
       </section>
-      <section class="bloco">
+      <section class="bloco" data-workflow="letterings">
         <h2>Indicar letterings</h2>
         <p>Textos de até 4 palavras, selecionados pelo contexto da aula. Siglas recebem indicação a cada menção.</p>
         <label class="opcao" for="letteringContext">Contexto do curso e glossário (opcional)</label>
@@ -162,11 +162,13 @@
         <p>Indique a sequência revisada pelo humano para encontrar os pontos que precisam de texto.</p>
         <button id="btnLettering" data-task="lettering" type="button">Selecionar sequência e indicar letterings</button>
       </section>
-      <section class="bloco">
+      <section class="bloco" data-workflow="aprender">
         <h2>Ensinar com esta edição</h2>
         <p>Depois de editar, deixe a sua sequência final aberta. Vamos comparar suas escolhas com a primeira sugestão da IA.</p>
         <label class="opcao" for="learningProjectType">Tipo deste aprendizado</label>
         <select id="learningProjectType" aria-label="Tipo deste aprendizado">
+          <option value="videocast_graduacao">Videocast de graduacao — cortes e direcao de cameras</option>
+          <option value="videocast_mba">Videocast MBA — cortes e direcao de cameras</option>
           <option value="videoaula">Videoaula — cortes, ritmo e clareza didática</option>
           <option value="videocast">Videocast — cortes e direção de câmeras</option>
         </select>
@@ -178,6 +180,19 @@
         </div>
         <button id="btnAprender" type="button">Comparar minha edição com a IA</button>
         <p class="aviso">Primeiro selecione todos os XMLs originais da IA e cancele. Depois selecione um único XML exportado da sequência final. Nenhum vídeo ou áudio é copiado.</p>
+        <fieldset id="generalFeedback" class="aprendizado-avancado"><legend>Problemas observados (opcional)</legend>
+          <label><input type="checkbox" value="palavras_repetidas_nao_removidas"> Palavras repetidas nao removidas</label>
+          <label><input type="checkbox" value="silencios_mantidos_indevidamente"> Silencios mantidos indevidamente</label>
+          <label><input type="checkbox" value="repeticoes_excessivas_nao_identificadas"> Repeticoes excessivas nao identificadas</label>
+          <label><input type="checkbox" value="cortes_excessivamente_pequenos"> Cortes excessivamente pequenos</label>
+          <label><input type="checkbox" value="erros_de_fala_mantidos"> Muitos erros de fala mantidos</label>
+          <label><input type="checkbox" value="conteudo_importante_removido"> Cortes que removeram conteudo importante</label>
+          <label><input type="checkbox" value="pontos_de_corte_imprecisos"> Pontos de corte imprecisos</label>
+          <label><input type="checkbox" value="cortes_desnecessarios"> Cortes desnecessarios</label>
+          <label><input type="checkbox" value="pausas_naturais_removidas"> Pausas naturais removidas</label>
+          <label><input type="checkbox" value="outros"> Outros</label>
+          <textarea id="generalFeedbackNote" maxlength="500" placeholder="Observacao opcional; permanece local" style="width:100%;min-height:56px"></textarea>
+        </fieldset>
         <p id="learningResult" class="aprendizado-sucesso" hidden></p>
 
         <div class="aprendizado-revisao">
@@ -228,7 +243,7 @@
           </details>
         </div>
       </section>
-      <section class="bloco">
+      <section class="bloco" data-workflow="auditar">
         <h2>Auditar edição final</h2>
         <p>Depois da sua revisão, escolha o render final. A auditoria marca possíveis problemas de áudio, imagem, continuidade, repetição, conteúdo e jump cuts.</p>
         <label class="opcao" for="auditProfile">Perfil da auditoria</label>
@@ -236,7 +251,7 @@
           <option value="standard">Padrão — conferir problemas técnicos</option>
           <option value="mba">MBA — incluir sugestões de direção artística</option>
         </select>
-        <p class="aviso">No perfil MBA, os marcadores sugerem zoom, respiro, destaque de slide ou plano estável. Nenhum efeito é aplicado automaticamente.</p>
+        <p class="aviso">No perfil MBA, frames do render e trechos de transcrição podem ser enviados ao Gemini para sugerir zoom, respiro, destaque de slide ou plano estável. Nenhum efeito é aplicado automaticamente.</p>
         <button id="btnAuditar" data-task="audit" type="button">Auditar sequência final</button>
         <p class="aviso">O XML desta sequência é exportado para leitura; você pode continuar editando outra enquanto a auditoria roda. Os marcadores voltarão para esta sequência, sem alterar mídia, corte ou efeito. Jump cuts sem mudança de escala aparecem em vermelho.</p>
       </section>

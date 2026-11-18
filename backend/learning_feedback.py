@@ -129,7 +129,7 @@ def salvar_feedback(
         "examples": exemplos,
         "source_group": comparacao.get("source_group"),
         "dataset_role": "reference",
-        "eligible": bool(comparacao.get("validated_sources") and diagnostico and perfil["project_type"] in ("videoaula", "videocast")),
+        "eligible": bool(comparacao.get("validated_sources") and diagnostico and perfil["project_type"] in ("videoaula", "videocast", "videocast_graduacao", "videocast_mba")),
     }
     if not duplicado:
         destino.write_text(json.dumps(registro, ensure_ascii=False, indent=2), encoding="utf-8")
@@ -235,18 +235,19 @@ def _perfil_de_aprendizado(project_type: str | None) -> dict:
     # envia o tipo explicitamente; registros novos continuam versionados.
     if project_type is None:
         project_type = "videoaula"
-    if project_type not in ("videoaula", "videocast"):
-        raise ValueError("Escolha se este aprendizado e de videoaula ou videocast.")
-    if project_type == "videocast":
+    if project_type not in ("videoaula", "videocast", "videocast_graduacao", "videocast_mba"):
+        raise ValueError("Escolha videoaula, videocast de graduacao ou videocast MBA.")
+    if project_type in ("videocast", "videocast_graduacao", "videocast_mba"):
+        perfil = "videocast_mba_editorial_v1" if project_type == "videocast_mba" else ("videocast_graduacao_editorial_v1" if project_type == "videocast_graduacao" else "videocast_editorial_camera_v1")
         return {
-            "id": "videocast_editorial_camera_v1",
-            "project_type": "videocast",
+            "id": perfil,
+            "project_type": project_type,
             "label": "Videocast — cortes e direcao de cameras",
             "focus": ["cortes de fala", "ritmo de conversa", "direcao de cameras"],
             "camera_direction": True,
         }
     return {
-        "id": "videoaula_didactic_v1",
+        "id": "videoaula_editorial_v1",
         "project_type": "videoaula",
         "label": "Videoaula — montagem didatica",
         "focus": ["cortes de fala", "clareza didatica", "ritmo", "tela e recursos de aula"],

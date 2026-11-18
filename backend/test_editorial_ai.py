@@ -691,7 +691,7 @@ def test_nvidia_e_usado_quando_gemini_textual_falha(monkeypatch) -> None:
     assert solicitar_json_textual("teste") == '{"approve": []}'
 
 
-def test_gemma_revisa_texto_antes_do_fallback_nvidia(monkeypatch) -> None:
+def test_nvidia_revisa_texto_antes_do_fallback_gemma(monkeypatch) -> None:
     import editorial_ai as ai
 
     prompts = []
@@ -704,10 +704,10 @@ def test_gemma_revisa_texto_antes_do_fallback_nvidia(monkeypatch) -> None:
 
     monkeypatch.setattr(ai, "_decidir_cortes_com_gemini", gemini_indisponivel)
     monkeypatch.setattr(
-        ai, "_gemma_request",
+        ai, "_nvidia_request",
         lambda prompt: prompts.append(prompt) or '{"discard": [{"i": 1, "reason": "falsa_partida"}], "review": []}',
     )
-    monkeypatch.setattr(ai, "_nvidia_request", lambda _prompt: pytest.fail("NVIDIA nao deveria ser chamada"))
+    monkeypatch.setattr(ai, "_gemma_request", lambda _prompt: pytest.fail("Gemma nao deveria ser chamada"))
     monkeypatch.setattr(ai, "_aplicar_retakes_explicitos", lambda _segmentos, decisao: decisao)
 
     resultado = ai.decidir_cortes_semanticos([
@@ -719,7 +719,7 @@ def test_gemma_revisa_texto_antes_do_fallback_nvidia(monkeypatch) -> None:
     assert resultado.discard_indexes == {1}
     assert '"i": 0' in prompts[0]
     assert '"i": 2' in prompts[0]
-    assert ai.obter_diagnostico_editorial()["mode"] == "gemma_text"
+    assert ai.obter_diagnostico_editorial()["mode"] == "nvidia_text"
 
 
 def test_nvidia_fallback_completo_usa_contrato_editorial_unificado(monkeypatch) -> None:
@@ -753,6 +753,8 @@ def test_nvidia_usa_parametros_gpt_oss_e_endpoint_nvidia(monkeypatch) -> None:
     from editorial_ai import _nvidia_request
 
     monkeypatch.setattr("editorial_ai.NVIDIA_API_KEY", "chave-de-teste")
+    monkeypatch.setattr("editorial_ai.NVIDIA_MODEL", "openai/gpt-oss-20b")
+    monkeypatch.setattr("editorial_ai.NVIDIA_MODELS", ("openai/gpt-oss-20b",), raising=False)
     chamadas = []
     def responder(method, url, payload, headers, timeout):
         chamadas.append((method, url, payload, headers, timeout))
@@ -783,7 +785,7 @@ def test_revisao_textual_consulta_ollama_so_depois_de_todos_remotos(monkeypatch)
 
     assert json.loads(resposta) == {"confirmar": []}
     assert origem == "ollama"
-    assert chamadas == ["gemini", "gemma", "nvidia", "ollama"]
+    assert chamadas == ["gemini", "nvidia", "gemma", "ollama"]
 
 
 def test_json_invalido_do_gemini_e_rejeitado_com_seguranca(monkeypatch):
