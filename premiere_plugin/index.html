@@ -173,6 +173,12 @@
           <option value="videocast">Videocast — cortes e direção de câmeras</option>
         </select>
         <p id="learningContextHint" class="aviso">Este registro ensinará decisões de montagem didática. Não será usado para escolhas de câmera de videocast.</p>
+        <label class="opcao" for="learningDatasetRole">Uso deste registro</label>
+        <select id="learningDatasetRole" aria-label="Uso deste registro">
+          <option value="reference">Enviar para aprendizado compartilhado</option>
+          <option value="benchmark">Reservar para avaliação — não enviar à nuvem</option>
+        </select>
+        <p class="aviso">Um benchmark fica somente neste computador e serve para avaliar propostas futuras. Não use como benchmark uma edição já enviada para aprendizado.</p>
         <div class="aprendizado-fluxo" aria-label="Como funciona">
           <div class="aprendizado-passo"><b><span>1</span>Originais da IA</b>Selecione todos os XMLs da IA; cancele ao terminar.</div>
           <div class="aprendizado-passo"><b><span>2</span>XML atual</b>Em seguida, selecione o XML exportado da sua sequência final.</div>
