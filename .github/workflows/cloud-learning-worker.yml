@@ -1,0 +1,41 @@
+name: Processar aprendizado editorial
+
+on:
+  workflow_dispatch:
+  schedule:
+    # A cada 15 minutos, em minutos fora do pico da hora cheia.
+    - cron: "7,22,37,52 * * * *"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cloud-learning-worker
+  cancel-in-progress: false
+
+jobs:
+  process-one-job:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+      - name: Instalar dependencias
+        run: pip install -r requirements.txt
+      - name: Processar um job pendente
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          NVIDIA_LEARNING_API_KEY: ${{ secrets.NVIDIA_LEARNING_API_KEY }}
+          NVIDIA_LEARNING_MODEL: ${{ secrets.NVIDIA_LEARNING_MODEL }}
+          NVIDIA_LEARNING_BASE_URL: ${{ secrets.NVIDIA_LEARNING_BASE_URL }}
+          NVIDIA_LEARNING_MAX_TOKENS: ${{ secrets.NVIDIA_LEARNING_MAX_TOKENS }}
+          NVIDIA_LEARNING_TIMEOUT_SECONDS: ${{ secrets.NVIDIA_LEARNING_TIMEOUT_SECONDS }}
+        run: python -c "from cloud_worker import run_once; print(run_once())"
