@@ -29,6 +29,12 @@ jobs:
           cache-dependency-path: backend/requirements.txt
       - name: Instalar dependencias
         run: pip install -r requirements.txt
+      - name: Validar secrets obrigatorios
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          NVIDIA_LEARNING_API_KEY: ${{ secrets.NVIDIA_LEARNING_API_KEY }}
+        run: python -c "import os; missing=[key for key in ('SUPABASE_URL','SUPABASE_SERVICE_ROLE_KEY','NVIDIA_LEARNING_API_KEY') if not os.getenv(key)]; raise SystemExit('Secrets ausentes: ' + ', '.join(missing) if missing else 0)"
       - name: Processar um job pendente
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
