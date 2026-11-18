@@ -26,3 +26,15 @@ def test_avaliacao_incompleta_nunca_publica(monkeypatch):
     })
     assert response.json() == {"approved": False, "status": "incomplete"}
     assert not any(table == "deployment_versions" for _, table, _ in calls)
+
+
+def test_job_falho_so_volta_por_repeticao_manual(monkeypatch):
+    calls = []
+    def fake_supabase(method, table, **kwargs):
+        calls.append(kwargs.get("params", {}))
+        status = kwargs.get("params", {}).get("status")
+        return [] if status == "eq.queued" else ([{"id": "job"}] if status == "eq.failed" else [])
+    monkeypatch.setattr(cloud_worker, "_supabase", fake_supabase)
+    assert cloud_worker._next_job(False) is None
+    assert cloud_worker._next_job(True) == {"id": "job"}
+    assert any(call.get("status") == "eq.failed" for call in calls)

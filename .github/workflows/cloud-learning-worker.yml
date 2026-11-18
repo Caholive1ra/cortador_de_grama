@@ -45,4 +45,5 @@ jobs:
           NVIDIA_LEARNING_BASE_URL: ${{ secrets.NVIDIA_LEARNING_BASE_URL }}
           NVIDIA_LEARNING_MAX_TOKENS: ${{ secrets.NVIDIA_LEARNING_MAX_TOKENS }}
           NVIDIA_LEARNING_TIMEOUT_SECONDS: ${{ secrets.NVIDIA_LEARNING_TIMEOUT_SECONDS }}
-        run: python -c "from cloud_worker import run_once; print(run_once())"
+          CLOUD_WORKER_RETRY_FAILED: ${{ github.event_name == 'workflow_dispatch' && 'true' || 'false' }}
+        run: python -c "from cloud_worker import run_once; import os; print(run_once(retry_failed=os.getenv('CLOUD_WORKER_RETRY_FAILED') == 'true'))"

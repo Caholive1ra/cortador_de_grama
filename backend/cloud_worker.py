@@ -117,12 +117,22 @@ def submit_evaluation(version_id: str, report: EvaluationReport,
     return {"approved": approved, "status": "approved" if approved else ("incomplete" if not report.reexecution_complete else "rejected")}
 
 
-def run_once() -> dict[str, int]:
-    """Processa um job; o agendador cloud chama este metodo periodicamente."""
+def _next_job(retry_failed: bool) -> dict[str, Any] | None:
+    """Prioriza novos jobs; falhos so voltam por uma acao manual do operador."""
     jobs = _supabase("GET", "learning_jobs", params={"status": "eq.queued", "order": "created_at", "limit": "1"})
-    if not jobs:
+    if jobs:
+        return jobs[0]
+    if retry_failed:
+        failed = _supabase("GET", "learning_jobs", params={"status": "eq.failed", "order": "created_at.desc", "limit": "1"})
+        return failed[0] if failed else None
+    return None
+
+
+def run_once(retry_failed: bool = False) -> dict[str, int]:
+    """Processa um job; falhos sao repetidos somente por disparo manual."""
+    job = _next_job(retry_failed)
+    if not job:
         return {"processed": 0}
-    job = jobs[0]
     _supabase("PATCH", "learning_jobs", payload={"status": "running"}, params={"id": "eq." + job["id"]})
     try:
         feedback = _supabase("GET", "editor_feedback", params={"profile_id": "eq." + job["profile_id"], "select": "categories"})
