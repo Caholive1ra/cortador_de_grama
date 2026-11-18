@@ -35,6 +35,16 @@ class FeedbackEvent(BaseModel):
     content_shared: bool = False
 
 
+class EvaluationReport(BaseModel):
+    """Resultado de uma reexecucao independente, nunca simples diff de XML."""
+    reexecution_complete: bool = False
+    benchmark_samples: int = Field(ge=0, le=10000)
+    useful_removed_delta: float = 0
+    unwanted_kept_delta: float = 0
+    agreement_delta: float = 0
+    metrics: dict[str, Any] = Field(default_factory=dict)
+
+
 def _token_valid(token: str | None) -> bool:
     expected = os.getenv("CLOUD_LEARNING_INSTALLATION_TOKEN", "")
     return bool(expected and token and hashlib.sha256(token.encode()).digest() == hashlib.sha256(expected.encode()).digest())
@@ -81,6 +91,30 @@ def configuration(profile_id: str, x_installation_token: str | None = Header(def
     if not rows:
         raise HTTPException(404, "Nenhuma configuracao aprovada")
     return rows[0]["configuration"]
+
+
+@app.post("/v1/prompt-versions/{version_id}/evaluation")
+def submit_evaluation(version_id: str, report: EvaluationReport,
+                      x_installation_token: str | None = Header(default=None)) -> dict:
+    """Registra avaliação e só publica após benchmark reexecutado aprovado."""
+    if not _token_valid(x_installation_token):
+        raise HTTPException(401, "Instalacao nao autorizada")
+    versions = _supabase("GET", "prompt_versions", params={"id": "eq." + version_id, "limit": "1"})
+    if not versions:
+        raise HTTPException(404, "Versao de prompt inexistente")
+    candidate = versions[0]
+    evaluation = report.model_dump()
+    approved = promotion_allowed(evaluation)
+    _supabase("POST", "evaluation_results", payload={"prompt_version_id": version_id,
+              "reexecution_complete": report.reexecution_complete, "benchmark_samples": report.benchmark_samples,
+              "metrics": evaluation, "status": "passed" if approved else ("incomplete" if not report.reexecution_complete else "failed")})
+    _supabase("PATCH", "prompt_versions", payload={"status": "approved" if approved else ("evaluation_pending" if not report.reexecution_complete else "rejected")}, params={"id": "eq." + version_id})
+    if approved:
+        configuration = dict(candidate["configuration"])
+        configuration["status"] = "approved"
+        _supabase("POST", "deployment_versions", payload={"profile_id": candidate["profile_id"],
+                  "prompt_version_id": version_id, "configuration": configuration, "status": "approved"})
+    return {"approved": approved, "status": "approved" if approved else ("incomplete" if not report.reexecution_complete else "rejected")}
 
 
 def run_once() -> dict[str, int]:
