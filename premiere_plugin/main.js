@@ -852,12 +852,15 @@ async function registrarAprendizado() {
     );
     if (!revisado) return;
     definirStatus("Comparando a sugestão com sua edição final...");
+    const geral = Array.from(document.querySelectorAll("#generalFeedback input:checked")).map((item) => item.value);
     const resposta = await backendFetch(LEARNING_URL, {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         suggested_xml_paths: sugeridos, revised_xml_path: revisado,
         project_type: document.getElementById("learningProjectType").value,
         diagnostic_path: sugeridos.length === 1 && sugeridos[0] === ultimoXmlGeradoPath ? ultimoDiagnosticoPath : null,
+        general_feedback: geral,
+        general_note: document.getElementById("generalFeedbackNote").value,
       }),
     });
     const dados = await resposta.json();

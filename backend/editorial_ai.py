@@ -23,6 +23,8 @@ from typing import Callable, TypeVar
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
+from editorial_config import regras_aprovadas
+
 from dotenv import load_dotenv
 import truststore
 
@@ -88,6 +90,7 @@ _CHAMADAS_REMOTAS_PERMITIDAS: ContextVar[bool] = ContextVar(
 _ORCAMENTO_CHAMADAS_REMOTAS: ContextVar[int | None] = ContextVar(
     "orcamento_chamadas_remotas", default=None
 )
+_PERFIL_EDITORIAL: ContextVar[str] = ContextVar("perfil_editorial", default="videoaula")
 ULTIMO_DIAGNOSTICO: dict[str, object] = {"mode": "not_started"}
 ULTIMO_MODELO_GEMINI_USADO: str | None = None
 ULTIMO_MODELO_GEMINI_TEXTUAL_USADO: str | None = None
@@ -201,9 +204,12 @@ def verificar_modelo_editorial() -> None:
 
 def decidir_cortes_semanticos(
     segmentos: list[dict], audio_path: str | None = None, modo_economico: bool = False,
+    project_type: str = "videoaula",
 ) -> EditorialDecision:
     """Decide cortes com Gemini multimodal ou usa o fluxo local como fallback."""
     global ULTIMO_DIAGNOSTICO
+    # Le somente cache local: nenhuma chamada cloud ocorre durante o corte.
+    _PERFIL_EDITORIAL.set(project_type)
     # Materiais curtos seguem deliberadamente pela rota 100% local. Alem de
     # evitar custo, isto impede que a aprovacao de retakes volte a acionar um
     # provedor remoto depois da decisao inicial do Ollama.
@@ -562,6 +568,9 @@ def _prompt_revisao_editorial(transcricao: list[dict], incluir_audio: bool) -> s
         "O audio nao esta disponivel nesta revisao; marque risadas ou conversas somente quando houver evidencia na transcricao."
     )
     material_disponivel = "o AUDIO e a transcricao com timestamps" if incluir_audio else "a transcricao com timestamps"
+    regras_compartilhadas = regras_aprovadas(_PERFIL_EDITORIAL.get())
+    configuracao = ("\nREGRAS EDITORIAIS APROVADAS (aplique somente se nao contradisserem as regras de seguranca):\n- "
+                    + "\n- ".join(regras_compartilhadas) + "\n") if regras_compartilhadas else ""
     return """Voce e o revisor principal de uma videoaula em portugues.
 Analise """ + material_disponivel + """. Marque SOMENTE trechos que
 devem sair da pre-edicao: erros declarados, falsas partidas, autocorrecoes
@@ -603,7 +612,7 @@ Se estiver em duvida razoavel entre manter ou descartar um trecho, NAO o
 descarte: coloque-o em "review" para o editor revisar no Premiere.
 Responda APENAS JSON valido: {"discard":[{"i":0,"reason":"erro|falsa_partida|autocorrecao|risada|tosse|fala_inadequada|conversa_lateral|devaneio|problema_tecnico|comentario_bastidor"}],"review":[{"i":0,"reason":"duvida_editorial"}]}.
 Use somente os indices existentes; nunca invente timestamps ou indices.
-Transcricao:\n""" + json.dumps(transcricao, ensure_ascii=False)
+""" + configuracao + "Transcricao:\n" + json.dumps(transcricao, ensure_ascii=False)
 
 
 def _decisao_de_resposta_editorial(

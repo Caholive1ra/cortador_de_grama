@@ -5,6 +5,7 @@ import os
 import json
 import sys
 import traceback
+import threading
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
 from time import perf_counter
@@ -29,6 +30,7 @@ from lettering_ai import LetteringModelError, sugerir_letterings
 from opening_highlights import selecionar_abertura, validar_trechos
 from learning_feedback import comparar_xmls, salvar_feedback
 from learning_bank import listar_banco, ler_registro, anotar, definir_papel, avaliar
+from cloud_learning import cloud_status, enqueue_feedback, flush_outbox, pending_outbox, refresh_configuration
 from logic_engine import classificar_segmentos
 from media_utils import aparar_silencios_das_bordas, extrair_audio_temporario, obter_metadados, obter_metadados_audio
 from quality_audit import auditar_sequencia
@@ -169,6 +171,8 @@ class LearningFeedbackRequest(BaseModel):
     revised_xml_path: str
     project_type: str | None = None
     diagnostic_path: str | None = None
+    general_feedback: list[str] = []
+    general_note: str = ""
 
 
 class LearningAnnotationRequest(BaseModel):
@@ -313,6 +317,16 @@ def diagnostics_nvidia() -> dict:
 
 @app.post("/process")
 def process_media(request: MediaRequest, report_progress=None, is_cancelled=None) -> dict:
+    profile_id = {
+        "videoaula": "videoaula_editorial_v1",
+        "videocast": "videocast_editorial_camera_v1",
+        "videocast_graduacao": "videocast_graduacao_editorial_v1",
+        "videocast_mba": "videocast_mba_editorial_v1",
+    }.get(request.project_type, "videoaula_editorial_v1")
+    # A rede e assíncrona: esta aula usa somente o cache atual; a próxima pode
+    # usar a versão baixada, sem trocar regra durante o processamento.
+    threading.Thread(target=refresh_configuration, args=(profile_id,), daemon=True,
+                     name="editorial-config-refresh").start()
     """Transcreve o PGM e prepara as fontes para o XML multicâmera."""
     try:
         inicio_processamento = perf_counter()
@@ -496,6 +510,7 @@ def process_media(request: MediaRequest, report_progress=None, is_cancelled=None
                         revisao_semantica=request.editorial_review,
                         audio_path=audio_path,
                         modo_economico=modo_editorial_efetivo == "economic",
+                        project_type=request.project_type,
                     )
                 diagnostico_atual = obter_diagnostico_editorial()
                 if (
@@ -1000,7 +1015,7 @@ def get_job(job_id: str) -> dict:
 
 @app.post("/learning/compare-xml")
 def compare_learning_xml(request: LearningFeedbackRequest) -> dict:
-    """Registra a diferenca entre sugestao e revisao humana, localmente."""
+    """Registra localmente e coloca a versao agregada na outbox cloud."""
     try:
         xmls_sugeridos = request.suggested_xml_paths or ([request.suggested_xml_path] if request.suggested_xml_path else [])
         invalidos = [caminho for caminho in xmls_sugeridos if "_cortado_" not in os.path.basename(caminho).lower()]
@@ -1017,9 +1032,14 @@ def compare_learning_xml(request: LearningFeedbackRequest) -> dict:
             comparison, xmls_sugeridos, request.revised_xml_path,
             request.project_type, request.diagnostic_path,
         )
+        record = ler_registro(summary["feedback_id"])
+        cloud = enqueue_feedback(record, request.general_feedback, request.general_note)
+        # O envio nunca e requisito para concluir o feedback no Premiere.
+        threading.Thread(target=flush_outbox, name="cloud-learning-sync", daemon=True).start()
         return {
             "status": "success", "comparison": comparison,
             "feedback_path": feedback_path, "learning_summary": summary,
+            "cloud_sync": {**cloud, "pending": pending_outbox(), "status": cloud_status()},
             "operation_summary": {
                 "operation": "aprendizado",
                 "models": {"comparison": "regras locais (comparação XML)"},
@@ -1030,6 +1050,19 @@ def compare_learning_xml(request: LearningFeedbackRequest) -> dict:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
+@app.get("/learning/cloud-status")
+def learning_cloud_status() -> dict:
+    """Estado sem segredos, usado pelo painel para explicar modo offline."""
+    return {**cloud_status(), "pending": pending_outbox()}
+
+
+@app.post("/learning/configurations/{profile_id}/refresh")
+def refresh_learning_configuration(profile_id: str) -> dict:
+    if profile_id not in {"videoaula_editorial_v1", "videocast_editorial_camera_v1", "videocast_graduacao_editorial_v1", "videocast_mba_editorial_v1"}:
+        raise HTTPException(status_code=422, detail="Perfil editorial invalido.")
+    return refresh_configuration(profile_id)
 
 
 def _learning_call(func, *args) -> dict:
