@@ -4,7 +4,7 @@ import httpx
 import pytest
 
 import cloud_learning as cloud
-from learning_agent import ask_nemotron, promotion_allowed, validate_proposal
+from learning_agent import PROPOSAL_TOOL_NAME, ask_nemotron, promotion_allowed, validate_proposal
 
 
 @pytest.fixture(autouse=True)
@@ -61,7 +61,7 @@ def test_schema_do_agente_e_promocao_exigem_reexecucao():
     assert promotion_allowed({"reexecution_complete": True, "benchmark_samples": 5, "useful_removed_delta": 0, "unwanted_kept_delta": -1, "agreement_delta": .01})
 
 
-def test_agente_usa_reasoning_effort_oficial_da_nvidia(monkeypatch):
+def test_agente_usa_function_calling_para_schema(monkeypatch):
     monkeypatch.setenv("NVIDIA_LEARNING_API_KEY", "chave-de-teste")
     captured = {}
 
@@ -76,8 +76,22 @@ def test_agente_usa_reasoning_effort_oficial_da_nvidia(monkeypatch):
         return Response()
 
     ask_nemotron("teste", request=request)
-    assert captured["json"]["reasoning_effort"] == "none"
-    assert "extra_body" not in captured["json"]
+    assert captured["json"]["tool_choice"]["function"]["name"] == PROPOSAL_TOOL_NAME
+    assert captured["json"]["tools"][0]["function"]["name"] == PROPOSAL_TOOL_NAME
+
+
+def test_agente_le_argumentos_da_function_call(monkeypatch):
+    monkeypatch.setenv("NVIDIA_LEARNING_API_KEY", "chave-de-teste")
+    proposal = {"rules": ["Preserve exemplos didaticos em explicacoes importantes."], "parameters": {}, "reason": "Teste", "evidence": {"x": 1}}
+
+    class Response:
+        is_error = False
+        def raise_for_status(self): pass
+        def json(self):
+            return {"choices": [{"message": {"tool_calls": [{"function": {"name": PROPOSAL_TOOL_NAME, "arguments": json.dumps(proposal)}}]}}], "usage": {}}
+
+    payload, _ = ask_nemotron("teste", request=lambda *args, **kwargs: Response())
+    assert payload == proposal
 
 
 def test_agente_recusa_similarity_fora_da_faixa():
