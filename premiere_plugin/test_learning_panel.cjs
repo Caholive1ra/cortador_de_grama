@@ -17,6 +17,9 @@ test("aprendizado oferece feedback geral multiplo e opcional", () => {
   assert.match(source, /querySelectorAll\("#generalFeedback input:checked"\)/);
   assert.match(source, /general_feedback: geral/);
   assert.match(source, /general_note:/);
+  assert.match(html, /id="learningDatasetRole"/);
+  assert.match(html, /value="benchmark"/);
+  assert.match(source, /dataset_role: document\.getElementById\("learningDatasetRole"\)\.value/);
 });
 
 test("aprendizado separa videoaula, graduacao e MBA", () => {

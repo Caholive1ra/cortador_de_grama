@@ -11,7 +11,8 @@ def test_planos_no_xml_sem_flash_e_sem_sobra_curta(tmp_path):
     limites = [0, 5, 5.002, 10, 15, 19]
     segmentos = [dict(start=a, end=b, enabled=True) for a, b in zip(limites, limites[1:])]
     cameras = _estabilizar_planos(segmentos, ["P1", "P2", "P1", "P2", "P1"], "Geral")
-    assert cameras == ["P1", "P2", "P2", "P2", "P2"]
+    # A sugestão de P2 durou apenas alguns milissegundos: não vira flash.
+    assert cameras == ["P1", "P1", "P1", "P2", "P2"]
     fontes = [dict(name=n, label=n, path=f"C:/{n}.mp4", duration=19,
                    fps=30, width=1920, height=1080) for n in ["P1", "P2", "Geral"]]
     path = tmp_path / "planos.xml"
@@ -44,6 +45,30 @@ def test_troca_de_falante_aguarda_minimo_sem_forcar_geral():
     assert _estabilizar_planos(segmentos, detectadas, "Geral") == (
         ["P1"] * 5 + ["P2"] * 5 + ["P1"] * 5
     )
+
+
+def test_comentario_curto_entre_falas_da_mesma_pessoa_vai_para_geral():
+    segmentos = [
+        {"start": 0, "end": 5, "enabled": True, "text": "A ideia precisa ser explicada com calma."},
+        {"start": 5, "end": 6.2, "enabled": True, "text": "Concordo."},
+        {"start": 6.2, "end": 12, "enabled": True, "text": "E ela continua válida no próximo cenário."},
+    ]
+    assert _estabilizar_planos(segmentos, ["P1", "P2", "P1"], "Geral") == [
+        "P1", "Geral", "P1",
+    ]
+
+
+def test_troca_sustentada_espera_fim_de_frase_ou_respiro():
+    segmentos = [
+        {"start": 0, "end": 3, "enabled": True, "text": "A explicação ainda está"},
+        {"start": 3, "end": 6, "enabled": True, "text": "em andamento"},
+        {"start": 6, "end": 9, "enabled": True, "text": "A outra pessoa começa a responder"},
+        {"start": 9.3, "end": 13, "enabled": True, "text": "após uma pausa natural."},
+    ]
+    # Embora P2 seja detectada desde 6s, a troca só pode ocorrer no respiro de 9.3s.
+    assert _estabilizar_planos(segmentos, ["P1", "P1", "P2", "P2"], "Geral") == [
+        "P1", "P1", "P1", "P2",
+    ]
 
 
 def _wav(path, sinal):

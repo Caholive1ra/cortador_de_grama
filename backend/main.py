@@ -173,6 +173,7 @@ class LearningFeedbackRequest(BaseModel):
     diagnostic_path: str | None = None
     general_feedback: list[str] = []
     general_note: str = ""
+    dataset_role: str = "reference"
 
 
 class LearningAnnotationRequest(BaseModel):
@@ -1017,6 +1018,8 @@ def get_job(job_id: str) -> dict:
 def compare_learning_xml(request: LearningFeedbackRequest) -> dict:
     """Registra localmente e coloca a versao agregada na outbox cloud."""
     try:
+        if request.dataset_role not in {"reference", "benchmark"}:
+            raise ValueError("Uso do registro invalido.")
         xmls_sugeridos = request.suggested_xml_paths or ([request.suggested_xml_path] if request.suggested_xml_path else [])
         invalidos = [caminho for caminho in xmls_sugeridos if "_cortado_" not in os.path.basename(caminho).lower()]
         if invalidos:
@@ -1033,9 +1036,13 @@ def compare_learning_xml(request: LearningFeedbackRequest) -> dict:
             request.project_type, request.diagnostic_path,
         )
         record = ler_registro(summary["feedback_id"])
-        cloud = enqueue_feedback(record, request.general_feedback, request.general_note)
-        # O envio nunca e requisito para concluir o feedback no Premiere.
-        threading.Thread(target=flush_outbox, name="cloud-learning-sync", daemon=True).start()
+        if request.dataset_role == "benchmark":
+            definir_papel(summary["feedback_id"], "benchmark")
+            cloud = {"queued": False, "benchmark_reserved": True}
+        else:
+            cloud = enqueue_feedback(record, request.general_feedback, request.general_note)
+            # O envio nunca e requisito para concluir o feedback no Premiere.
+            threading.Thread(target=flush_outbox, name="cloud-learning-sync", daemon=True).start()
         return {
             "status": "success", "comparison": comparison,
             "feedback_path": feedback_path, "learning_summary": summary,

@@ -861,14 +861,16 @@ async function registrarAprendizado() {
         diagnostic_path: sugeridos.length === 1 && sugeridos[0] === ultimoXmlGeradoPath ? ultimoDiagnosticoPath : null,
         general_feedback: geral,
         general_note: document.getElementById("generalFeedbackNote").value,
+        dataset_role: document.getElementById("learningDatasetRole").value,
       }),
     });
     const dados = await resposta.json();
     if (!resposta.ok) throw new Error(dados.detail || "Não foi possível comparar os XMLs.");
     const metricas = dados.comparison.metrics;
     const resumoAprendizado = dados.learning_summary || {};
+    const reservadoComoBenchmark = dados.cloud_sync && dados.cloud_sync.benchmark_reserved;
     const mensagem = (
-      "Feedback salvo. Concordância de material mantido: " +
+      (reservadoComoBenchmark ? "Benchmark reservado localmente. " : "Feedback salvo. ") + "Concordância de material mantido: " +
       (metricas.agreement_rate * 100).toFixed(1) + "% | " +
       "a IA manteve " + metricas.ai_kept_editor_cut_frames +
       " frames que você cortou; recuperou " + metricas.ai_cut_editor_kept_frames + " frames." +
@@ -883,7 +885,7 @@ async function registrarAprendizado() {
     resultado.textContent = mensagem + (resumoAprendizado.duplicate
       ? " Esta edição já estava registrada; suas confirmações foram preservadas."
       : " Agora confirme, se quiser, as mudanças encontradas abaixo.");
-    definirStatus("Comparação pronta. " + resumoOperacao(dados) + ". Revise as mudanças encontradas ou siga para a próxima edição.");
+    definirStatus((reservadoComoBenchmark ? "Benchmark reservado localmente. " : "Comparação pronta. ") + resumoOperacao(dados) + ". Revise as mudanças encontradas ou siga para a próxima edição.");
     mostrarResumoOperacao("Aprendizado concluído", "A comparação entre as duas sequências foi salva.", dados);
   } catch (erro) {
     definirStatus("Erro ao registrar feedback: " + (erro.message || String(erro)));
