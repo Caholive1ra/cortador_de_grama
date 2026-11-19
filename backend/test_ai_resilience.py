@@ -129,6 +129,22 @@ def test_textual_troca_de_modelo_apos_503_sem_repetir(monkeypatch):
     assert ai.obter_ultimo_modelo_gemini_textual() == "disponivel"
 
 
+def test_gemini_textual_envia_nivel_de_raciocinio_configurado(monkeypatch):
+    monkeypatch.setattr(ai, "GEMINI_API_KEY", "teste")
+    monkeypatch.setattr(ai, "GEMINI_THINKING_LEVEL", "low")
+    monkeypatch.setattr(ai, "_modelos_gemini", lambda: ("gemini-3.5-flash",))
+    ai.MODELOS_EM_COOLDOWN_ATE.clear()
+    requisicoes = []
+
+    def request(_method, _url, payload, *_args, **_kwargs):
+        requisicoes.append(payload)
+        return {"candidates": [{"content": {"parts": [{"text": '{\"ok\": true}'}]}}]}
+
+    monkeypatch.setattr(ai, "_request_url", request)
+    assert json.loads(ai._gemini_request("teste")) == {"ok": True}
+    assert requisicoes[0]["generationConfig"]["thinkingConfig"] == {"thinkingLevel": "low"}
+
+
 def test_audio_503_nao_reenvia_arquivo_e_remove_no_final(monkeypatch):
     from google import genai
 

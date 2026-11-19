@@ -103,7 +103,7 @@ Logs: `backend/logs/backend.log` e `backend/logs/operacoes.log`.
 2. Marque **Usar revisão por IA** para priorizar provedores remotos.
 3. Importe o XML retornado e revise cortes, sincronia, câmera e mixagem.
 
-Com revisão por IA marcada, o corte tenta provedores configurados antes do Ollama, independentemente da duração: **Gemini → NVIDIA/GPT-OSS → Gemma → Ollama**. O popup e o JSON de diagnóstico registram o modelo realmente usado.
+Com revisão por IA marcada, o corte tenta provedores configurados antes do Ollama, independentemente da duração: **Gemini → NVIDIA (Mistral/GLM) → Gemma → Ollama**. O popup e o JSON de diagnóstico registram o modelo realmente usado.
 
 ### Abertura de videocast
 

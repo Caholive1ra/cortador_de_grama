@@ -34,7 +34,7 @@ def sugerir_letterings(segmentos: list[dict], modo_economico: bool = False, cont
 
 
 def _solicitar_json_para_lettering(prompt: str) -> str:
-    """Usa Gemini, GPT-OSS e Gemma nesta ordem para revisar letterings."""
+    """Usa Gemini, NVIDIA e Gemma nesta ordem para revisar letterings."""
     erros: list[str] = []
     if GEMINI_API_KEY:
         try:
@@ -45,11 +45,11 @@ def _solicitar_json_para_lettering(prompt: str) -> str:
             erros.append(f"Gemini: {exc}")
     if NVIDIA_API_KEY:
         try:
-            logger.info("Lettering IA: consultando GPT-OSS (NVIDIA)")
+            logger.info("Lettering IA: consultando fallback NVIDIA")
             return _nvidia_request(prompt)
         except NvidiaReviewError as exc:
-            logger.warning("Lettering IA: GPT-OSS falhou | %s", exc)
-            erros.append(f"GPT-OSS: {exc}")
+            logger.warning("Lettering IA: fallback NVIDIA falhou | %s", exc)
+            erros.append(f"NVIDIA: {exc}")
     if GEMINI_API_KEY:
         try:
             logger.info("Lettering IA: consultando Gemma")
