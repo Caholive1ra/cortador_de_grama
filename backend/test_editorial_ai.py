@@ -749,12 +749,12 @@ def test_nvidia_fallback_completo_usa_contrato_editorial_unificado(monkeypatch) 
     assert obter_diagnostico_editorial()["mode"] == "nvidia_text"
 
 
-def test_nvidia_usa_parametros_gpt_oss_e_endpoint_nvidia(monkeypatch) -> None:
+def test_nvidia_usa_parametros_do_modelo_e_endpoint_nvidia(monkeypatch) -> None:
     from editorial_ai import _nvidia_request
 
     monkeypatch.setattr("editorial_ai.NVIDIA_API_KEY", "chave-de-teste")
-    monkeypatch.setattr("editorial_ai.NVIDIA_MODEL", "openai/gpt-oss-20b")
-    monkeypatch.setattr("editorial_ai.NVIDIA_MODELS", ("openai/gpt-oss-20b",), raising=False)
+    monkeypatch.setattr("editorial_ai.NVIDIA_MODEL", "mistralai/mistral-large-4-1t-a52b")
+    monkeypatch.setattr("editorial_ai.NVIDIA_MODELS", ("mistralai/mistral-large-4-1t-a52b",), raising=False)
     chamadas = []
     def responder(method, url, payload, headers, timeout):
         chamadas.append((method, url, payload, headers, timeout))
@@ -763,11 +763,27 @@ def test_nvidia_usa_parametros_gpt_oss_e_endpoint_nvidia(monkeypatch) -> None:
     assert _nvidia_request("teste") == '{"discard": []}'
     assert chamadas[0][1] == "https://integrate.api.nvidia.com/v1/chat/completions"
     assert chamadas[0][2]["stream"] is False
-    assert chamadas[0][2]["model"] == "openai/gpt-oss-20b"
+    assert chamadas[0][2]["model"] == "mistralai/mistral-large-4-1t-a52b"
     assert chamadas[0][2]["max_tokens"] == 16384
     assert chamadas[0][2]["temperature"] == 0
     assert chamadas[0][2]["response_format"] == {"type": "json_object"}
     assert chamadas[0][3]["Authorization"] == "Bearer chave-de-teste"
+
+
+def test_glm_nvidia_nao_recebe_response_format_nao_suportado(monkeypatch) -> None:
+    from editorial_ai import _nvidia_request
+
+    monkeypatch.setattr("editorial_ai.NVIDIA_API_KEY", "chave-de-teste")
+    monkeypatch.setattr("editorial_ai.NVIDIA_MODELS", ("z-ai/glm-5.3-flash",), raising=False)
+    chamadas = []
+
+    def responder(method, url, payload, headers, timeout):
+        chamadas.append(payload)
+        return {"choices": [{"message": {"content": '{\"discard\": []}'}}]}
+
+    monkeypatch.setattr("editorial_ai._request_url", responder)
+    assert _nvidia_request("teste") == '{"discard": []}'
+    assert "response_format" not in chamadas[0]
 
 
 def test_revisao_textual_consulta_ollama_so_depois_de_todos_remotos(monkeypatch) -> None:

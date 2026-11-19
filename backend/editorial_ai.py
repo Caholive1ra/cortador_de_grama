@@ -41,10 +41,19 @@ OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "qwen2.5:3b")
 GEMINI_API_KEY = (os.getenv("GEMINI_API_KEY") or "").strip()
 NVIDIA_API_KEY = (os.getenv("NVIDIA_API_KEY") or "").strip()
 NVIDIA_BASE_URL = os.getenv("NVIDIA_BASE_URL", "https://integrate.api.nvidia.com/v1").rstrip("/")
-# Fallback textual hospedado pela NVIDIA; nao reutiliza a chave Groq.
-# GPT-OSS entende instrucao, raciocinio e JSON estruturado; Kimi K3 foi descontinuado
-# no catalogo NVIDIA, portanto nao deve voltar a ser o padrao.
-NVIDIA_MODEL = os.getenv("NVIDIA_MODEL", "openai/gpt-oss-20b")
+# Cadeia NVIDIA independente do Google. Mistral Large 4 declara saídas
+# estruturadas e GLM-5.3-Flash acrescenta contexto longo. GPT-OSS foi
+# removido porque o endpoint gratuito da NVIDIA foi descontinuado.
+_NVIDIA_MODELS_PADRAO = (
+    "mistralai/mistral-large-4-1t-a52b",
+    "z-ai/glm-5.3-flash",
+)
+_nvidia_models_env = tuple(
+    modelo.strip() for modelo in os.getenv("NVIDIA_MODELS", "").split(",") if modelo.strip()
+)
+_nvidia_legado = (os.getenv("NVIDIA_MODEL") or "").strip()
+NVIDIA_MODELS = _nvidia_models_env or tuple(dict.fromkeys((*_NVIDIA_MODELS_PADRAO, _nvidia_legado)))
+NVIDIA_MODEL = NVIDIA_MODELS[0]
 # Revisao editorial e uma classificacao estruturada, nao uma tarefa de
 # raciocinio aberto. "low" evita gastar milhares de tokens internos antes de
 # devolver o JSON. Pode ser sobrescrito no .env caso necessario.
@@ -63,6 +72,11 @@ GEMINI_FALLBACK_MODELS = tuple(
     ).split(",")
     if modelo.strip()
 )
+# Os modelos Gemini atuais usam raciocinio por padrao. As tarefas textuais
+# daqui produzem JSON curto e validado, portanto "low" reduz latencia e uso
+# de tokens sem mudar a politica editorial. Pode ser elevado no .env apenas
+# quando uma tarefa realmente exigir raciocinio mais profundo.
+GEMINI_THINKING_LEVEL = os.getenv("GEMINI_THINKING_LEVEL", "low").strip().lower() or "low"
 GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models"
 MAX_SEGMENTOS_POR_LOTE = 45
 # Duas chamadas no maximo por modelo: a inicial e uma repeticao transitoria.
@@ -1124,7 +1138,7 @@ def solicitar_json_textual(prompt: str, provedor: str | None = None) -> str:
 
 
 def solicitar_json_textual_com_fallback_ollama(prompt: str) -> tuple[str, str]:
-    """Consulta Gemini, Gemma e GPT-OSS antes de recorrer ao Ollama local."""
+    """Consulta Gemini, NVIDIA e Gemma antes de recorrer ao Ollama local."""
     try:
         return solicitar_json_textual(prompt), "remote"
     except (GeminiReviewError, GemmaReviewError, NvidiaReviewError) as exc:
@@ -1173,6 +1187,7 @@ def _gemini_request(prompt: str) -> str:
         "generationConfig": {
             "responseMimeType": "application/json",
             "maxOutputTokens": 8192,
+            "thinkingConfig": {"thinkingLevel": GEMINI_THINKING_LEVEL},
         },
     }
     erros: list[str] = []
@@ -1246,56 +1261,62 @@ def _gemma_request(prompt: str) -> str:
 
 
 def _nvidia_request(prompt: str) -> str:
-    """Usa GPT-OSS/NVIDIA e valida o JSON antes de liberar qualquer corte."""
+    """Tenta os modelos NVIDIA em ordem, validando JSON antes de cortar."""
     if not NVIDIA_API_KEY:
         raise NvidiaReviewError("NVIDIA_API_KEY ausente.")
-    payload = {
-        "model": NVIDIA_MODEL,
-        "messages": [
-            {"role": "system", "content": "Responda somente ao JSON solicitado, sem texto adicional."},
-            {"role": "user", "content": prompt},
-        ],
-        "temperature": 0,
-        "max_tokens": 16384,
-        "seed": 0,
-        "stream": False,
-        "reasoning_effort": NVIDIA_REASONING_EFFORT,
-        # Evita texto explicativo antes/depois do contrato JSON do aplicativo.
-        "response_format": {"type": "json_object"},
-    }
-    try:
-        resposta = _com_retry_remoto(lambda: _request_url(
-            "POST", f"{NVIDIA_BASE_URL}/chat/completions", payload,
-            {"Authorization": f"Bearer {NVIDIA_API_KEY}", "Accept": "application/json"}, timeout=180,
-        ), NVIDIA_MODEL, lambda: _request_url(
-            "POST", f"{NVIDIA_BASE_URL}/chat/completions", payload,
-            {"Authorization": f"Bearer {NVIDIA_API_KEY}", "Accept": "application/json"}, timeout=TIMEOUT_SEGUNDA_TENTATIVA_SEGUNDOS,
-        ))
-        uso = resposta.get("usage") or {}
-        logger.info("NVIDIA %s respondeu; tokens entrada=%s, saida=%s, total=%s.",
-                    NVIDIA_MODEL, uso.get("prompt_tokens"), uso.get("completion_tokens"), uso.get("total_tokens"))
-        escolha = resposta["choices"][0]
-        if escolha.get("finish_reason") not in (None, "stop"):
-            raise ValueError(f"Resposta NVIDIA incompleta: {escolha.get('finish_reason')}")
-        conteudo = escolha["message"].get("content")
-        if isinstance(conteudo, list):
-            conteudo = "".join(str(parte.get("text", "")) for parte in conteudo if isinstance(parte, dict))
-        texto = str(conteudo or "").strip()
-        bloco = re.fullmatch(r"```(?:json)?\s*(.*?)\s*```", texto, flags=re.DOTALL)
-        if bloco:
-            texto = bloco.group(1)
-        if not isinstance(json.loads(texto), dict):
-            raise ValueError("NVIDIA deve retornar um objeto JSON.")
-        global ULTIMO_MODELO_NVIDIA_USADO
-        ULTIMO_MODELO_NVIDIA_USADO = NVIDIA_MODEL
-        return texto
-    except Exception as exc:
-        detalhe = _detalhe_erro_remoto(exc)
-        if _erro_nvidia_autenticacao(exc):
-            raise NvidiaReviewError(
-                "Autenticacao NVIDIA recusada. Substitua NVIDIA_API_KEY no .env por uma chave valida do console NVIDIA e reinicie o backend."
-            ) from exc
-        raise NvidiaReviewError(f"{NVIDIA_MODEL}: {type(exc).__name__}: {detalhe}") from exc
+    erros: list[str] = []
+    global ULTIMO_MODELO_NVIDIA_USADO
+    for modelo in NVIDIA_MODELS:
+        payload = {
+            "model": modelo,
+            "messages": [
+                {"role": "system", "content": "Responda somente ao JSON solicitado, sem texto adicional."},
+                {"role": "user", "content": prompt},
+            ],
+            "temperature": 0, "max_tokens": 16384, "seed": 0, "stream": False,
+        }
+        # A referencia NVIDIA do GLM-5.3-Flash nao declara ``response_format``.
+        # Envia-lo produz erro 400 em gateways estritos. O contrato textual e a
+        # validacao por json.loads abaixo continuam obrigatorios para ele.
+        # Mistral Large 4 declara saida estruturada e mantem o JSON mode.
+        if not modelo.startswith("z-ai/glm-"):
+            payload["response_format"] = {"type": "json_object"}
+        if modelo.startswith("openai/"):
+            payload["reasoning_effort"] = NVIDIA_REASONING_EFFORT
+        try:
+            resposta = _com_retry_remoto(lambda: _request_url(
+                "POST", f"{NVIDIA_BASE_URL}/chat/completions", payload,
+                {"Authorization": f"Bearer {NVIDIA_API_KEY}", "Accept": "application/json"}, timeout=180,
+            ), modelo, lambda: _request_url(
+                "POST", f"{NVIDIA_BASE_URL}/chat/completions", payload,
+                {"Authorization": f"Bearer {NVIDIA_API_KEY}", "Accept": "application/json"}, timeout=TIMEOUT_SEGUNDA_TENTATIVA_SEGUNDOS,
+            ))
+            uso = resposta.get("usage") or {}
+            logger.info("NVIDIA %s respondeu; tokens entrada=%s, saida=%s, total=%s.",
+                        modelo, uso.get("prompt_tokens"), uso.get("completion_tokens"), uso.get("total_tokens"))
+            escolha = resposta["choices"][0]
+            if escolha.get("finish_reason") not in (None, "stop"):
+                raise ValueError(f"Resposta NVIDIA incompleta: {escolha.get('finish_reason')}")
+            conteudo = escolha["message"].get("content")
+            if isinstance(conteudo, list):
+                conteudo = "".join(str(parte.get("text", "")) for parte in conteudo if isinstance(parte, dict))
+            texto = str(conteudo or "").strip()
+            bloco = re.fullmatch(r"```(?:json)?\s*(.*?)\s*```", texto, flags=re.DOTALL)
+            if bloco:
+                texto = bloco.group(1)
+            if not isinstance(json.loads(texto), dict):
+                raise ValueError("NVIDIA deve retornar um objeto JSON.")
+            ULTIMO_MODELO_NVIDIA_USADO = modelo
+            return texto
+        except Exception as exc:
+            detalhe = _detalhe_erro_remoto(exc)
+            if _erro_nvidia_autenticacao(exc):
+                raise NvidiaReviewError(
+                    "Autenticacao NVIDIA recusada. Substitua NVIDIA_API_KEY no .env por uma chave valida do console NVIDIA e reinicie o backend."
+                ) from exc
+            erros.append(f"{modelo}: {type(exc).__name__}: {detalhe}")
+            logger.warning("NVIDIA %s falhou; tentando o proximo modelo.", modelo)
+    raise NvidiaReviewError("NVIDIA nao respondeu com JSON valido: " + " | ".join(erros))
 
 
 def _decidir_lote(lote: list[dict]) -> dict[int, str]:

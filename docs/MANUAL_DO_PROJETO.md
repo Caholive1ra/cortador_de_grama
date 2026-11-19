@@ -76,7 +76,7 @@ flowchart TB
 
 ### Cadeia de IA e rastreabilidade
 
-Com revisão editorial habilitada, a prioridade é Gemini, NVIDIA/GPT-OSS, Gemma e Ollama. A ordem efetiva depende das chaves configuradas, da rede, da quota, de cooldown e do teto de chamadas por job. O popup e o JSON de diagnóstico informam qual modelo concluiu a tarefa.
+Com revisão editorial habilitada, a prioridade é Gemini, NVIDIA (Mistral/GLM), Gemma e Ollama. A ordem efetiva depende das chaves configuradas, da rede, da quota, de cooldown e do teto de chamadas por job. O popup e o JSON de diagnóstico informam qual modelo concluiu a tarefa.
 
 Isso é essencial para análise de qualidade: se o resultado mostra `Ollama/...`, não é correto atribuir a decisão ao Gemini. Se o fornecedor remoto falhar, o fallback mantém a operação disponível, mas pode ter qualidade diferente.
 
