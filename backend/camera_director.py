@@ -1,6 +1,7 @@
 """Direção automática de videocast a partir de áudios individuais sincronizados."""
 
 import logging
+import re
 import wave
 
 import numpy as np
@@ -11,6 +12,9 @@ LIMIAR_FALA = 0.35
 MARGEM_DOMINANCIA = 0.15
 ENERGIA_HZ = 100
 TEMPO_MINIMO_PLANO_SEGUNDOS = 5.0
+TEMPO_MAXIMO_INTERJEICAO_SEGUNDOS = 2.8
+TEMPO_MINIMO_INTERJEICAO_GERAL_SEGUNDOS = 0.5
+PAUSA_NATURAL_MINIMA_SEGUNDOS = 0.18
 
 
 def dirigir_cameras(
@@ -61,28 +65,35 @@ def dirigir_cameras(
 
 
 def _estabilizar_planos(segmentos: list[dict], cameras: list[str], geral: str) -> list[str]:
-    """Segue o falante atual, respeitando permanencia minima de 5s por plano.
-
-    Uma voz diferente nao obriga o plano geral. Antes do minimo, mantem a
-    camera atual; depois, aceita a sugestao do segmento corrente. Nao cria
-    um novo plano quando restam menos de 5s ate o fim do bloco util.
-    """
+    """Cria cadencia editorial em vez de colar a camera a cada voz detectada."""
     resultado = [geral] * len(segmentos)
     bloco: list[int] = []
 
     def concluir() -> None:
         if not bloco:
             return
-        camera = cameras[bloco[0]]
+        sugestoes = _substituir_interjeicoes_por_geral(
+            segmentos, [cameras[i] for i in bloco], bloco, geral,
+        )
+        camera = sugestoes[0]
         inicio_plano = float(segmentos[bloco[0]]["start"])
         fim_bloco = float(segmentos[bloco[-1]]["end"])
-        for i in bloco:
+        for posicao, i in enumerate(bloco):
             inicio = float(segmentos[i]["start"])
-            if (cameras[i] != camera
-                    and inicio - inicio_plano >= TEMPO_MINIMO_PLANO_SEGUNDOS - 1e-9
-                    and fim_bloco - inicio >= TEMPO_MINIMO_PLANO_SEGUNDOS - 1e-9):
-                camera = cameras[i]
-                inicio_plano = inicio
+            sugestao = sugestoes[posicao]
+            if sugestao != camera:
+                plano_tem_tempo = inicio - inicio_plano >= TEMPO_MINIMO_PLANO_SEGUNDOS - 1e-9
+                if sugestao == geral:
+                    # Em sobreposicao ou comentario rapido, a geral e sempre
+                    # mais segura do que apontar para quem interrompeu.
+                    camera = geral
+                    inicio_plano = inicio
+                elif ((plano_tem_tempo or (
+                        camera == geral and inicio - inicio_plano <= TEMPO_MAXIMO_INTERJEICAO_SEGUNDOS
+                    )) and fim_bloco - inicio >= TEMPO_MINIMO_PLANO_SEGUNDOS - 1e-9
+                      and _ponto_natural_de_troca(segmentos, i, bloco, posicao)):
+                    camera = sugestao
+                    inicio_plano = inicio
             resultado[i] = camera
 
     for i, segmento in enumerate(segmentos):
@@ -93,6 +104,42 @@ def _estabilizar_planos(segmentos: list[dict], cameras: list[str], geral: str) -
         if habilitado:
             bloco.append(i)
     concluir()
+    return resultado
+
+
+def _ponto_natural_de_troca(segmentos: list[dict], indice: int, bloco: list[int], posicao: int) -> bool:
+    """Permite trocar entre falas em respiro ou no fechamento de frase."""
+    if posicao == 0:
+        return True
+    anterior = segmentos[bloco[posicao - 1]]
+    atual = segmentos[indice]
+    if float(atual["start"]) - float(anterior["end"]) >= PAUSA_NATURAL_MINIMA_SEGUNDOS:
+        return True
+    texto = str(anterior.get("text", "")).strip()
+    # Sem transcricao, a fronteira do XML ja e o melhor ponto disponivel.
+    return not texto or bool(re.search(r'[.!?]["”\')\]]*$', texto))
+
+
+def _substituir_interjeicoes_por_geral(
+    segmentos: list[dict], cameras: list[str], bloco: list[int], geral: str,
+) -> list[str]:
+    """Converte intervencao curta entre falas no plano geral."""
+    resultado = list(cameras)
+    inicio = 1
+    while inicio < len(resultado) - 1:
+        camera = resultado[inicio]
+        fim = inicio + 1
+        while fim < len(resultado) and resultado[fim] == camera:
+            fim += 1
+        anterior = resultado[inicio - 1]
+        proxima = resultado[fim] if fim < len(resultado) else None
+        duracao = float(segmentos[bloco[fim - 1]]["end"]) - float(segmentos[bloco[inicio]]["start"])
+        if (camera != geral and anterior != geral and camera != anterior and proxima == anterior
+                and duracao <= TEMPO_MAXIMO_INTERJEICAO_SEGUNDOS):
+            # Um ruído de poucos frames não deve criar flash no plano geral.
+            substituta = geral if duracao >= TEMPO_MINIMO_INTERJEICAO_GERAL_SEGUNDOS else anterior
+            resultado[inicio:fim] = [substituta] * (fim - inicio)
+        inicio = fim
     return resultado
 
 
