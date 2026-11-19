@@ -113,6 +113,30 @@ def test_backend_local_responde_sem_token() -> None:
     assert resposta.status_code == 200
 
 
+def test_abertura_curta_e_entregue_com_aviso(monkeypatch, tmp_path) -> None:
+    from main import OpeningRequest, create_videocast_opening
+
+    monkeypatch.setattr("main.obter_metadados", lambda _path: {
+        "path": str(tmp_path / "videocast.mp4"), "duration": 60, "fps": 30, "video_start": 0,
+    })
+    monkeypatch.setattr("main.extrair_audio_temporario", lambda *_args: nullcontext("audio.wav"))
+    monkeypatch.setattr("main.get_or_transcribe", lambda *_args: ([{"text": "fala"}], False))
+    monkeypatch.setattr("main.selecionar_abertura", lambda *_args: [
+        {"start": 1, "end": 4.5, "duration": 3.5, "text": "Primeira fala."},
+        {"start": 10, "end": 13.8, "duration": 3.8, "text": "Segunda fala."},
+    ])
+    monkeypatch.setattr("main.aparar_silencios_das_bordas", lambda _audio, trechos: trechos)
+    monkeypatch.setattr("main.validar_trechos", lambda _trechos: None)
+    monkeypatch.setattr("main.gerar_fcp_xml_abertura", lambda *_args: None)
+
+    resposta = create_videocast_opening(OpeningRequest(revised_media_path="videocast.mp4"))
+
+    assert resposta["status"] == "success"
+    assert resposta["operation_summary"]["quantities"]["duration_seconds"] == 7.3
+    assert len(resposta["warnings"]) == 1
+    assert "XML foi gerado" in resposta["warnings"][0]
+
+
 def test_fila_rejeita_tipo_de_tarefa_desconhecido() -> None:
     resposta = client.post("/jobs", json={"task": "desconhecida", "payload": {}})
     assert resposta.status_code == 422

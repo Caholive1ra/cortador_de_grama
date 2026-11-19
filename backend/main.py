@@ -805,8 +805,14 @@ def create_videocast_opening(request: OpeningRequest, report_progress=None, is_c
             trechos = aparar_silencios_das_bordas(audio_path, trechos)
             validar_trechos(trechos)
         duracao_abertura = sum(float(trecho["duration"]) for trecho in trechos)
+        avisos_abertura: list[str] = []
         if not 30 <= duracao_abertura <= 40:
-            raise ValueError(f"Após aparar os silêncios, a abertura ficou com {duracao_abertura:.1f}s; gere novamente.")
+            aviso = (
+                f"A abertura ficou com {duracao_abertura:.1f}s após aparar os silêncios. "
+                "O XML foi gerado mesmo assim; revise o ritmo no Premiere."
+            )
+            avisos_abertura.append(aviso)
+            logger.warning("Abertura fora da faixa preferida, mas entregue | duracao=%.1fs", duracao_abertura)
         if len(trechos) < 2:
             raise ValueError("A transcricao nao trouxe falas suficientes para montar a abertura.")
         raiz_arquivo, _ = os.path.splitext(request.revised_media_path)
@@ -820,10 +826,12 @@ def create_videocast_opening(request: OpeningRequest, report_progress=None, is_c
         with open(diagnostico_path, "w", encoding="utf-8") as diagnostico:
             json.dump({"source": request.revised_media_path, "highlights": trechos,
                        "transcript_segments": len(segmentos), "transcript": segmentos,
-                       "model": modelo_abertura, "opening_version": 2}, diagnostico, ensure_ascii=False, indent=2)
+                       "model": modelo_abertura, "warnings": avisos_abertura,
+                       "opening_version": 2}, diagnostico, ensure_ascii=False, indent=2)
         logger.info("Abertura videocast concluida | trechos=%s | tempo=%.1fs", len(trechos), perf_counter() - inicio)
         return {"status": "success", "xml_path": os.path.abspath(xml_path),
                 "diagnostic_path": os.path.abspath(diagnostico_path), "highlights": trechos,
+                "warnings": avisos_abertura,
                 "ai_models": {"transcription": MODELO_TRANSCRICAO_LOCAL, "opening": modelo_abertura},
                 "operation_summary": {
                     "operation": "abertura",

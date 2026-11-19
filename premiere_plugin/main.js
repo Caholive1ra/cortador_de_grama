@@ -360,7 +360,11 @@ function mostrarResumoOperacao(titulo, mensagem, dados) {
   const popup = document.getElementById("operationPopup");
   if (!popup) return;
   document.getElementById("operationPopupTitle").textContent = titulo;
+  const avisos = Array.isArray(dados.warnings) ? dados.warnings.filter(Boolean) : [];
   document.getElementById("operationPopupMessage").textContent = mensagem;
+  if (avisos.length) {
+    document.getElementById("operationPopupMessage").textContent += "\n\nAviso: " + avisos.join(" ");
+  }
   const resumo = dados.operation_summary || {};
   const quantidades = Object.entries(resumo.quantities || {})
     .map(([nome, valor]) => nome.replaceAll("_", " ") + ": " + valor).join("\n");
@@ -369,6 +373,9 @@ function mostrarResumoOperacao(titulo, mensagem, dados) {
     .map(([etapa, modelo]) => etapa + ": " + modelo).join("\n");
   document.getElementById("operationPopupSummary").textContent =
     "Quantidades\n" + (quantidades || "Não informado") + "\n\nModelos\n" + (modelos || "Não informado");
+  if (avisos.length) {
+    document.getElementById("operationPopupSummary").textContent += "\n\nAvisos\n" + avisos.join("\n");
+  }
   popup.hidden = false;
 }
 
@@ -827,8 +834,10 @@ async function criarAberturaVideocast() {
     if (dados.status !== "success" || !dados.xml_path) throw new Error("A abertura não foi gerada.");
     await importarXmlNoPremiere(dados.xml_path);
     const modelo = (dados.ai_models && dados.ai_models.opening) || "modelo configurado";
+    const aviso = Array.isArray(dados.warnings) && dados.warnings.length
+      ? " | Aviso: " + dados.warnings.join(" ") : "";
     definirStatus("Abertura criada com " + (dados.highlights || []).length + " falas | Curadoria: " + modelo +
-      (resumoOperacao(dados) ? " | " + resumoOperacao(dados) : "") + ". Revise o ritmo no Premiere.");
+      (resumoOperacao(dados) ? " | " + resumoOperacao(dados) : "") + aviso + ". Revise o ritmo no Premiere.");
     mostrarResumoOperacao("Abertura concluída", "A sequência de abertura foi importada no Premiere.", dados);
   } catch (erro) {
     console.error("[Decupagem] Falha na abertura de videocast:", erro);
