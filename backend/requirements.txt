@@ -1,6 +1,11 @@
 fastapi==0.141.1
 uvicorn==0.53.0
 faster-whisper==1.2.1
+# Runtimes CUDA 12/cuDNN 9 para Faster-Whisper/CTranslate2 em Windows.
+# O backend registra os bins da venv antes da primeira inferencia GPU.
+nvidia-cuda-runtime-cu12==12.9.79
+nvidia-cublas-cu12==12.9.2.10
+nvidia-cudnn-cu12==9.27.0.42
 pytest==9.1.1
 httpx==0.28.1
 numpy==2.5.3

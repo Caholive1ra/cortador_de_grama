@@ -3,18 +3,61 @@
 import logging
 import os
 import ssl
+import sys
 import traceback
 from pathlib import Path
 
 os.environ.setdefault("HF_HUB_DISABLE_XET", "1")
+
+logger = logging.getLogger(__name__)
+
+# Os wheels NVIDIA instalados por pip mantem as DLLs em subdiretorios de
+# site-packages. O carregador do Windows nao procura esses locais sozinho:
+# ele pode encontrar uma cublas parcial no System32 e falhar na primeira
+# inferencia por nao localizar cublasLt/cudart/cuDNN. Mantemos os handles
+# vivos durante todo o processo, como exige os.add_dll_directory.
+_CUDA_DLL_DIRECTORY_HANDLES: list[object] = []
+
+
+def _registrar_dlls_cuda_windows(
+    site_packages: Path | None = None, *, is_windows: bool | None = None,
+) -> list[Path]:
+    """Registra runtimes CUDA da venv para o CTranslate2 no Windows.
+
+    Nao copia DLLs para System32 e nao requer CUDA Toolkit/nvcc. A funcao e
+    inofensiva em outros sistemas e devolve somente diretorios registrados.
+    """
+    if is_windows is None:
+        is_windows = os.name == "nt"
+    if not is_windows or not hasattr(os, "add_dll_directory"):
+        return []
+    base = site_packages or (Path(sys.prefix) / "Lib" / "site-packages")
+    candidatos = [
+        base / "nvidia" / "cuda_runtime" / "bin",
+        base / "nvidia" / "cublas" / "bin",
+        base / "nvidia" / "cudnn" / "bin",
+    ]
+    registrados: list[Path] = []
+    for diretorio in candidatos:
+        if not diretorio.is_dir():
+            continue
+        try:
+            _CUDA_DLL_DIRECTORY_HANDLES.append(os.add_dll_directory(str(diretorio)))
+            registrados.append(diretorio)
+        except OSError as exc:
+            logger.warning("Nao foi possivel registrar runtime CUDA em %s: %s", diretorio, exc)
+    if registrados:
+        logger.info("Runtimes CUDA da venv registrados para CTranslate2: %s", ", ".join(map(str, registrados)))
+    return registrados
+
+
+_registrar_dlls_cuda_windows()
 
 import httpx
 import ctranslate2
 from faster_whisper import WhisperModel
 from huggingface_hub import set_client_factory
 import truststore
-
-logger = logging.getLogger(__name__)
 
 _model: WhisperModel | None = None
 _model_runtime: tuple[str, str] | None = None
