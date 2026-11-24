@@ -91,3 +91,25 @@ def test_executor_publica_etapa_para_o_painel(tmp_path) -> None:
     assert finalizado["result"] == {"ok": True}
     assert finalizado["progress"]["stage"] == "Transcrevendo áudio"
     assert finalizado["progress"]["percent"] == 30
+
+
+def test_lista_mostra_primeiro_a_interrupcao_mais_recente(tmp_path) -> None:
+    queue = PriorityJobQueue(tmp_path / "jobs.sqlite3")
+    antigo = queue.enqueue("audit", {}, priority=20)
+    recente = queue.enqueue("audit", {}, priority=20)
+    with queue._connect() as connection:
+        connection.execute("UPDATE jobs SET status = 'interrupted', finished_at = 10 WHERE id = ?", (antigo["id"],))
+        connection.execute("UPDATE jobs SET status = 'interrupted', finished_at = 20 WHERE id = ?", (recente["id"],))
+
+    assert queue.list(active_only=True)[0]["id"] == recente["id"]
+
+
+def test_segundo_processo_nao_adquire_worker_da_mesma_fila(monkeypatch, tmp_path) -> None:
+    import job_queue
+
+    queue = PriorityJobQueue(tmp_path / "jobs.sqlite3")
+    assert queue._acquire_worker_lease() is True
+    monkeypatch.setattr(job_queue.os, "getpid", lambda: 999999)
+    monkeypatch.setattr(job_queue.os, "kill", lambda *_args: None)
+
+    assert queue._acquire_worker_lease() is False

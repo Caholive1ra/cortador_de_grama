@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import inspect
 import logging
+import os
 import sqlite3
 import threading
 import time
@@ -62,6 +63,13 @@ class PriorityJobQueue:
                     result TEXT,
                     error TEXT
                     ,progress TEXT
+                )
+            """)
+            connection.execute("""
+                CREATE TABLE IF NOT EXISTS queue_worker_lease (
+                    name TEXT PRIMARY KEY,
+                    pid INTEGER NOT NULL,
+                    acquired_at REAL NOT NULL
                 )
             """)
             columns = {row[1] for row in connection.execute("PRAGMA table_info(jobs)")}
@@ -123,11 +131,12 @@ class PriorityJobQueue:
             return job
 
     def list(self, active_only: bool = False, limit: int = 50) -> list[dict]:
-        where = "WHERE status IN ('queued', 'running', 'interrupted', 'failed')" if active_only else ""
+        where = "WHERE status IN ('queued', 'running', 'interrupted', 'failed', 'cancelled')" if active_only else ""
         with self._connect() as connection:
             rows = connection.execute(
                 f"SELECT id FROM jobs {where} ORDER BY "
                 "CASE status WHEN 'running' THEN 0 WHEN 'queued' THEN 1 ELSE 2 END, "
+                "CASE WHEN status IN ('failed', 'interrupted', 'cancelled') THEN finished_at END DESC, "
                 "priority ASC, created_at ASC LIMIT ?", (limit,),
             ).fetchall()
         return [job for row in rows if (job := self.get(row["id"])) is not None]
@@ -191,10 +200,48 @@ class PriorityJobQueue:
     def start(self, executor) -> None:
         if self._thread and self._thread.is_alive():
             return
+        if not self._acquire_worker_lease():
+            logger.info("Fila: outro processo ja possui o worker; esta instancia somente atende a API.")
+            return
         self._thread = threading.Thread(
             target=self._run, args=(executor,), name="priority-job-worker", daemon=True,
         )
         self._thread.start()
+
+    def _acquire_worker_lease(self) -> bool:
+        """Garante um unico worker quando o Uvicorn cria processo supervisor."""
+        pid = os.getpid()
+        with self._connect() as connection:
+            connection.execute("BEGIN IMMEDIATE")
+            row = connection.execute(
+                "SELECT pid FROM queue_worker_lease WHERE name = 'local-priority-worker'"
+            ).fetchone()
+            if row is None:
+                connection.execute(
+                    "INSERT INTO queue_worker_lease (name, pid, acquired_at) VALUES ('local-priority-worker', ?, ?)",
+                    (pid, time.time()),
+                )
+                connection.commit()
+                return True
+            owner = int(row["pid"])
+            if owner == pid:
+                connection.commit()
+                return True
+            try:
+                os.kill(owner, 0)
+                owner_alive = True
+            except OSError:
+                owner_alive = False
+            if not owner_alive:
+                connection.execute(
+                    "UPDATE queue_worker_lease SET pid = ?, acquired_at = ? WHERE name = 'local-priority-worker'",
+                    (pid, time.time()),
+                )
+                connection.commit()
+                logger.warning("Fila: lease de worker abandonado por PID %s foi recuperado.", owner)
+                return True
+            connection.commit()
+            return False
 
     def _claim_next(self) -> dict | None:
         with self._connect() as connection:

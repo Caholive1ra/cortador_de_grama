@@ -98,6 +98,13 @@ def test_gatilho_com_acento_e_normalizado() -> None:
     assert resultado[0]["track"] == "V1"
 
 
+def test_gatilho_de_refazer_marca_comentario_de_producao() -> None:
+    resultado = _classificar(
+        [{"start": 0.0, "end": 2.0, "text": "Vou refazer essa explicacao."}]
+    )
+    assert resultado[0]["track"] == "V1"
+
+
 def test_gatilho_curto_nao_corta_parte_de_outra_palavra() -> None:
     resultado = _classificar([
         {"start": 0, "end": 3, "text": "A dopamina participa desse processo."},
@@ -138,3 +145,16 @@ def test_timeline_cobre_do_zero_ate_a_duracao_total_sem_gaps() -> None:
         atual["end"] == seguinte["start"]
         for atual, seguinte in zip(resultado, resultado[1:])
     )
+
+
+def test_falha_do_revisor_local_ainda_entrega_regras(monkeypatch) -> None:
+    monkeypatch.setattr(
+        "logic_engine.decidir_cortes_semanticos",
+        lambda *args, **kwargs: (_ for _ in ()).throw(RuntimeError("local indisponivel")),
+    )
+    resultado = classificar_segmentos([
+        {"start": 0, "end": 2, "text": "Errei esta tentativa."},
+        {"start": 2, "end": 4, "text": "Agora segue a explicacao correta."},
+    ], revisao_semantica=True)
+
+    assert [item["track"] for item in resultado] == ["V1", "V2"]

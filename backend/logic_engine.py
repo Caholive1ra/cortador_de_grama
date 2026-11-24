@@ -5,7 +5,7 @@ import re
 import unicodedata
 from difflib import SequenceMatcher
 
-from editorial_ai import EditorialDecision, decidir_cortes_semanticos
+from editorial_ai import EditorialDecision, EditorialModelError, decidir_cortes_semanticos
 
 logger = logging.getLogger(__name__)
 
@@ -22,6 +22,8 @@ GATILHOS_ERRO += ("ficou ruim essa parte", "deixa eu voltar essa parte", "opa")
 GATILHOS_ERRO += (
     "deixa eu ver um gancho", "deixa eu pegar um gancho",
     "vou procurar um gancho", "isso a gente corta depois",
+    "vou refazer", "vamos refazer", "deixa eu refazer", "vou regravar",
+    "vamos regravar", "gravar de novo", "vou reiniciar", "comecar novamente",
 )
 
 
@@ -40,13 +42,18 @@ def classificar_segmentos(
     silêncios de um segundo ou mais são marcados para descarte.
     """
     segmentos = _criar_microsegmentos(segmentos)
-    decisao = (
-        decidir_cortes_semanticos(
-            segmentos, audio_path=audio_path, modo_economico=modo_economico, project_type=project_type
-        )
-        if revisao_semantica and segmentos
-        else EditorialDecision(set(), {})
-    )
+    if revisao_semantica and segmentos:
+        try:
+            decisao = decidir_cortes_semanticos(
+                segmentos, audio_path=audio_path, modo_economico=modo_economico, project_type=project_type
+            )
+        except Exception as exc:
+            # A regra deterministica abaixo ainda preserva a entrega: silencios
+            # e comandos explicitos de corte nao dependem de IA local/remota.
+            logger.warning("Revisao semantica indisponivel; gerando XML por regras locais | %s", exc)
+            decisao = EditorialDecision(set(), {})
+    else:
+        decisao = EditorialDecision(set(), {})
     decisao = _validar_decisao_semantica(segmentos, decisao)
     classificados: list[dict] = []
     indice_fala_anterior: int | None = None

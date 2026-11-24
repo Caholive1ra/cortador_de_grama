@@ -57,6 +57,25 @@ def test_repeticao_didatica_decidida_keep_nao_e_cortada():
     assert not revisoes
 
 
+def test_refazer_explicitamente_cria_par_para_revisao():
+    segmentos = [
+        {'start': 0, 'end': 5, 'text': 'Hoje vamos apresentar os principais conceitos desta disciplina para a nossa turma.'},
+        {'start': 5, 'end': 7, 'text': 'Vou refazer essa parte porque nao ficou boa.'},
+        {'start': 8, 'end': 14, 'text': 'Hoje vamos apresentar os principais conceitos desta disciplina para a nossa turma.'},
+    ]
+    pares = candidatos(segmentos)
+    assert any(par['trigger'] == 'reinicio' and par['before'] == [0] for par in pares)
+
+
+def test_repeticao_reformulada_com_inicio_muito_proximo_vira_candidata():
+    segmentos = [
+        {'start': 0, 'end': 8, 'text': 'Hoje vamos explicar como a arquitetura RAG encontra documentos relevantes para cada pergunta do aluno.'},
+        {'start': 12, 'end': 20, 'text': 'Hoje vamos explicar como a arquitetura RAG encontra documentos importantes para cada pergunta do aluno.'},
+    ]
+    pares = candidatos(segmentos)
+    assert any(par['trigger'] == 'repeticao_forte' for par in pares)
+
+
 def test_limites_inventados_nao_cortam():
     cortes, revisoes, _ = revisar(abertura(), lambda _: json.dumps(dict(
         action='replace', old_start=0, old_end=9999, new_start=10000, new_end=10001, evidence='x')))

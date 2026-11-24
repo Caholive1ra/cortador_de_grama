@@ -30,6 +30,7 @@ test("cada aba aponta para seu fluxo correto, independente da posição no HTML"
 test("painel conecta ao backend local sem token nem acesso a valor nulo", async () => {
   assert.doesNotMatch(html, /localApiToken|Token do backend|LOCAL_API_TOKEN/);
   assert.doesNotMatch(source, /apiFetch|localApiToken|X-Assistente-Token/);
+  assert.doesNotMatch(source, /Backend local indisponível/);
   assert.match(source, /const BACKEND_BASE_URL = "http:\/\/localhost:8000"/);
   assert.deepEqual(manifest.requiredPermissions.network.domains, ["http://localhost:8000"]);
 

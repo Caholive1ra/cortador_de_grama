@@ -33,10 +33,10 @@ async function verificarBackendLocal() {
     if (!resposta.ok) throw new Error("HTTP " + resposta.status);
     definirStatus("Backend local conectado. Escolha uma ação para iniciar.");
   } catch (erro) {
-    definirStatus(
-      "Backend local indisponível. Inicie o backend e tente novamente. " +
-      (erro.message || String(erro))
-    );
+    // Algumas versões do UXP podem negar esta sondagem inicial e, ainda assim,
+    // permitir a chamada usada pela ação escolhida. Não mostramos um falso
+    // alerta permanente: cada fluxo informa a falha real da sua requisição.
+    console.warn("[Decupagem] Não foi possível sondar o backend ao abrir:", erro);
   }
 }
 
@@ -111,6 +111,10 @@ async function processarAula(fontesSalvas = null) {
   if (corteEmAndamento) return;
   definirCorteEmAndamento(true);
   try {
+    // Um novo clique em "Selecionar fontes e processar" inicia uma tentativa
+    // nova e descarta a prévia temporária cancelada. Já "Tentar novamente"
+    // passa as fontes salvas e, por isso, a reaproveita.
+    if (!fontesSalvas) ultimaSolicitacaoDeProcessamento = null;
     let fontes = fontesSalvas ? { ...fontesSalvas } : null;
     if (!fontes) {
     const pgmPath = await selecionarFonte("o vídeo PGM", true);
@@ -229,6 +233,13 @@ async function processarAula(fontesSalvas = null) {
     await concluirProcessamento(dados);
     */
   } catch (erro) {
+    if (erro && erro.cancelled) {
+      // `ultimaSolicitacaoDeProcessamento` só é substituída após uma nova
+      // seleção completa de fontes. Assim, cancelar não faz o editor perder
+      // o que já escolheu e "Tentar novamente" reaproveita exatamente isso.
+      definirStatus("Processamento cancelado. As fontes e opções desta tentativa foram mantidas temporariamente; use Tentar novamente para retomá-las ou selecione novas fontes para substituir.");
+      return;
+    }
     if (erro && erro.detail && erro.detail.code === "ECONOMIC_MODE_REQUIRED") {
       mostrarAcaoModoEconomico(true);
       definirStatus("Esta aula tem mais de uma hora. Clique em 'Processar esta aula no modo economico'.");
@@ -545,6 +556,8 @@ async function aguardarTarefa(job, nome) {
       tarefaCancelavelId = null;
       atualizarBotaoCancelar();
     }
+    // Mostra imediatamente a acao Repetir para tarefas falhas/interrompidas.
+    atualizarCentralDeTarefas().catch(() => {});
   }
 }
 
@@ -827,8 +840,14 @@ async function criarAberturaVideocast() {
   try {
     const mediaPath = await selecionarFonte("o render completo do videocast", true);
     if (!mediaPath) return;
+    const campoPerguntas = document.getElementById("openingQuestions");
+    const perguntasDosBlocos = campoPerguntas ? String(campoPerguntas.value || "").trim() : "";
     definirStatus("Transcrevendo e selecionando falas de impacto para a abertura...");
-    const resposta = await filaComoResposta("opening", { revised_media_path: mediaPath }, "Abertura de videocast");
+    const resposta = await filaComoResposta(
+      "opening",
+      { revised_media_path: mediaPath, block_questions: perguntasDosBlocos },
+      "Abertura de videocast"
+    );
     if (!resposta.ok) throw new Error(await resposta.text());
     const dados = await resposta.json();
     if (dados.status !== "success" || !dados.xml_path) throw new Error("A abertura não foi gerada.");

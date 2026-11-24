@@ -20,10 +20,11 @@ from audio_sync import SyncError, sincronizar_audio
 from camera_director import dirigir_cameras
 from editorial_ai import (
     GEMINI_API_KEY, GEMINI_MODEL, GEMMA_MODEL, NVIDIA_API_KEY, NVIDIA_BASE_URL, NVIDIA_MODEL, OLLAMA_MODEL, EditorialModelError,
-    obter_diagnostico_editorial, obter_ultimo_modelo_textual, solicitar_json_textual_com_fallback_ollama,
+    obter_diagnostico_editorial, obter_ultimo_modelo_textual,
+    solicitar_json_abertura_rapida,
     _modelos_gemini, _request_url, _detalhe_erro_remoto, _erro_gemini_fatal, _erro_nvidia_autenticacao,
     _erro_nvidia_bloqueio_rede, definir_diagnostico_editorial, limitar_chamadas_remotas,
-    LIMITE_CHAMADAS_REMOTAS_POR_JOB,
+    LIMITE_CHAMADAS_REMOTAS_POR_JOB, diagnosticar_provedor_editorial,
 )
 from editorial_cache import chave_editorial_remota, ler_resultado as ler_cache_editorial, salvar_resultado as salvar_cache_editorial
 from lettering_ai import LetteringModelError, sugerir_letterings
@@ -138,6 +139,7 @@ class LetteringRequest(BaseModel):
 class OpeningRequest(BaseModel):
     """Render final de um videocast do qual saem as falas da abertura."""
     revised_media_path: str
+    block_questions: str = ""
 
 
 class LetteringSegmentsRequest(BaseModel):
@@ -189,6 +191,11 @@ class LearningRoleRequest(BaseModel):
 
 class LearningEvaluationRequest(BaseModel):
     candidate_xml: str
+
+
+class ProviderDiagnosticRequest(BaseModel):
+    model: str | None = None
+    execute: bool = False
 
 
 class EconomicModeRequiredError(ValueError):
@@ -314,6 +321,15 @@ def diagnostics_nvidia() -> dict:
                 if bloqueio_rede else "Verifique os limites e permissoes do projeto NVIDIA."
             ),
         }
+
+
+@app.post("/diagnostics/providers/{provider}")
+def diagnostics_provider(provider: str, request: ProviderDiagnosticRequest) -> dict:
+    """Sonda unitária e opt-in; não envia transcrição, XML ou áudio."""
+    try:
+        return diagnosticar_provedor_editorial(provider, request.model, request.execute)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
 @app.post("/process")
@@ -474,7 +490,7 @@ def process_media(request: MediaRequest, report_progress=None, is_cancelled=None
             marcar_etapa("transcription")
             checkpoint("Analisando decisões editoriais", 55)
             # Revisão editorial é uma escolha explícita do editor. Não use a
-            # duração para pular Gemini/GPT-OSS/Gemma: isso fazia aulas curtas
+            # duração para pular Gemini/NVIDIA/Gemma: isso fazia aulas curtas
             # caírem diretamente no Ollama, contrariando a ordem de provedores
             # configurada para os cortes.
             usar_ia_remota = request.editorial_review
@@ -786,11 +802,8 @@ def create_videocast_opening(request: OpeningRequest, report_progress=None, is_c
 
         def curar_abertura(prompt: str) -> str:
             nonlocal modelo_abertura
-            resposta, origem = solicitar_json_textual_com_fallback_ollama(prompt)
-            modelo_abertura = (
-                obter_ultimo_modelo_textual() or GEMINI_MODEL
-                if origem == "remote" else "Ollama/" + OLLAMA_MODEL
-            )
+            resposta = solicitar_json_abertura_rapida(prompt)
+            modelo_abertura = obter_ultimo_modelo_textual() or GEMMA_MODEL
             return resposta
 
         with extrair_audio_temporario(request.revised_media_path, midia.get("video_start", 0.0)) as audio_path:
@@ -801,7 +814,11 @@ def create_videocast_opening(request: OpeningRequest, report_progress=None, is_c
                 report_progress("Selecionando falas", 55)
             if is_cancelled and is_cancelled():
                 raise JobExecutionError(499, "Cancelada pelo operador antes da curadoria.")
-            trechos = selecionar_abertura(segmentos, curar_abertura)
+            trechos = selecionar_abertura(
+                segmentos, curar_abertura, request.block_questions, 1,
+            )
+            if any(trecho.get("fallback_local") for trecho in trechos):
+                modelo_abertura = "reserva_local_indisponibilidade_ou_validacao"
             trechos = aparar_silencios_das_bordas(audio_path, trechos)
             validar_trechos(trechos)
         duracao_abertura = sum(float(trecho["duration"]) for trecho in trechos)
@@ -814,7 +831,9 @@ def create_videocast_opening(request: OpeningRequest, report_progress=None, is_c
             avisos_abertura.append(aviso)
             logger.warning("Abertura fora da faixa preferida, mas entregue | duracao=%.1fs", duracao_abertura)
         if len(trechos) < 2:
-            raise ValueError("A transcricao nao trouxe falas suficientes para montar a abertura.")
+            aviso = "A transcricao trouxe pouco material; o XML foi gerado com o unico trecho aproveitavel."
+            avisos_abertura.append(aviso)
+            logger.warning("Abertura com material curto; entrega local mantida | trechos=%s", len(trechos))
         raiz_arquivo, _ = os.path.splitext(request.revised_media_path)
         job_id = uuid4().hex[:12]
         xml_path = f"{raiz_arquivo}_abertura_videocast_{job_id}.xml"
@@ -824,7 +843,8 @@ def create_videocast_opening(request: OpeningRequest, report_progress=None, is_c
         if report_progress:
             report_progress("Gravando abertura", 90)
         with open(diagnostico_path, "w", encoding="utf-8") as diagnostico:
-            json.dump({"source": request.revised_media_path, "highlights": trechos,
+            json.dump({"source": request.revised_media_path, "block_questions": request.block_questions,
+                       "highlights": trechos,
                        "transcript_segments": len(segmentos), "transcript": segmentos,
                        "model": modelo_abertura, "warnings": avisos_abertura,
                        "opening_version": 2}, diagnostico, ensure_ascii=False, indent=2)
