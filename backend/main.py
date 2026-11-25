@@ -20,10 +20,11 @@ from audio_sync import SyncError, sincronizar_audio
 from camera_director import dirigir_cameras
 from editorial_ai import (
     GEMINI_API_KEY, GEMINI_MODEL, GEMMA_MODEL, NVIDIA_API_KEY, NVIDIA_BASE_URL, NVIDIA_MODEL, OLLAMA_MODEL, EditorialModelError,
-    obter_diagnostico_editorial, obter_ultimo_modelo_textual, solicitar_json_textual_com_fallback_ollama,
+    obter_diagnostico_editorial, obter_ultimo_modelo_textual,
+    solicitar_json_abertura_rapida,
     _modelos_gemini, _request_url, _detalhe_erro_remoto, _erro_gemini_fatal, _erro_nvidia_autenticacao,
     _erro_nvidia_bloqueio_rede, definir_diagnostico_editorial, limitar_chamadas_remotas,
-    LIMITE_CHAMADAS_REMOTAS_POR_JOB,
+    LIMITE_CHAMADAS_REMOTAS_POR_JOB, diagnosticar_provedor_editorial,
 )
 from editorial_cache import chave_editorial_remota, ler_resultado as ler_cache_editorial, salvar_resultado as salvar_cache_editorial
 from lettering_ai import LetteringModelError, sugerir_letterings
@@ -38,6 +39,7 @@ from job_queue import JobExecutionError, PriorityJobQueue
 from transcriber import ModelUnavailableError, transcrever_audio
 from transcription_cache import get_or_transcribe
 from xml_generator import gerar_fcp_xml, gerar_fcp_xml_abertura
+from motion_briefing import gerar_briefing
 
 logging.basicConfig(
     level=logging.INFO,
@@ -138,6 +140,7 @@ class LetteringRequest(BaseModel):
 class OpeningRequest(BaseModel):
     """Render final de um videocast do qual saem as falas da abertura."""
     revised_media_path: str
+    block_questions: str = ""
 
 
 class LetteringSegmentsRequest(BaseModel):
@@ -154,6 +157,15 @@ class QualityAuditRequest(BaseModel):
     revised_media_path: str
     revised_xml_path: str
     editorial_profile: str = "standard"
+
+
+class MotionBriefingRequest(BaseModel):
+    """Arquivos locais para preparar um pacote de motion sem API externa."""
+
+    revised_xml_path: str
+    transcript_path: str
+    slides_path: str
+    screen_media_hint: str
 
 
 class JobRequest(BaseModel):
@@ -189,6 +201,11 @@ class LearningRoleRequest(BaseModel):
 
 class LearningEvaluationRequest(BaseModel):
     candidate_xml: str
+
+
+class ProviderDiagnosticRequest(BaseModel):
+    model: str | None = None
+    execute: bool = False
 
 
 class EconomicModeRequiredError(ValueError):
@@ -314,6 +331,15 @@ def diagnostics_nvidia() -> dict:
                 if bloqueio_rede else "Verifique os limites e permissoes do projeto NVIDIA."
             ),
         }
+
+
+@app.post("/diagnostics/providers/{provider}")
+def diagnostics_provider(provider: str, request: ProviderDiagnosticRequest) -> dict:
+    """Sonda unitária e opt-in; não envia transcrição, XML ou áudio."""
+    try:
+        return diagnosticar_provedor_editorial(provider, request.model, request.execute)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
 @app.post("/process")
@@ -474,7 +500,7 @@ def process_media(request: MediaRequest, report_progress=None, is_cancelled=None
             marcar_etapa("transcription")
             checkpoint("Analisando decisões editoriais", 55)
             # Revisão editorial é uma escolha explícita do editor. Não use a
-            # duração para pular Gemini/GPT-OSS/Gemma: isso fazia aulas curtas
+            # duração para pular Gemini/NVIDIA/Gemma: isso fazia aulas curtas
             # caírem diretamente no Ollama, contrariando a ordem de provedores
             # configurada para os cortes.
             usar_ia_remota = request.editorial_review
@@ -786,11 +812,8 @@ def create_videocast_opening(request: OpeningRequest, report_progress=None, is_c
 
         def curar_abertura(prompt: str) -> str:
             nonlocal modelo_abertura
-            resposta, origem = solicitar_json_textual_com_fallback_ollama(prompt)
-            modelo_abertura = (
-                obter_ultimo_modelo_textual() or GEMINI_MODEL
-                if origem == "remote" else "Ollama/" + OLLAMA_MODEL
-            )
+            resposta = solicitar_json_abertura_rapida(prompt)
+            modelo_abertura = obter_ultimo_modelo_textual() or GEMMA_MODEL
             return resposta
 
         with extrair_audio_temporario(request.revised_media_path, midia.get("video_start", 0.0)) as audio_path:
@@ -801,7 +824,11 @@ def create_videocast_opening(request: OpeningRequest, report_progress=None, is_c
                 report_progress("Selecionando falas", 55)
             if is_cancelled and is_cancelled():
                 raise JobExecutionError(499, "Cancelada pelo operador antes da curadoria.")
-            trechos = selecionar_abertura(segmentos, curar_abertura)
+            trechos = selecionar_abertura(
+                segmentos, curar_abertura, request.block_questions, 1,
+            )
+            if any(trecho.get("fallback_local") for trecho in trechos):
+                modelo_abertura = "reserva_local_indisponibilidade_ou_validacao"
             trechos = aparar_silencios_das_bordas(audio_path, trechos)
             validar_trechos(trechos)
         duracao_abertura = sum(float(trecho["duration"]) for trecho in trechos)
@@ -814,7 +841,9 @@ def create_videocast_opening(request: OpeningRequest, report_progress=None, is_c
             avisos_abertura.append(aviso)
             logger.warning("Abertura fora da faixa preferida, mas entregue | duracao=%.1fs", duracao_abertura)
         if len(trechos) < 2:
-            raise ValueError("A transcricao nao trouxe falas suficientes para montar a abertura.")
+            aviso = "A transcricao trouxe pouco material; o XML foi gerado com o unico trecho aproveitavel."
+            avisos_abertura.append(aviso)
+            logger.warning("Abertura com material curto; entrega local mantida | trechos=%s", len(trechos))
         raiz_arquivo, _ = os.path.splitext(request.revised_media_path)
         job_id = uuid4().hex[:12]
         xml_path = f"{raiz_arquivo}_abertura_videocast_{job_id}.xml"
@@ -824,7 +853,8 @@ def create_videocast_opening(request: OpeningRequest, report_progress=None, is_c
         if report_progress:
             report_progress("Gravando abertura", 90)
         with open(diagnostico_path, "w", encoding="utf-8") as diagnostico:
-            json.dump({"source": request.revised_media_path, "highlights": trechos,
+            json.dump({"source": request.revised_media_path, "block_questions": request.block_questions,
+                       "highlights": trechos,
                        "transcript_segments": len(segmentos), "transcript": segmentos,
                        "model": modelo_abertura, "warnings": avisos_abertura,
                        "opening_version": 2}, diagnostico, ensure_ascii=False, indent=2)
@@ -847,6 +877,33 @@ def create_videocast_opening(request: OpeningRequest, report_progress=None, is_c
         raise HTTPException(status_code=422 if isinstance(exc, ValueError) else 404, detail=str(exc)) from exc
     except Exception as exc:
         logger.error("Falha ao criar abertura de videocast.\n%s", traceback.format_exc())
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@app.post("/create-motion-briefing")
+def create_motion_briefing(request: MotionBriefingRequest, report_progress=None, is_cancelled=None) -> dict:
+    """Prepara CSV/Markdown/prompt para motion apenas com arquivos locais."""
+    try:
+        if report_progress:
+            report_progress("Lendo XML final, transcricao e PDF de slides", 20)
+        if is_cancelled and is_cancelled():
+            raise JobExecutionError(499, "Cancelada antes de gerar o briefing de motion.")
+        resultado = gerar_briefing(
+            request.revised_xml_path, request.transcript_path, request.slides_path,
+            request.screen_media_hint,
+        )
+        if report_progress:
+            report_progress("Gravando briefing para motion", 90)
+        logger.info("Motion: briefing local concluido | xml=%s | eventos=%s", request.revised_xml_path, resultado["events"])
+        return {**resultado, "operation_summary": {"operation": "motion_briefing", "models": {"analysis": "regras locais (sem API)"}, "quantities": {"events": resultado["events"], "screen_intervals": resultado["screen_intervals"]}}}
+    except JobExecutionError:
+        raise
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    except Exception as exc:
+        logger.error("Falha ao criar briefing de motion.\n%s", traceback.format_exc())
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 
 
@@ -936,7 +993,7 @@ def audit_quality(request: QualityAuditRequest, report_progress=None, is_cancell
 
 # Uma só tarefa pesada por vez protege CPU, disco, Whisper e os provedores de IA.
 # O menor numero sai primeiro: corte > auditoria > lettering.
-JOB_PRIORITIES = {"process": 0, "opening": 10, "audit": 20, "lettering": 30}
+JOB_PRIORITIES = {"process": 0, "opening": 10, "audit": 20, "lettering": 30, "motion": 35}
 JOB_QUEUE = PriorityJobQueue(Path(__file__).resolve().parent / "job_data" / "jobs.sqlite3")
 
 
@@ -950,6 +1007,8 @@ def _execute_queued_job(task: str, payload: dict, report_progress=None, is_cance
             return analyze_lettering(LetteringRequest(**payload), report_progress, is_cancelled)
         if task == "opening":
             return create_videocast_opening(OpeningRequest(**payload), report_progress, is_cancelled)
+        if task == "motion":
+            return create_motion_briefing(MotionBriefingRequest(**payload), report_progress, is_cancelled)
         raise ValueError(f"Tipo de tarefa nao suportado: {task}")
     except HTTPException as exc:
         raise JobExecutionError(exc.status_code, exc.detail) from exc
@@ -967,11 +1026,13 @@ def _validar_job(task: str, payload: dict) -> None:
         LetteringRequest(**payload)
     elif task == "opening":
         OpeningRequest(**payload)
+    elif task == "motion":
+        MotionBriefingRequest(**payload)
 
 
 def _titulo_job(task: str, payload: dict) -> str:
     caminho = payload.get("pgm_path") or payload.get("revised_media_path") or "Aula sem nome"
-    operacao = {"process": "Corte", "opening": "Abertura", "audit": "Auditoria", "lettering": "Lettering"}[task]
+    operacao = {"process": "Corte", "opening": "Abertura", "audit": "Auditoria", "lettering": "Lettering", "motion": "Briefing Motion"}[task]
     return f"{operacao}: {Path(caminho).name}"
 
 
@@ -979,7 +1040,7 @@ def _titulo_job(task: str, payload: dict) -> str:
 def create_job(request: JobRequest) -> dict:
     """Aceita tarefas sem limite pratico e devolve o identificador para consulta."""
     if request.task not in JOB_PRIORITIES:
-        raise HTTPException(status_code=422, detail="Tarefa invalida. Use process, opening, audit ou lettering.")
+        raise HTTPException(status_code=422, detail="Tarefa invalida. Use process, opening, audit, lettering ou motion.")
     try:
         _validar_job(request.task, request.payload)
     except Exception as exc:

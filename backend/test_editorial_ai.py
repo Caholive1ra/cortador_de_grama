@@ -674,7 +674,9 @@ def test_modo_economico_envia_apenas_candidatos_e_contexto_curto(monkeypatch) ->
 
     resultado = decidir_cortes_semanticos(segmentos, modo_economico=True)
     assert resultado.discard_indexes == {10}
-    assert len(prompts) == 1
+    # A primeira chamada e a selecao economica; o gatilho explicito de
+    # reinicio tambem gera uma comparacao restrita entre as duas tomadas.
+    assert len(prompts) == 2
     assert '"candidate_id": 10' in prompts[0]
     assert "candidate_id\": 29" not in prompts[0]
     assert obter_diagnostico_editorial()["mode"] == "gemini_economic"
@@ -775,6 +777,7 @@ def test_glm_nvidia_nao_recebe_response_format_nao_suportado(monkeypatch) -> Non
 
     monkeypatch.setattr("editorial_ai.NVIDIA_API_KEY", "chave-de-teste")
     monkeypatch.setattr("editorial_ai.NVIDIA_MODELS", ("z-ai/glm-5.3-flash",), raising=False)
+    monkeypatch.setattr("editorial_ai.GLM_REASONING_EFFORT", "low")
     chamadas = []
 
     def responder(method, url, payload, headers, timeout):
@@ -784,6 +787,23 @@ def test_glm_nvidia_nao_recebe_response_format_nao_suportado(monkeypatch) -> Non
     monkeypatch.setattr("editorial_ai._request_url", responder)
     assert _nvidia_request("teste") == '{"discard": []}'
     assert "response_format" not in chamadas[0]
+    assert chamadas[0]["reasoning_effort"] == "low"
+    assert chamadas[0]["chat_template_kwargs"] == {"clear_thinking": True}
+
+
+def test_limite_global_interrompe_cadeia_nvidia_sem_tentar_outros_modelos(monkeypatch) -> None:
+    from editorial_ai import NvidiaReviewError, _nvidia_request, limitar_chamadas_remotas
+
+    monkeypatch.setattr("editorial_ai.NVIDIA_API_KEY", "chave-de-teste")
+    monkeypatch.setattr("editorial_ai.NVIDIA_MODELS", ("mistralai/mistral-large-4-1t-a52b", "z-ai/glm-5.3-flash"))
+    chamadas = []
+    monkeypatch.setattr("editorial_ai._request_url", lambda *args, **kwargs: chamadas.append(args) or {})
+
+    with limitar_chamadas_remotas(True, limite=0):
+        with pytest.raises(NvidiaReviewError, match="Limite de chamadas remotas"):
+            _nvidia_request("teste")
+
+    assert chamadas == []
 
 
 def test_revisao_textual_consulta_ollama_so_depois_de_todos_remotos(monkeypatch) -> None:
@@ -802,6 +822,58 @@ def test_revisao_textual_consulta_ollama_so_depois_de_todos_remotos(monkeypatch)
     assert json.loads(resposta) == {"confirmar": []}
     assert origem == "ollama"
     assert chamadas == ["gemini", "nvidia", "gemma", "ollama"]
+
+
+def test_abertura_prioriza_gemma_com_raciocinio_alto(monkeypatch) -> None:
+    import editorial_ai as ai
+
+    chamadas = []
+    monkeypatch.setattr(ai, "GEMINI_API_KEY", "gemini")
+    monkeypatch.setattr(ai, "NVIDIA_API_KEY", "nvidia")
+    monkeypatch.setattr(
+        ai, "_gemma_request",
+        lambda _prompt, thinking_level=None: chamadas.append(("gemma", thinking_level)) or '{"selection": []}',
+    )
+    monkeypatch.setattr(ai, "_gemini_request", lambda _prompt: chamadas.append(("gemini", None)) or '{"selection": []}')
+
+    resposta, origem = ai.solicitar_json_textual_com_fallback_ollama(
+        "curar abertura", preferir_gemma=True, gemma_thinking_level="high",
+    )
+
+    assert json.loads(resposta) == {"selection": []}
+    assert origem == "remote"
+    assert chamadas == [("gemma", "high")]
+
+
+def test_gemma_envia_thinking_level_documentado(monkeypatch) -> None:
+    import editorial_ai as ai
+
+    monkeypatch.setattr(ai, "GEMINI_API_KEY", "teste")
+    chamada = {}
+    monkeypatch.setattr(ai, "_request_url", lambda _m, _u, payload, _h, timeout: chamada.update(payload) or {
+        "usageMetadata": {}, "candidates": [{"finishReason": "STOP", "content": {"parts": [{"text": '{"discard": []}'}]}}],
+    })
+
+    assert ai._gemma_request("teste", thinking_level="high") == '{"discard": []}'
+    assert chamada["generationConfig"]["thinkingConfig"] == {"thinkingLevel": "high"}
+
+
+def test_abertura_gemma_nao_tenta_cascata_ou_retry(monkeypatch) -> None:
+    import editorial_ai as ai
+
+    monkeypatch.setattr(ai, "GEMINI_API_KEY", "teste")
+    chamadas = []
+
+    def indisponivel(*args, **kwargs):
+        chamadas.append(kwargs["timeout"])
+        raise TimeoutError("lento")
+
+    monkeypatch.setattr(ai, "_request_url", indisponivel)
+
+    with pytest.raises(ai.GemmaReviewError, match="TimeoutError"):
+        ai.solicitar_json_abertura_rapida("selecionar abertura")
+
+    assert chamadas == [ai.GEMMA_TIMEOUT_ABERTURA_SEGUNDOS]
 
 
 def test_json_invalido_do_gemini_e_rejeitado_com_seguranca(monkeypatch):

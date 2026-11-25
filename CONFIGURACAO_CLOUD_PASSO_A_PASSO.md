@@ -6,7 +6,7 @@ em commits.
 
 ## 1. Criar o projeto Supabase
 
-1. Acesse [Supabase Dashboard](https://supabase.com/dashboard), escolha **New project**, informe organização, nome e região próxima aos editores.
+1. Acesse [Supabase Dashboard](https://supabase.com/dashboard), escolha **New project**, informe organização, nome e região próxima aos editores. (Red22546038)
 2. Em **Project settings > API**, copie a **Project URL**. A `service_role` deve ficar somente no worker cloud; não a coloque no plugin ou no computador de edição.
 3. Em **SQL Editor > New query**, abra `backend/migrations/001_cloud_learning.sql`, copie o conteúdo, execute **Run** e confirme que não houve erro.
 4. Em **Table Editor**, confira as tabelas `editor_feedback`, `learning_jobs`, `prompt_versions`, `evaluation_results` e `deployment_versions`.

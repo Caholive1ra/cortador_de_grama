@@ -21,6 +21,7 @@ flowchart LR
 | Corte de aula | XML FCP multicâmera para importar e revisar. |
 | Abertura de videocast | XML com 30 a 40 segundos de falas completas e conectadas. |
 | Lettering | Marcadores com texto curto, evidência e justificativa. |
+| Briefing para Motion | Timecodes da mídia de tela no XML final, cruzados localmente com a transcrição e o PDF dos slides. |
 | Auditoria | Marcadores de possíveis problemas de corte, áudio, imagem e continuidade. |
 | Aprendizado | Comparação entre sugestão inicial e edição humana. |
 
@@ -114,6 +115,14 @@ Selecione o render completo. A ferramenta cria de 2 a 4 falas completas, cronol�
 As duas tarefas ficam vinculadas à sequência ativa no início. Você pode trocar de aba e continuar trabalhando: os marcadores serão inseridos na sequência de origem, nunca na aba que estiver ativa no fim.
 
 - **Lettering:** use render da mesma sequência, começando no mesmo zero da timeline. Ele analisa fala editada e não lê visualmente slides.
+
+### Briefing para Motion a partir de XML e PDF
+
+No painel, informe uma parte do nome da mídia de tela que aparece no XML final e selecione: o XML final exportado pelo Premiere, uma transcrição temporal (`JSON`, `SRT` ou `VTT`) e o PDF dos slides. A ferramenta cria um Markdown legível, um CSV de timecodes e um prompt para a equipe anexar manualmente a um chat de IA.
+
+Os timecodes são extraídos deterministicamente do XML. A associação entre fala, página e elemento do slide é textual, local e conservadora: quando não houver prova suficiente, o resultado será `REVISAR`, nunca uma instrução inventada. PDFs escaneados, sem texto selecionável, precisam de OCR antes de serem usados.
+
+Para a análise final, a equipe anexa o PDF e `*_briefing_motion.json` ao chat, copia o conteúdo de `*_prompt_motion_ia.md` e recebe somente uma tabela cronológica de produção. O JSON preserva a transcrição integral e os segundos originais; candidatos de página são hipóteses locais, não confirmação visual. Nenhuma API é chamada pelo Cortador nesse fluxo.
 - **Auditoria:** use render/proxy da mesma sequência. No perfil **MBA**, ela analisa frames e transcrição para sugerir zoom-in sutil, zoom-out, plano estável, destaque de slide ou pausa visual. Ela apenas cria marcadores; não altera cortes, mídia ou efeitos.
 
 A auditoria compara janelas de até três segmentos, com busca próxima de até dois minutos e busca de frases muito semelhantes ao longo de toda a transcrição. Os alertas de repetição mostram os tempos das duas ocorrências; a revisão por IA trabalha em lotes, respeita o orçamento remoto e distingue repetição acidental de reforço didático. Candidatos incertos ou não revisados permanecem sinalizados. A busca depende da transcrição e da semelhança textual: não garante detectar toda paráfrase.
@@ -127,6 +136,7 @@ O render também recebe uma varredura integral de tela quase preta (a partir de 
 | Corte | `*_cortado_*.xml` e `*_diagnostico_*.json` próximos ao PGM. |
 | Abertura | XML e diagnóstico próximos ao render selecionado. |
 | Lettering | `*_lettering_sugerido_*.xml` e JSON de sugestões próximos ao render. |
+| Briefing Motion | `*_briefing_motion.md`, `*_timecodes_motion.csv`, `*_prompt_motion_ia.md` e JSON próximos ao XML final. |
 | Auditoria | JSON de achados próximo ao render/XML analisado. |
 | Jobs | `backend/job_data/jobs.sqlite3`. |
 | Aprendizado | `backend/learning_data/`. |
@@ -157,6 +167,7 @@ Antes de alterar regras ou provedores, registre uma edição humana no banco de 
 ## Documentação complementar
 
 - [Manual completo do projeto](docs/MANUAL_DO_PROJETO.md)
+- [Tutorial de instalacao no macOS](docs/TUTORIAL_INSTALACAO_MAC.md)
 - [Guia de teste em outra máquina](GUIA_TESTE_OUTRA_MAQUINA.md)
 - [Segurança](SECURITY.md)
 - [Contexto histórico](PROJECT_CONTEXT.md)

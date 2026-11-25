@@ -148,8 +148,11 @@
       </section>
       <section class="bloco" data-workflow="abertura">
         <h2>Abertura de videocast</h2>
-        <p>Cria uma abertura de 30 a 40 segundos com 2 a 4 falas completas, conectadas por um tema e sem repetir takes.</p>
-        <p class="aviso">A transcrição é local. A IA avalia os blocos do episódio e monta a abertura com contexto. A seleção envia texto aos provedores configurados; o Ollama é a alternativa local.</p>
+        <p>Cria uma abertura de 30 a 40 segundos com 4 a 7 frases de impacto do convidado, conectadas por um caminho editorial e sem repetir takes.</p>
+        <label class="opcao" for="openingQuestions">Perguntas dos blocos (recomendado)</label>
+        <textarea id="openingQuestions" maxlength="6000" style="width:100%;min-height:90px"
+          placeholder="Cole as perguntas ou tópicos de cada bloco. Elas orientam a narrativa, mas nunca entram como falas da abertura."></textarea>
+        <p class="aviso">As perguntas são um mapa do episódio. A IA prioriza respostas, reflexões e frases memoráveis do convidado; a transcrição continua local e apenas o texto é enviado aos provedores configurados.</p>
         <button id="btnAbertura" type="button">Selecionar render e criar abertura</button>
       </section>
       <section class="bloco" data-workflow="letterings">
@@ -161,6 +164,14 @@
         <p class="aviso">Selecione um render completo da sequência final, desde o início e sem alterar os tempos. Você pode continuar editando outras sequências: os marcadores serão inseridos nesta sequência ao final. A análise usa a fala editada; slides e textos já na imagem precisam de conferência visual.</p>
         <p>Indique a sequência revisada pelo humano para encontrar os pontos que precisam de texto.</p>
         <button id="btnLettering" data-task="lettering" type="button">Selecionar sequência e indicar letterings</button>
+      </section>
+      <section class="bloco" data-workflow="motion">
+        <h2>Briefing para Motion</h2>
+        <p>Gera timecodes exatos da tela pelo XML final e cruza a fala temporal com o PDF dos slides, sem enviar arquivos para API.</p>
+        <label class="opcao" for="motionScreenMedia">Parte do nome da mídia de tela no XML</label>
+        <input id="motionScreenMedia" type="text" maxlength="200" placeholder="Ex.: TELA_CAP02 ou captura_tela" style="width:100%" />
+        <p class="aviso">Você selecionará: XML final, transcrição JSON/SRT/VTT e PDF dos slides. O resultado marca como REVISAR quando a fala não comprova o slide ou item.</p>
+        <button id="btnMotionBriefing" data-task="motion" type="button">Gerar briefing e timecodes para Motion</button>
       </section>
       <section class="bloco" data-workflow="aprender">
         <h2>Ensinar com esta edição</h2>

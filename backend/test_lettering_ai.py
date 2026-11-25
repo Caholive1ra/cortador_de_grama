@@ -31,11 +31,29 @@ def test_sugestoes_usam_apenas_intervalos_da_transcricao(monkeypatch) -> None:
     assert resultado[0]["explanation"]
 
 
-def test_sem_chave_nao_finge_ter_analise(monkeypatch) -> None:
+def test_sem_chave_tenta_ollama_antes_do_algoritmo(monkeypatch) -> None:
     monkeypatch.setattr("lettering_ai.GEMINI_API_KEY", None)
     monkeypatch.setattr("lettering_ai.NVIDIA_API_KEY", None)
-    with pytest.raises(LetteringModelError, match="GEMINI_API_KEY"):
-        sugerir_letterings([{"start": 0, "end": 1, "text": "Teste"}])
+    chamadas = []
+    monkeypatch.setattr(
+        "lettering_ai.solicitar_json_ollama_local",
+        lambda _prompt: chamadas.append("ollama") or '{"suggestions": []}',
+    )
+    assert sugerir_letterings([{"start": 0, "end": 1, "text": "Teste"}]) == []
+    assert chamadas == ["ollama"]
+
+
+def test_algoritmo_so_acontece_depois_da_falha_do_ollama(monkeypatch) -> None:
+    import editorial_ai as ai
+
+    monkeypatch.setattr("lettering_ai.GEMINI_API_KEY", None)
+    monkeypatch.setattr("lettering_ai.NVIDIA_API_KEY", None)
+    monkeypatch.setattr(
+        "lettering_ai.solicitar_json_ollama_local",
+        lambda _prompt: (_ for _ in ()).throw(ai.EditorialModelError("indisponivel")),
+    )
+    resultado = sugerir_letterings([{"start": 0, "end": 2, "text": "A API recebe dados."}])
+    assert [item["text"] for item in resultado] == ["API"]
 
 
 def test_modo_economico_cobre_tambem_o_final(monkeypatch) -> None:

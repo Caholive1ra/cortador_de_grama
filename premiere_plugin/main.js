@@ -33,10 +33,10 @@ async function verificarBackendLocal() {
     if (!resposta.ok) throw new Error("HTTP " + resposta.status);
     definirStatus("Backend local conectado. Escolha uma ação para iniciar.");
   } catch (erro) {
-    definirStatus(
-      "Backend local indisponível. Inicie o backend e tente novamente. " +
-      (erro.message || String(erro))
-    );
+    // Algumas versões do UXP podem negar esta sondagem inicial e, ainda assim,
+    // permitir a chamada usada pela ação escolhida. Não mostramos um falso
+    // alerta permanente: cada fluxo informa a falha real da sua requisição.
+    console.warn("[Decupagem] Não foi possível sondar o backend ao abrir:", erro);
   }
 }
 
@@ -111,6 +111,10 @@ async function processarAula(fontesSalvas = null) {
   if (corteEmAndamento) return;
   definirCorteEmAndamento(true);
   try {
+    // Um novo clique em "Selecionar fontes e processar" inicia uma tentativa
+    // nova e descarta a prévia temporária cancelada. Já "Tentar novamente"
+    // passa as fontes salvas e, por isso, a reaproveita.
+    if (!fontesSalvas) ultimaSolicitacaoDeProcessamento = null;
     let fontes = fontesSalvas ? { ...fontesSalvas } : null;
     if (!fontes) {
     const pgmPath = await selecionarFonte("o vídeo PGM", true);
@@ -229,6 +233,13 @@ async function processarAula(fontesSalvas = null) {
     await concluirProcessamento(dados);
     */
   } catch (erro) {
+    if (erro && erro.cancelled) {
+      // `ultimaSolicitacaoDeProcessamento` só é substituída após uma nova
+      // seleção completa de fontes. Assim, cancelar não faz o editor perder
+      // o que já escolheu e "Tentar novamente" reaproveita exatamente isso.
+      definirStatus("Processamento cancelado. As fontes e opções desta tentativa foram mantidas temporariamente; use Tentar novamente para retomá-las ou selecione novas fontes para substituir.");
+      return;
+    }
     if (erro && erro.detail && erro.detail.code === "ECONOMIC_MODE_REQUIRED") {
       mostrarAcaoModoEconomico(true);
       definirStatus("Esta aula tem mais de uma hora. Clique em 'Processar esta aula no modo economico'.");
@@ -545,6 +556,8 @@ async function aguardarTarefa(job, nome) {
       tarefaCancelavelId = null;
       atualizarBotaoCancelar();
     }
+    // Mostra imediatamente a acao Repetir para tarefas falhas/interrompidas.
+    atualizarCentralDeTarefas().catch(() => {});
   }
 }
 
@@ -758,6 +771,36 @@ async function colorirTagsDeCorteNaSequenciaAtiva() {
  * o editor ja revisou. O arquivo deve ser uma exportacao da sequencia final.
  * @returns {Promise<void>}
  */
+async function gerarBriefingMotion() {
+  const botao = document.getElementById("btnMotionBriefing");
+  if (botao && botao.disabled) return;
+  const campoMidia = document.getElementById("motionScreenMedia");
+  const midiaTela = String(campoMidia && campoMidia.value || "").trim();
+  if (!midiaTela) throw new Error("Informe parte do nome da mídia de tela como aparece no XML final.");
+  if (botao) botao.disabled = true;
+  try {
+    const xml = await selecionarFonte("o XML exportado da sequência final", true, ["xml"]);
+    if (!xml) return;
+    const transcricao = await selecionarFonte("a transcrição temporal (JSON, SRT ou VTT)", true, ["json", "srt", "vtt"]);
+    if (!transcricao) return;
+    const pdf = await selecionarFonte("o PDF dos slides da aula", true, ["pdf"]);
+    if (!pdf) return;
+    definirStatus("Lendo XML, transcrição e PDF localmente para preparar o briefing de motion...");
+    const dados = await (await filaComoResposta("motion", {
+      revised_xml_path: xml, transcript_path: transcricao, slides_path: pdf,
+      screen_media_hint: midiaTela,
+    }, "Briefing para Motion")).json();
+    const mensagem = "Briefing pronto: " + dados.events + " momento(s), " +
+      dados.high_confidence_events + " com alta confiança.\n\nMarkdown: " + dados.briefing_path +
+      "\nCSV: " + dados.csv_path + "\nJSON para anexar ao chat: " + dados.json_path +
+      "\nPrompt para chat: " + dados.prompt_path;
+    definirStatus(mensagem);
+    mostrarResumoOperacao("Briefing para Motion concluído", mensagem, dados);
+  } finally {
+    if (botao) botao.disabled = false;
+  }
+}
+
 async function analisarLettering() {
   const botao = document.getElementById("btnLettering");
   if (botao && botao.dataset.task !== "lettering") {
@@ -827,8 +870,14 @@ async function criarAberturaVideocast() {
   try {
     const mediaPath = await selecionarFonte("o render completo do videocast", true);
     if (!mediaPath) return;
+    const campoPerguntas = document.getElementById("openingQuestions");
+    const perguntasDosBlocos = campoPerguntas ? String(campoPerguntas.value || "").trim() : "";
     definirStatus("Transcrevendo e selecionando falas de impacto para a abertura...");
-    const resposta = await filaComoResposta("opening", { revised_media_path: mediaPath }, "Abertura de videocast");
+    const resposta = await filaComoResposta(
+      "opening",
+      { revised_media_path: mediaPath, block_questions: perguntasDosBlocos },
+      "Abertura de videocast"
+    );
     if (!resposta.ok) throw new Error(await resposta.text());
     const dados = await resposta.json();
     if (dados.status !== "success" || !dados.xml_path) throw new Error("A abertura não foi gerada.");
@@ -1242,6 +1291,10 @@ function iniciarPainel() {
       });
     };
   }
+  const botaoMotion = document.getElementById("btnMotionBriefing");
+  if (botaoMotion) botaoMotion.onclick = () => gerarBriefingMotion().catch((erro) => {
+    definirStatus("Briefing para Motion: " + (erro.message || String(erro)));
+  });
   const botaoAbertura = document.getElementById("btnAbertura");
   if (botaoAbertura) botaoAbertura.onclick = () => criarAberturaVideocast();
   const botaoAprender = document.getElementById("btnAprender");

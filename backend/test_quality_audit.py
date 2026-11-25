@@ -199,3 +199,18 @@ def test_direcao_mba_retorna_marcador_sem_aplicar_efeito(monkeypatch):
     assert resultado["findings"][0]["category"] == "direcao"
     assert "ZOOM-IN" in resultado["findings"][0]["title"]
     assert "Escala sugerida" in resultado["findings"][0]["description"]
+
+
+def test_auditoria_entrega_parcial_quando_audio_e_imagem_falham(monkeypatch, tmp_path):
+    xml, media = tmp_path / "a.xml", tmp_path / "a.mp4"
+    xml.write_text("<xmeml><sequence><rate><timebase>30</timebase></rate></sequence></xmeml>")
+    media.write_bytes(b"mock")
+    monkeypatch.setattr("quality_audit._auditar_audio", lambda *a: (_ for _ in ()).throw(RuntimeError("audio")))
+    monkeypatch.setattr("quality_audit._auditar_imagem", lambda *a: (_ for _ in ()).throw(RuntimeError("imagem")))
+    monkeypatch.setattr("quality_audit._auditar_render_completo", lambda *a: {"status": "completed", "findings": []})
+    monkeypatch.setattr("quality_audit._revisar_repeticoes_com_ia", lambda *a: {"status": "not_needed", "findings": [], "reviewed_ids": []})
+
+    resultado = auditar_sequencia(str(xml), str(media), [])
+
+    assert resultado["checked"]["partial_checks"] == ["audio", "imagem"]
+    assert len(resultado["findings"]) >= 2

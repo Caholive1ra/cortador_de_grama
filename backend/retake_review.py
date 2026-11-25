@@ -3,6 +3,17 @@
 import json
 import re
 import unicodedata
+from difflib import SequenceMatcher
+
+
+GATILHOS_REINICIO = (
+    'de novo', 'recomec', 'comecando agora', 'um dois', 'falei errado',
+    'nao ficou bom', 'voltar essa parte', 'vamos novamente', 'pode cortar',
+    'corta ai', 'vou refazer', 'vamos refazer', 'deixa eu refazer',
+    'refazer essa parte', 'vou regravar', 'vamos regravar', 'gravar de novo',
+    'fazer de novo', 'comecar novamente', 'vou reiniciar', 'deixa eu voltar',
+)
+MAX_REVISOES_RETAKE = 8
 
 
 def normalizar(texto):
@@ -31,9 +42,6 @@ def candidatos(segmentos):
     grupos = blocos(segmentos)
     saida = []
     vistos = set()
-    gatilhos = ('de novo', 'recomec', 'comecando agora', 'um dois', 'falei errado',
-                'nao ficou bom', 'voltar essa parte', 'vamos novamente', 'pode cortar', 'corta ai')
-
     def texto(grupo):
         return normalizar(' '.join(str(segmentos[i]['text']) for i in grupo))
 
@@ -49,7 +57,9 @@ def candidatos(segmentos):
             saida.append({'before': antes, 'after': depois, 'trigger': motivo})
 
     marcadores = [i for i, item in enumerate(segmentos)
-                  if any(gatilho in normalizar(str(item['text'])) for gatilho in gatilhos)]
+                  if any(gatilho in normalizar(str(item['text'])) for gatilho in GATILHOS_REINICIO)]
+    # Quando ha varios avisos proximos (por exemplo "de novo" e depois
+    # contagem), eles formam uma unica ponte entre a tomada antiga e a nova.
     grupos_marcador = []
     for indice in marcadores:
         if (not grupos_marcador
@@ -63,7 +73,6 @@ def candidatos(segmentos):
                              if grupos[p][-1] < primeiro), None)
         if pos_anterior is None:
             continue
-        # Une blocos divididos apenas pelo limite de 45s, mas para numa pausa real.
         escolhidos = [grupos[pos_anterior]]
         while pos_anterior > 0:
             proximo = grupos[pos_anterior - 1]
@@ -77,7 +86,27 @@ def candidatos(segmentos):
         if substantivo(antes) and substantivo(depois):
             registrar(antes, depois, 'reinicio')
 
-    # Sem fala de reinicio, so vale uma repeticao muito forte entre tomadas vizinhas.
+    for marcador in marcadores:
+        # O aviso de refacao pode ficar no mesmo bloco ASR das duas tomadas.
+        # Delimitamos janelas ao redor dele por tempo/pausa, sem exigir uma
+        # lacuna artificial de tres segundos entre a fala e o aviso.
+        antes = []
+        for indice in range(marcador - 1, -1, -1):
+            if (float(segmentos[marcador]['start']) - float(segmentos[indice]['start']) > 60
+                    or (antes and float(segmentos[antes[-1]]['start']) - float(segmentos[indice]['end']) >= 3)):
+                break
+            antes.insert(0, indice)
+        depois = []
+        for indice in range(marcador + 1, len(segmentos)):
+            if (float(segmentos[indice]['end']) - float(segmentos[marcador]['end']) > 75
+                    or (depois and float(segmentos[indice]['start']) - float(segmentos[depois[-1]]['end']) >= 3)):
+                break
+            depois.append(indice)
+        if substantivo(antes) and substantivo(depois):
+            registrar(antes, depois, 'reinicio')
+
+    # Sem fala de reinicio, somente pares vizinhos com inicio muito semelhante
+    # viram candidatos. A IA local ainda separa retake de repeticao didatica.
     for anterior, posterior in zip(grupos, grupos[1:]):
         if not (substantivo(anterior) and substantivo(posterior)):
             continue
@@ -85,8 +114,9 @@ def candidatos(segmentos):
         palavras_a, palavras_b = texto_a.split(), texto_b.split()
         inicio_a, inicio_b = ' '.join(palavras_a[:10]), ' '.join(palavras_b[:10])
         mesmos_termos = len(set(palavras_a) & set(palavras_b))
+        similaridade_inicio = SequenceMatcher(None, inicio_a, inicio_b).ratio()
         if (float(segmentos[posterior[0]]['start']) - float(segmentos[anterior[-1]]['end']) <= 45
-                and mesmos_termos >= 8 and inicio_a == inicio_b):
+                and mesmos_termos >= 7 and similaridade_inicio >= .82):
             registrar(anterior, posterior, 'repeticao_forte')
     return saida
 
@@ -95,11 +125,11 @@ def revisar(segmentos, solicitar):
     """A IA escolhe somente intervalos fornecidos; falha gera revisao humana."""
     cortes, revisoes, registros = {}, {}, []
     pares = candidatos(segmentos)
-    # Uma aula pode ter muitos ensaios; quatro comparacoes locais sao suficientes
-    # para conter custo e nunca espalhar um mesmo gatilho pela aula inteira.
+    # Refacoes em serie sao comuns em gravacoes. O limite ainda contem custo,
+    # mas oito pares cobre uma sequencia real sem corte automatico.
     pares.sort(key=lambda p: p['trigger'] != 'reinicio')
     for numero, par in enumerate(pares):
-        if numero >= 4:
+        if numero >= MAX_REVISOES_RETAKE:
             revisoes.update({i: 'retake_pendente_limite_de_analise' for i in par['before']})
             registros.append({'status': 'pending', 'before': [par['before'][0], par['before'][-1]]})
             continue

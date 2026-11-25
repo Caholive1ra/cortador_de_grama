@@ -25,3 +25,13 @@ backend/learning_data/
 backend/ai_cache/
 backend/transcription_cache/
 backend/job_data/
+
+# Ambiente local de agentes; nao faz parte do aplicativo distribuido.
+.agents/
+skills-lock.json
+
+# Entregaveis gerados localmente pelo fluxo de Motion.
+*_briefing_motion.md
+*_briefing_motion.json
+*_timecodes_motion.csv
+*_prompt_motion_ia.md

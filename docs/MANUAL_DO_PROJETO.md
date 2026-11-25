@@ -88,6 +88,14 @@ O sistema transcreve o render completo, reduz localmente o conjunto de candidato
 
 Lettering usa o render da sequência final, para não sugerir textos em falas removidas. Sugestões precisam estar ancoradas na transcrição, ter até quatro palavras e carregar evidência, categoria e explicação. A ferramenta não lê slides visualmente; grafia de siglas e redundância com texto já na tela precisam de conferência humana.
 
+### Briefing para Motion
+
+O briefing de Motion não usa render nem chama IA remota. O editor exporta o XML da sequência final, seleciona uma transcrição temporal (`JSON`, `SRT` ou `VTT`) e o PDF de slides original, e informa parte do nome da mídia de tela presente no XML. A ferramenta localiza os intervalos em que essa mídia está ativa e cruza cada trecho com a fala no mesmo intervalo.
+
+Ela entrega Markdown para leitura humana, CSV para planilha/nome de arquivo e um prompt para a equipe anexar manualmente, se desejar, a um chat de IA junto ao PDF. Os timecodes são determinísticos e vêm exclusivamente do XML; relação entre fala, página e item do slide é uma sugestão textual local. Quando não houver evidência suficiente, o resultado deve ser tratado como `REVISAR`. PDFs escaneados ou sem texto extraível exigem OCR prévio.
+
+Para a resposta de produção, a equipe deve anexar o PDF e `*_briefing_motion.json`, copiar `*_prompt_motion_ia.md` e usar a única tabela cronológica devolvida pelo chat. O JSON mantém os campos compatíveis, a transcrição integral, segundos sem arredondamento e campos pendentes (`speech_summary`, `matched_elements`, `motion_action`, `production_status`, `asset_filename` e `review_reason`). A análise externa valida candidatos locais, mas não altera os timecodes.
+
 ### Auditoria
 
 Auditoria é não destrutiva: combina XML da sequência e render/proxy correspondente para procurar riscos de áudio, imagem, continuidade, repetição, conteúdo e jump cut. No perfil MBA, envia poucos frames selecionados e falas relevantes ao Gemini Vision quando disponível, sugerindo zoom-in sutil, zoom-out, plano estável, destaque de slide ou pausa visual. Sem visão remota, aplica sugestões locais conservadoras. O resultado cria apenas marcadores.
@@ -201,7 +209,7 @@ Envie estas informações ao abrir uma investigação:
 | `GET` | `/health` | Estado do backend. |
 | `GET` | `/diagnostics/gemini`, `/diagnostics/nvidia` | Diagnóstico seguro de configuração. |
 | `POST` | `/process` | Corte direto. |
-| `POST` | `/jobs` | Enfileira corte, abertura, auditoria ou lettering. |
+| `POST` | `/jobs` | Enfileira corte, abertura, auditoria, lettering ou briefing de Motion. |
 | `GET` | `/jobs`, `/jobs/{id}` | Consulta da fila e tarefa. |
 | `POST` | `/jobs/{id}/cancel`, `/retry` | Controle de tarefa. |
 | `POST` | `/analyze-lettering*` | Lettering por render ou segmentos. |

@@ -74,10 +74,28 @@ def auditar_sequencia(xml_path: str, media_path: str, segmentos: list[dict], edi
     achados.extend(revisao_ia["findings"])
     logger.info("Auditoria tecnica: revisao IA de repeticoes | status=%s | achados=%s",
                 revisao_ia["status"], len(revisao_ia["findings"]))
-    achados.extend(_auditar_audio(str(media), timeline["cuts"]))
+    verificacoes_indisponiveis: list[str] = []
+    try:
+        achados.extend(_auditar_audio(str(media), timeline["cuts"]))
+    except Exception as exc:
+        verificacoes_indisponiveis.append("audio")
+        logger.warning("Auditoria de audio indisponivel; entregando demais achados | %s", exc)
+        achados.append(_achado("revisao", 0, "AUDITORIA PARCIAL: audio indisponivel",
+            "A verificacao automatica de audio falhou; os demais alertas foram preservados."))
     logger.info("Auditoria tecnica: audio concluido | achados=%s", len(achados))
-    achados.extend(_auditar_imagem(str(media), timeline["cuts"], timeline["fps"]))
-    varredura = _auditar_render_completo(str(media))
+    try:
+        achados.extend(_auditar_imagem(str(media), timeline["cuts"], timeline["fps"]))
+    except Exception as exc:
+        verificacoes_indisponiveis.append("imagem")
+        logger.warning("Auditoria de imagem indisponivel; entregando demais achados | %s", exc)
+        achados.append(_achado("revisao", 0, "AUDITORIA PARCIAL: imagem indisponivel",
+            "A verificacao automatica de imagem falhou; os demais alertas foram preservados."))
+    try:
+        varredura = _auditar_render_completo(str(media))
+    except Exception as exc:
+        verificacoes_indisponiveis.append("varredura_render")
+        logger.warning("Varredura completa indisponivel; entregando demais achados | %s", exc)
+        varredura = {"status": "unavailable", "findings": [], "detail": "Erro tecnico na varredura do render."}
     achados.extend(varredura["findings"])
     if varredura["status"] != "completed":
         achados.append(_achado("revisao", 0, "AUDITORIA PARCIAL: varredura do render indisponível",
@@ -90,7 +108,12 @@ def auditar_sequencia(xml_path: str, media_path: str, segmentos: list[dict], edi
     direcao_mba = {"status": "not_requested", "findings": []}
     if editorial_profile == "mba":
         from mba_direction import sugerir_direcao_mba
-        direcao_mba = sugerir_direcao_mba(str(media), segmentos)
+        try:
+            direcao_mba = sugerir_direcao_mba(str(media), segmentos)
+        except Exception as exc:
+            verificacoes_indisponiveis.append("direcao_mba")
+            logger.warning("Direcao MBA indisponivel; entregando auditoria local | %s", exc)
+            direcao_mba = {"status": "unavailable", "findings": []}
         achados.extend(direcao_mba["findings"])
         logger.info("Auditoria MBA: direcao visual | status=%s | sugestoes=%s",
                     direcao_mba["status"], len(direcao_mba["findings"]))
@@ -107,6 +130,7 @@ def auditar_sequencia(xml_path: str, media_path: str, segmentos: list[dict], edi
             "repetition_pending": len(candidatos) - len(resolvidos),
             "full_render_scan": varredura["status"],
             "full_render_scan_detail": varredura.get("detail"),
+            "partial_checks": verificacoes_indisponiveis,
             "limitations": "Alertas para revisão humana; não garantem ausência de erros nem verificam fatos contra fontes externas.",
             "editorial_profile": editorial_profile,
             "mba_direction": direcao_mba["status"],
