@@ -165,6 +165,14 @@
         <p>Indique a sequência revisada pelo humano para encontrar os pontos que precisam de texto.</p>
         <button id="btnLettering" data-task="lettering" type="button">Selecionar sequência e indicar letterings</button>
       </section>
+      <section class="bloco" data-workflow="motion">
+        <h2>Briefing para Motion</h2>
+        <p>Gera timecodes exatos da tela pelo XML final e cruza a fala temporal com o PDF dos slides, sem enviar arquivos para API.</p>
+        <label class="opcao" for="motionScreenMedia">Parte do nome da mídia de tela no XML</label>
+        <input id="motionScreenMedia" type="text" maxlength="200" placeholder="Ex.: TELA_CAP02 ou captura_tela" style="width:100%" />
+        <p class="aviso">Você selecionará: XML final, transcrição JSON/SRT/VTT e PDF dos slides. O resultado marca como REVISAR quando a fala não comprova o slide ou item.</p>
+        <button id="btnMotionBriefing" data-task="motion" type="button">Gerar briefing e timecodes para Motion</button>
+      </section>
       <section class="bloco" data-workflow="aprender">
         <h2>Ensinar com esta edição</h2>
         <p>Depois de editar, deixe a sua sequência final aberta. Vamos comparar suas escolhas com a primeira sugestão da IA.</p>

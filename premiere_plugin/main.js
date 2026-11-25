@@ -771,6 +771,36 @@ async function colorirTagsDeCorteNaSequenciaAtiva() {
  * o editor ja revisou. O arquivo deve ser uma exportacao da sequencia final.
  * @returns {Promise<void>}
  */
+async function gerarBriefingMotion() {
+  const botao = document.getElementById("btnMotionBriefing");
+  if (botao && botao.disabled) return;
+  const campoMidia = document.getElementById("motionScreenMedia");
+  const midiaTela = String(campoMidia && campoMidia.value || "").trim();
+  if (!midiaTela) throw new Error("Informe parte do nome da mídia de tela como aparece no XML final.");
+  if (botao) botao.disabled = true;
+  try {
+    const xml = await selecionarFonte("o XML exportado da sequência final", true, ["xml"]);
+    if (!xml) return;
+    const transcricao = await selecionarFonte("a transcrição temporal (JSON, SRT ou VTT)", true, ["json", "srt", "vtt"]);
+    if (!transcricao) return;
+    const pdf = await selecionarFonte("o PDF dos slides da aula", true, ["pdf"]);
+    if (!pdf) return;
+    definirStatus("Lendo XML, transcrição e PDF localmente para preparar o briefing de motion...");
+    const dados = await (await filaComoResposta("motion", {
+      revised_xml_path: xml, transcript_path: transcricao, slides_path: pdf,
+      screen_media_hint: midiaTela,
+    }, "Briefing para Motion")).json();
+    const mensagem = "Briefing pronto: " + dados.events + " momento(s), " +
+      dados.high_confidence_events + " com alta confiança.\n\nMarkdown: " + dados.briefing_path +
+      "\nCSV: " + dados.csv_path + "\nJSON para anexar ao chat: " + dados.json_path +
+      "\nPrompt para chat: " + dados.prompt_path;
+    definirStatus(mensagem);
+    mostrarResumoOperacao("Briefing para Motion concluído", mensagem, dados);
+  } finally {
+    if (botao) botao.disabled = false;
+  }
+}
+
 async function analisarLettering() {
   const botao = document.getElementById("btnLettering");
   if (botao && botao.dataset.task !== "lettering") {
@@ -1261,6 +1291,10 @@ function iniciarPainel() {
       });
     };
   }
+  const botaoMotion = document.getElementById("btnMotionBriefing");
+  if (botaoMotion) botaoMotion.onclick = () => gerarBriefingMotion().catch((erro) => {
+    definirStatus("Briefing para Motion: " + (erro.message || String(erro)));
+  });
   const botaoAbertura = document.getElementById("btnAbertura");
   if (botaoAbertura) botaoAbertura.onclick = () => criarAberturaVideocast();
   const botaoAprender = document.getElementById("btnAprender");

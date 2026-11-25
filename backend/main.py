@@ -39,6 +39,7 @@ from job_queue import JobExecutionError, PriorityJobQueue
 from transcriber import ModelUnavailableError, transcrever_audio
 from transcription_cache import get_or_transcribe
 from xml_generator import gerar_fcp_xml, gerar_fcp_xml_abertura
+from motion_briefing import gerar_briefing
 
 logging.basicConfig(
     level=logging.INFO,
@@ -156,6 +157,15 @@ class QualityAuditRequest(BaseModel):
     revised_media_path: str
     revised_xml_path: str
     editorial_profile: str = "standard"
+
+
+class MotionBriefingRequest(BaseModel):
+    """Arquivos locais para preparar um pacote de motion sem API externa."""
+
+    revised_xml_path: str
+    transcript_path: str
+    slides_path: str
+    screen_media_hint: str
 
 
 class JobRequest(BaseModel):
@@ -870,6 +880,33 @@ def create_videocast_opening(request: OpeningRequest, report_progress=None, is_c
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 
 
+@app.post("/create-motion-briefing")
+def create_motion_briefing(request: MotionBriefingRequest, report_progress=None, is_cancelled=None) -> dict:
+    """Prepara CSV/Markdown/prompt para motion apenas com arquivos locais."""
+    try:
+        if report_progress:
+            report_progress("Lendo XML final, transcricao e PDF de slides", 20)
+        if is_cancelled and is_cancelled():
+            raise JobExecutionError(499, "Cancelada antes de gerar o briefing de motion.")
+        resultado = gerar_briefing(
+            request.revised_xml_path, request.transcript_path, request.slides_path,
+            request.screen_media_hint,
+        )
+        if report_progress:
+            report_progress("Gravando briefing para motion", 90)
+        logger.info("Motion: briefing local concluido | xml=%s | eventos=%s", request.revised_xml_path, resultado["events"])
+        return {**resultado, "operation_summary": {"operation": "motion_briefing", "models": {"analysis": "regras locais (sem API)"}, "quantities": {"events": resultado["events"], "screen_intervals": resultado["screen_intervals"]}}}
+    except JobExecutionError:
+        raise
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    except Exception as exc:
+        logger.error("Falha ao criar briefing de motion.\n%s", traceback.format_exc())
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
 @app.post("/audit-quality")
 def audit_quality(request: QualityAuditRequest, report_progress=None, is_cancelled=None) -> dict:
     """Audita a edicao final e devolve marcadores; nunca altera a sequencia."""
@@ -956,7 +993,7 @@ def audit_quality(request: QualityAuditRequest, report_progress=None, is_cancell
 
 # Uma só tarefa pesada por vez protege CPU, disco, Whisper e os provedores de IA.
 # O menor numero sai primeiro: corte > auditoria > lettering.
-JOB_PRIORITIES = {"process": 0, "opening": 10, "audit": 20, "lettering": 30}
+JOB_PRIORITIES = {"process": 0, "opening": 10, "audit": 20, "lettering": 30, "motion": 35}
 JOB_QUEUE = PriorityJobQueue(Path(__file__).resolve().parent / "job_data" / "jobs.sqlite3")
 
 
@@ -970,6 +1007,8 @@ def _execute_queued_job(task: str, payload: dict, report_progress=None, is_cance
             return analyze_lettering(LetteringRequest(**payload), report_progress, is_cancelled)
         if task == "opening":
             return create_videocast_opening(OpeningRequest(**payload), report_progress, is_cancelled)
+        if task == "motion":
+            return create_motion_briefing(MotionBriefingRequest(**payload), report_progress, is_cancelled)
         raise ValueError(f"Tipo de tarefa nao suportado: {task}")
     except HTTPException as exc:
         raise JobExecutionError(exc.status_code, exc.detail) from exc
@@ -987,11 +1026,13 @@ def _validar_job(task: str, payload: dict) -> None:
         LetteringRequest(**payload)
     elif task == "opening":
         OpeningRequest(**payload)
+    elif task == "motion":
+        MotionBriefingRequest(**payload)
 
 
 def _titulo_job(task: str, payload: dict) -> str:
     caminho = payload.get("pgm_path") or payload.get("revised_media_path") or "Aula sem nome"
-    operacao = {"process": "Corte", "opening": "Abertura", "audit": "Auditoria", "lettering": "Lettering"}[task]
+    operacao = {"process": "Corte", "opening": "Abertura", "audit": "Auditoria", "lettering": "Lettering", "motion": "Briefing Motion"}[task]
     return f"{operacao}: {Path(caminho).name}"
 
 
@@ -999,7 +1040,7 @@ def _titulo_job(task: str, payload: dict) -> str:
 def create_job(request: JobRequest) -> dict:
     """Aceita tarefas sem limite pratico e devolve o identificador para consulta."""
     if request.task not in JOB_PRIORITIES:
-        raise HTTPException(status_code=422, detail="Tarefa invalida. Use process, opening, audit ou lettering.")
+        raise HTTPException(status_code=422, detail="Tarefa invalida. Use process, opening, audit, lettering ou motion.")
     try:
         _validar_job(request.task, request.payload)
     except Exception as exc:
